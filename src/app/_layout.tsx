@@ -1,18 +1,51 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { RollpeFonts, useRollpeColors } from "@/constants/theme";
 
-SplashScreen.preventAutoHideAsync();
+export { ErrorBoundary } from "expo-router";
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+void SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const colors = useRollpeColors();
+  const [fontsLoaded, fontError] = useFonts({
+    [RollpeFonts.display]: require("@/assets/fonts/Hakgyoansim-Dunggeunmiso-R.otf"),
+    [RollpeFonts.regular]: require("@/assets/fonts/Pretendard-Regular.otf"),
+    [RollpeFonts.semibold]: require("@/assets/fonts/Pretendard-SemiBold.otf"),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (fontError) {
+    throw fontError;
+  }
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.rollpe_primary },
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{ title: "롤페", gestureEnabled: false }}
+        />
+      </Stack>
+    </>
   );
 }
