@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ReactNative_Roll-Pe",
+    "name": "롤페",
     "slug": "ReactNative_Roll-Pe",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,9 @@
     "scheme": "reactnativerollpe",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "dev.hugesilver.Roll-Pe",
+      "appleTeamId": "42NW282TDP"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +34,8 @@
           "image": "./assets/images/welcome/logo.png",
           "imageWidth": 168
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
