@@ -45,6 +45,7 @@ export default function RootLayout() {
           name="index"
           options={{ title: "롤페", gestureEnabled: false }}
         />
+        <Stack.Screen name="sign-in" options={{ title: "로그인" }} />
       </Stack>
     </>
   );

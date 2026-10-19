@@ -11,6 +11,9 @@ export function useRollpeColors() {
     rollpe_gray: isDark ? '#AAAAAA' : '#AAAAAA',
     rollpe_section_background: isDark ? '#F4F4F4' : '#F4F4F4',
     team_exiters: isDark ? '#555555' : '#555555',
+    kakao: isDark ? '#FEE500' : '#FEE500',
+    real_black: isDark ? '#000000' : '#000000',
+    rollpe_white: isDark ? '#FFFFFF' : '#FFFFFF',
   };
 }
 

@@ -14,7 +14,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 type Welcome1stSectionProps = {
-  onStart?: () => void;
+  onStart: () => void;
 };
 
 export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
@@ -65,8 +65,6 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
         <PrimaryButton
           title="롤페 시작하기"
           onPress={onStart}
-          disabled={!onStart}
-          accessibilityHint={!onStart ? '로그인 화면을 준비 중입니다.' : undefined}
           style={styles.startButton}
         />
       </View>
