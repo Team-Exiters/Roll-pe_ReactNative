@@ -1,17 +1,40 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/BackButton';
+import { LoadingView } from '@/components/ui/LoadingView';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { SignInForm } from '@/features/sign-in/components/SignInForm';
 import { SocialSignInButton } from '@/features/sign-in/components/SocialSignInButton';
+import { useSignIn } from '@/features/sign-in/useSignIn';
 
 export default function SignInScreen() {
   const colors = useRollpeColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const signIn = useSignIn();
+
+  function showSignInMessage(message: string) {
+    if (Platform.OS === 'web') {
+      window.alert(message);
+    } else {
+      Alert.alert('로그인', message);
+    }
+  }
+
+  async function submitSignIn(action: () => ReturnType<typeof signIn.emailSignIn>) {
+    try {
+      const session = await action();
+      if (session) {
+        // The authenticated home screen will be connected when its migration is complete.
+        showSignInMessage('로그인되었습니다.');
+      }
+    } catch (error) {
+      showSignInMessage(error instanceof Error ? error.message : '로그인에 실패했습니다. 다시 시도해주세요.');
+    }
+  }
 
   function goBack() {
     if (router.canGoBack()) {
@@ -50,7 +73,12 @@ export default function SignInScreen() {
           <Text numberOfLines={2} style={[styles.title, { color: colors.rollpe_secondary }]}>
             {'다같이 한 마음으로\n사랑하는 사람에게 전달해보세요'}
           </Text>
-          <SignInForm />
+          <SignInForm
+            disabled={signIn.isLoading}
+            onSubmit={signIn.canSignIn
+              ? (credentials) => { void submitSignIn(() => signIn.emailSignIn(credentials)); }
+              : undefined}
+          />
           <View style={styles.menus}>
             <Pressable
               accessibilityRole="link"
@@ -60,9 +88,16 @@ export default function SignInScreen() {
             </Pressable>
           </View>
           <View style={styles.socials}>
-            <SocialSignInButton provider="kakao" />
-            <SocialSignInButton provider="google" />
-            <SocialSignInButton provider="apple" />
+            {(['kakao', 'google', 'apple'] as const).map((provider) => (
+              <SocialSignInButton
+                key={provider}
+                provider={provider}
+                disabled={signIn.isLoading}
+                onPress={signIn.canUseProvider(provider)
+                  ? () => { void submitSignIn(() => signIn.socialSignIn(provider)); }
+                  : undefined}
+              />
+            ))}
           </View>
           <View style={styles.policies}>
             <Pressable
@@ -82,6 +117,7 @@ export default function SignInScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       <BackButton onPress={goBack} style={[styles.back, { top: insets.top + 20 }]} />
+      {signIn.isLoading && <LoadingView />}
     </View>
   );
 }

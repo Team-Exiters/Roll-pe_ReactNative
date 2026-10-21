@@ -6,9 +6,10 @@ import { useRollpeColors } from '@/constants/theme';
 type SocialSignInButtonProps = {
   provider: 'kakao' | 'google' | 'apple';
   onPress?: () => void;
+  disabled?: boolean;
 };
 
-export function SocialSignInButton({ provider, onPress }: SocialSignInButtonProps) {
+export function SocialSignInButton({ provider, onPress, disabled = false }: SocialSignInButtonProps) {
   const colors = useRollpeColors();
   const providers = {
     kakao: {
@@ -37,8 +38,8 @@ export function SocialSignInButton({ provider, onPress }: SocialSignInButtonProp
       accessibilityRole="button"
       accessibilityLabel={config.label}
       accessibilityHint={!onPress ? '현재 사용할 수 없습니다.' : undefined}
-      accessibilityState={{ disabled: !onPress }}
-      disabled={!onPress}
+      accessibilityState={{ disabled: disabled || !onPress }}
+      disabled={disabled || !onPress}
       onPress={onPress}
       style={[
         styles.button,
