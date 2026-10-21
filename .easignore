@@ -31,8 +31,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# environment files
+.env*
 
 # fonts
 *.otf

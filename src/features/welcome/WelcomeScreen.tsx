@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { AppFooter } from '@/components/AppFooter';
@@ -8,6 +9,7 @@ import { Welcome3rdSection } from '@/features/welcome/components/Welcome3rdSecti
 
 export default function WelcomeScreen() {
   const colors = useRollpeColors();
+  const router = useRouter();
 
   return (
     <ScrollView
@@ -16,7 +18,7 @@ export default function WelcomeScreen() {
       automaticallyAdjustContentInsets={false}
       showsVerticalScrollIndicator={false}
       bounces={false}>
-      <Welcome1stSection />
+      <Welcome1stSection onStart={() => router.push('/sign-in')} />
       <Welcome2ndSection />
       <Welcome3rdSection />
       <AppFooter />
