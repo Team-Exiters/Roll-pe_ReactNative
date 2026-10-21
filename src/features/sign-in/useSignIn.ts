@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { apiUrl } from '../../lib/api';
 
-import { apiUrl, signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from './api';
+import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from './api';
 import { completeBrowserSignIn, prepareBrowserRequest, type BrowserRequest } from './browser-auth';
 import type { SignInSession } from './session';
 import { authorizeNative, availableNativeProviders } from './social';

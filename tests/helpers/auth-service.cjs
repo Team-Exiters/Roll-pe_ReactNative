@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
+const { attachAxiosTransport } = require('./axios-transport.cjs');
 
 // Exercise actual services with only SDK, network, and storage boundaries replaced.
 function loadServices({ platform = 'web', enabled = true, storage = new Map(), env = {} } = {}) {
@@ -101,12 +102,22 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
     fetch: async (...args) => {
       calls.fetch.push(args);
       if (state.networkError) throw state.networkError;
-      return { ok: state.ok, status: state.ok ? 201 : 401, json: async () => state.payload };
+      const reply = state.responses?.shift();
+      if (reply?.error) throw reply.error;
+      if (reply) return { ok: reply.status >= 200 && reply.status < 300, status: reply.status, json: async () => {
+        if (reply.jsonError) throw reply.jsonError;
+        return reply.payload;
+      } };
+      return { ok: state.ok, status: state.ok ? 201 : 401, json: async () => {
+        if (state.jsonError) throw state.jsonError;
+        return state.payload;
+      } };
     },
   };
   function load(name) {
-    const filename = path.join(root, `${name}.ts`);
-    assert.ok(filename.startsWith(root));
+    const filename = name === 'shared-api'
+      ? path.resolve(root, '../../lib/api.ts') : path.join(root, `${name}.ts`);
+    assert.ok(name === 'shared-api' || filename.startsWith(root));
     if (modules.has(filename)) return modules.get(filename);
     const exports = {};
     modules.set(filename, exports);
@@ -117,11 +128,14 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
     vm.runInNewContext(output, {
       ...globals, exports,
       require: (name) => {
+        if (name === 'axios') return require('axios');
+        if (name === '../../lib/api') return load('shared-api');
         if (name.startsWith('./')) return load(name.slice(2));
         assert.ok(name in mocks, `Unexpected import: ${name}`);
         return mocks[name];
       },
     }, { filename });
+    if (name === 'shared-api') attachAxiosTransport(exports.apiClient, globals.fetch);
     return exports;
   }
   return { load, calls, state, storage };

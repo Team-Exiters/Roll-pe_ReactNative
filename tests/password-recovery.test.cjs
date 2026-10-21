@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
 const ts = require('typescript');
+const { attachAxiosTransport } = require('./helpers/axios-transport.cjs');
 const { loadServices } = require('./helpers/auth-service.cjs');
 
 const credentials = { identifyCode: 'Ab123x', token: 'd04abc-' + 'a'.repeat(32) };
@@ -11,13 +12,15 @@ const storedSession = {
   access: 'old-access', refresh: 'old-refresh',
   user: { id: 1, name: '기존 사용자', email: 'existing@example.com', identifyCode: 'Ab123x', provider: null },
 };
-function recoveryService({ status = 200, payload = { message: '요청되었습니다.' }, failure, timeout = false, platform = 'ios' } = {}) {
+function recoveryService({ status = 200, payload = { message: '요청되었습니다.' }, failure, timeout = false, jsonFailure, platform = 'ios' } = {}) {
   const auth = loadServices({ platform });
   const requests = [];
   const cache = new Map();
   function load(name) {
     if (cache.has(name)) return cache.get(name);
-    const filename = name === 'reset-link'
+    const filename = name === 'shared-api'
+      ? path.resolve(__dirname, '../src/lib/api.ts')
+      : name === 'reset-link'
       ? path.resolve(__dirname, '../src/utils/reset-link.ts')
       : path.resolve(__dirname, `../src/features/password-recovery/${name}.ts`);
     const output = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
@@ -25,23 +28,31 @@ function recoveryService({ status = 200, payload = { message: '요청되었습�
     }).outputText;
     const exports = {};
     cache.set(name, exports);
+    let network;
     vm.runInNewContext(output, {
       exports, AbortController, Error,
+      process: { env: { EXPO_PUBLIC_API_URL: 'https://api.example' } },
       setTimeout: (fn, ms) => setTimeout(fn, timeout ? 1 : ms), clearTimeout,
-      fetch: async (url, options) => {
+      fetch: network = async (url, options) => {
         requests.push([url, options]);
         if (failure) throw failure;
         if (timeout) return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
-        return { ok: status >= 200 && status < 300, status, json: async () => payload };
+        return { ok: status >= 200 && status < 300, status, json: async () => {
+          if (jsonFailure) throw jsonFailure;
+          return payload;
+        } };
       },
       require: (name) => {
-        if (name === '../sign-in/api') return { apiUrl: 'https://api.example' };
+        if (name === 'axios') return require('axios');
+        if (name === 'react-native') return { Platform: { OS: 'web' } };
+        if (name === '../../lib/api') return load('shared-api');
         if (name === '../sign-in/session') return auth.load('session');
         if (name === './validation') return load('validation');
         if (name === '../../utils/reset-link') return load('reset-link');
         throw new Error(`Unexpected import ${name}`);
       },
     }, { filename });
+    if (name === 'shared-api') attachAxiosTransport(exports.apiClient, network);
     return exports;
   }
   return { ...auth, requests, recovery: load('api'), validation: load('validation') };
@@ -97,9 +108,10 @@ test('missing credentials and invalid password are rejected before any request',
 });
 
 test('network, timeout, malformed and server failures are bounded and cannot clear sessions', async () => {
-  for (const options of [{ failure: new Error('offline') }, { timeout: true }, { payload: [] }, { status: 503 }]) {
+  for (const options of [{ failure: new Error('offline') }, { timeout: true }, { payload: [] }, { status: 503 }, { jsonFailure: new SyntaxError('invalid JSON') }]) {
     const { recovery, calls } = recoveryService(options);
-    await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'));
+    await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'),
+      options.jsonFailure ? /서버에 연결하지 못했습니다/ : undefined);
     assert.equal(calls.deleted.length, 0);
     assert.equal(calls.saved.length, 0);
   }

@@ -41,7 +41,7 @@ test('successful browser return exchanges the bound proof before saving a sessio
   const request = await service.prepareBrowserRequest('apple');
   state.callback = callback(request, { code: 'c'.repeat(43) });
   state.payload = { data: session };
-  assert.equal(await service.completeBrowserSignIn(request), session);
+  assert.deepEqual(await service.completeBrowserSignIn(request), session);
   assert.equal(calls.fetch[0][0], 'https://api.example/api/user/social/login/apple/exchange');
   assert.equal(JSON.parse(calls.fetch[0][1].body).code_verifier, request.verifier);
   assert.equal(calls.fetch[0][1].credentials, 'omit');

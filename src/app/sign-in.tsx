@@ -87,8 +87,9 @@ export default function SignInScreen() {
             <Text accessible={false} style={[styles.menuText, { color: colors.rollpe_gray }]}>|</Text>
             <Pressable
               accessibilityRole="link"
-              accessibilityHint="현재 사용할 수 없습니다."
-              disabled>
+              disabled={signIn.isLoading}
+              hitSlop={12}
+              onPress={() => router.push('/sign-up')}>
               <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>회원가입</Text>
             </Pressable>
           </View>
@@ -107,15 +108,15 @@ export default function SignInScreen() {
           <View style={styles.policies}>
             <Pressable
               accessibilityRole="link"
-              accessibilityHint="현재 사용할 수 없습니다."
-              disabled>
+              disabled={signIn.isLoading}
+              onPress={() => router.push({ pathname: '/policy', params: { type: 'terms' } })}>
               <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>서비스 이용약관</Text>
             </Pressable>
             <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>|</Text>
             <Pressable
               accessibilityRole="link"
-              accessibilityHint="현재 사용할 수 없습니다."
-              disabled>
+              disabled={signIn.isLoading}
+              onPress={() => router.push({ pathname: '/policy', params: { type: 'privacy' } })}>
               <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>개인정보처리방침</Text>
             </Pressable>
           </View>

@@ -1,4 +1,4 @@
-import { apiUrl } from '../sign-in/api';
+import { apiUrl, requestJson } from '../../lib/api';
 import { clearSession } from '../sign-in/session';
 import { isRecoveryEmail, isRecoveryPassword, resetCredentials, type ResetCredentials } from './validation';
 
@@ -11,23 +11,10 @@ export class PasswordRecoveryError extends Error {
 
 async function requestRecovery(method: 'POST' | 'PATCH', body: object): Promise<string> {
   if (!apiUrl) throw new PasswordRecoveryError('서버 주소가 설정되지 않았습니다.');
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20_000);
-  let response: Response;
-  let payload: unknown;
-  try {
-    response = await fetch(`${apiUrl}/api/user/forgot-password`, {
-      method, headers: { 'Content-Type': 'application/json' }, credentials: 'omit',
-      signal: controller.signal, body: JSON.stringify(body),
-    });
-    payload = await response.json();
-  } catch {
+  const { response, payload } = await requestJson(`${apiUrl}/api/user/forgot-password`, body, method).catch(() => {
     throw new PasswordRecoveryError('서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.');
-  } finally {
-    clearTimeout(timer);
-  }
-  const message = payload && typeof payload === 'object' && 'message' in payload
-    && typeof payload.message === 'string' ? payload.message : null;
+  });
+  const message = typeof payload?.message === 'string' ? payload.message : null;
   if (!response.ok) {
     // Invalid, expired, and already-used reset links all require a fresh email.
     throw new PasswordRecoveryError(message || '요청을 처리하지 못했습니다. 다시 시도해주세요.',

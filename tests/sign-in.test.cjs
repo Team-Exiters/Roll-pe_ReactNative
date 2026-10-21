@@ -21,12 +21,14 @@ test('email accepts the original 201 response with a null provider and preserves
 });
 
 test('rejected credentials, malformed replies, and network errors never save a session', async () => {
-  for (const variant of ['rejected', 'malformed', 'network']) {
+  for (const variant of ['rejected', 'malformed', 'network', 'json']) {
     const { load, calls, state } = loadServices({ platform: 'ios' });
     state.ok = variant === 'malformed';
     state.payload = { message: '로그인할 수 없습니다.', data: { access: 'incomplete' } };
     if (variant === 'network') state.networkError = new Error('offline');
-    await assert.rejects(load('api').signInWithEmail({ email: 'a@example.com', password: 'pw', keepSignIn: true }));
+    if (variant === 'json') state.jsonError = new SyntaxError('invalid JSON');
+    await assert.rejects(load('api').signInWithEmail({ email: 'a@example.com', password: 'pw', keepSignIn: true }),
+      variant === 'json' ? /로그인 서버에 연결하지 못했습니다/ : undefined);
     assert.equal(calls.saved.length, 0);
   }
 });
@@ -170,4 +172,55 @@ test('a pending native storage read cannot restore a session cleared while the r
   resolveRead(JSON.stringify(session()));
   assert.equal(await reading, null);
   assert.equal(await sessionModule.getSession(), null);
+});
+
+const unverifiedEmail = {
+  status_code: 403, message: '이메일 인증을 진행해주세요.', code: 'FORBIDDEN', link: '/login', data: null,
+};
+
+test('only a confirmed unverified email login resends verification using PATCH, without saving a session', async () => {
+  const { load, calls, state } = loadServices({ platform: 'ios' });
+  state.responses = [
+    { status: 403, payload: unverifiedEmail },
+    { status: 200, payload: { message: '인증 이메일을 재 전송하였습니다.' } },
+  ];
+  await assert.rejects(load('api').signInWithEmail({ email: ' person@example.com ', password: 'secret', keepSignIn: true }), /인증 메일을 다시 보냈습니다/);
+  assert.equal(calls.fetch.length, 2);
+  assert.equal(calls.fetch[1][0], 'https://api.example/api/user/verify-email');
+  assert.equal(calls.fetch[1][1].method, 'PATCH');
+  assert.equal(calls.fetch[1][1].credentials, 'omit');
+  assert.deepEqual(JSON.parse(calls.fetch[1][1].body), { email: 'person@example.com', pathCode: 'email' });
+  assert.equal(calls.saved.length, 0);
+});
+
+test('wrong passwords, generic denials, social login and malformed unverified replies never trigger mail', async () => {
+  for (const [status, payload] of [
+    [401, unverifiedEmail], [404, unverifiedEmail], [503, unverifiedEmail],
+    [403, { ...unverifiedEmail, message: '로그인할 수 없는 계정입니다.' }],
+    [403, { ...unverifiedEmail, status_code: 400 }], [403, { ...unverifiedEmail, code: 'OTHER' }],
+    [403, { ...unverifiedEmail, link: null }], [403, { ...unverifiedEmail, data: {} }],
+  ]) {
+    const { load, calls, state } = loadServices({ platform: 'ios' });
+    state.responses = [{ status, payload }];
+    await assert.rejects(load('api').signInWithEmail({ email: 'a@example.com', password: 'pw', keepSignIn: true }));
+    assert.equal(calls.fetch.length, 1);
+    assert.equal(calls.saved.length, 0);
+  }
+  const { load, calls, state } = loadServices({ platform: 'ios' });
+  state.responses = [{ status: 403, payload: unverifiedEmail }];
+  await assert.rejects(load('api').signInWithSocial('google', { accessToken: 'id-token' }));
+  assert.equal(calls.fetch.length, 1);
+  assert.equal(calls.saved.length, 0);
+});
+
+test('failed verification resend explains the failure and never creates a session', async () => {
+  for (const reply of [{ status: 503, payload: { message: '메일 전송 실패' } },
+    { error: new Error('offline') }, { status: 200, payload: null },
+    { status: 200, jsonError: new SyntaxError('invalid JSON') }]) {
+    const { load, calls, state } = loadServices({ platform: 'ios' });
+    state.responses = [{ status: 403, payload: unverifiedEmail }, reply];
+    await assert.rejects(load('api').signInWithEmail({ email: 'a@example.com', password: 'pw', keepSignIn: true }), /다시 보내지 못했습니다/);
+    assert.equal(calls.fetch.length, 2);
+    assert.equal(calls.saved.length, 0);
+  }
 });

@@ -1,8 +1,9 @@
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
+import { apiUrl } from '../../lib/api';
 
-import { apiUrl, requestSession, type SocialProvider } from './api';
+import { requestSession, type SocialProvider } from './api';
 import type { SignInSession } from './session';
 
 export type BrowserRequest = {
