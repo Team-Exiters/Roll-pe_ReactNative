@@ -80,6 +80,11 @@ export default function SignInScreen() {
               : undefined}
           />
           <View style={styles.menus}>
+            <Pressable accessibilityRole="link" accessibilityLabel="비밀번호 찾기"
+              disabled={signIn.isLoading} hitSlop={12} onPress={() => router.push('/forgot-password')}>
+              <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>비밀번호 찾기</Text>
+            </Pressable>
+            <Text accessible={false} style={[styles.menuText, { color: colors.rollpe_gray }]}>|</Text>
             <Pressable
               accessibilityRole="link"
               accessibilityHint="현재 사용할 수 없습니다."

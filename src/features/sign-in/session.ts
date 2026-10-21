@@ -50,7 +50,7 @@ export async function getSession(): Promise<SignInSession | null> {
   const value = Platform.OS === 'web'
     ? window.sessionStorage.getItem(sessionKey)
     : await SecureStore.getItemAsync(sessionKey);
-  // A sign-in may have completed while native storage was being read.
+  // A sign-in or clear may have completed while native storage was being read.
   if (currentSession !== undefined) return currentSession;
   try {
     const session: unknown = value ? JSON.parse(value) : null;
@@ -59,4 +59,13 @@ export async function getSession(): Promise<SignInSession | null> {
     currentSession = null;
   }
   return currentSession;
+}
+
+export async function clearSession() {
+  currentSession = null;
+  if (Platform.OS === 'web') {
+    window.sessionStorage.removeItem(sessionKey);
+  } else {
+    await SecureStore.deleteItemAsync(sessionKey);
+  }
 }

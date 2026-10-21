@@ -49,6 +49,8 @@ export default function RootLayout() {
           name="sign-in"
           options={{ title: "로그인", gestureEnabled: true }}
         />
+        <Stack.Screen name="forgot-password" options={{ title: "비밀번호 찾기", gestureEnabled: true }} />
+        <Stack.Screen name="reset-password" options={{ title: "비밀번호 변경", gestureEnabled: true }} />
       </Stack>
     </>
   );

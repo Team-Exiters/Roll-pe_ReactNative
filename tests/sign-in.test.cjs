@@ -158,3 +158,16 @@ test('missing Android Google configuration or Play Services fails before request
   await assert.rejects(unavailable.load('social.native').authorizeNative('apple'));
   assert.equal(unavailable.calls.apple.length, 0);
 });
+
+
+test('a pending native storage read cannot restore a session cleared while the read was in flight', async () => {
+  const { load, state } = loadServices({ platform: 'ios' });
+  let resolveRead;
+  state.storageReadPromise = new Promise((resolve) => { resolveRead = resolve; });
+  const sessionModule = load('session');
+  const reading = sessionModule.getSession();
+  await sessionModule.clearSession();
+  resolveRead(JSON.stringify(session()));
+  assert.equal(await reading, null);
+  assert.equal(await sessionModule.getSession(), null);
+});
