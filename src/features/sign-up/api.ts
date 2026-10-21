@@ -1,12 +1,11 @@
-import { apiUrl, requestJson } from '../../lib/api';
-import { signUpError, type SignUpValues } from './validation';
+import { apiUrl, requestJson } from '@/lib/api';
+import { signUpError, type SignUpValues } from '@/features/sign-up/validation';
 
-function responseMessage(payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object' || !('message' in payload)) return null;
-  if (typeof payload.message === 'string') return payload.message;
+function responseMessage(message: unknown): string | null {
+  if (typeof message === 'string') return message;
   // DRF field errors are dictionaries of message arrays, rather than a single string.
-  if (!payload.message || typeof payload.message !== 'object' || Array.isArray(payload.message)) return null;
-  const fields = payload.message as Record<string, unknown>;
+  if (!message || typeof message !== 'object' || Array.isArray(message)) return null;
+  const fields = message as Record<string, unknown>;
   const messages = ['email', 'name', 'password', 'non_field_errors'].flatMap((field) => {
     const value = fields[field];
     return typeof value === 'string' ? [value] : Array.isArray(value)
@@ -24,7 +23,7 @@ export async function signUp(values: SignUpValues): Promise<string> {
   }).catch(() => {
     throw new Error('회원가입 서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.');
   });
-  const message = responseMessage(payload);
+  const message = responseMessage(payload?.message);
   if (!response.ok) {
     if (response.status === 400 && message === '이미 가입된 이메일입니다.') {
       throw new Error(`${message}\n이메일 인증 전이라면 로그인 화면에서 로그인하여 인증 메일을 다시 받아주세요.`);

@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
-import type { SocialCredential, SocialProvider } from './api';
+import type { SocialCredential, SocialProvider } from '@/features/sign-in/api';
 
 function randomSecret() {
   return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join('');

@@ -20,7 +20,7 @@ function loadNativeIntent(apiUrl = 'https://api.example') {
   vm.runInNewContext(output, {
     exports: exportsObject, URL, URLSearchParams,
     require: (name) => {
-      assert.equal(name, '../utils/reset-link');
+      assert.equal(name, '@/utils/reset-link');
       return validation;
     },
     process: { env: { EXPO_PUBLIC_API_URL: apiUrl, EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY: 'testnativekey' } },

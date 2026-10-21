@@ -25,7 +25,7 @@ function load(respond = async () => { throw Error('unexpected network'); }, base
     return { status: result.status ?? (result.ok ? 200 : 400), json: result.json };
   });
   return evaluate('../src/features/policy/content.ts', name => {
-    assert.equal(name, '../../lib/api');
+    assert.equal(name, '@/lib/api');
     return common;
   });
 }
@@ -51,18 +51,23 @@ test('text, entities, block order and list items survive without executing remot
   assert.equal(load().policyBlocks('<script>unclosed').length, 0);
 });
 
-test('both actual backend documents preserve every text character and paragraph in source order', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../../roll-pe-api/rollpe/utils/functions.py'), 'utf8');
-  for (const name of ['PRIVACY', 'TERMS']) {
-    const html = new RegExp(name + '=\\"\\"\\"([^]*?)\\"\\"\\"').exec(source)?.[1];
-    assert.ok(html, `${name} source exists`);
-    const blocks = load().policyBlocks(html);
-    const expected = html.replace(/<[^>]*>/g, '').replace(/&gt;/g, '>').replace(/&lt;/g, '<')
-      .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ').replace(/\s/g, '');
-    assert.equal(blocks.map(block => block.text).join('').replace(/\s/g, ''), expected);
-    const kinds = [...html.matchAll(/<(h2|h3|p|li)>/g)].map(match => match[1]);
-    assert.deepEqual(Array.from(blocks, block => block.kind), kinds);
-  }
+test('representative policy markup preserves text, block order, nesting, entities and line breaks', () => {
+  const html = `<h2>서비스 &amp; 개인정보</h2>
+    <p>제1조 <strong>목적</strong>: &quot;롤페&quot; &lt;안내&gt;<br>다음 줄</p>
+    <h3>수집 및 이용</h3>
+    <p>이메일 &#54620; &#xAE00; &nbsp; 안내</p>
+    <ul><li><strong>첫째</strong> 항목</li><li>둘째 <a href="https://example.com">링크</a></li></ul>
+    <p>문의: team.exiters@gmail.com</p>`;
+  const blocks = load().policyBlocks(html);
+  assert.deepEqual(JSON.parse(JSON.stringify(blocks)), [
+    { kind: 'h2', text: '서비스 & 개인정보' },
+    { kind: 'p', text: '제1조 목적: "롤페" <안내>\n다음 줄' },
+    { kind: 'h3', text: '수집 및 이용' },
+    { kind: 'p', text: '이메일 한 글 \u00a0 안내' },
+    { kind: 'li', text: '첫째 항목' },
+    { kind: 'li', text: '둘째 링크' },
+    { kind: 'p', text: '문의: team.exiters@gmail.com' },
+  ]);
 });
 
 test('policy request sends no credentials and propagates caller cancellation', async () => {

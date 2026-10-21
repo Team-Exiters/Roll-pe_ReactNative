@@ -6,9 +6,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { requestPasswordEmail } from './api';
-import { RecoveryScaffold, recoveryMessage } from './RecoveryScaffold';
-import { isRecoveryEmail } from './validation';
+import { requestPasswordEmail } from '@/features/password-recovery/api';
+import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/RecoveryScaffold';
+import { isRecoveryEmail } from '@/features/password-recovery/validation';
 
 export default function ForgotPasswordScreen() {
   const colors = useRollpeColors();

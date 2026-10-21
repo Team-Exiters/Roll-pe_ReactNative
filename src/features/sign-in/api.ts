@@ -1,5 +1,5 @@
-import { apiUrl, requestJson } from '../../lib/api';
-import { isSignInSession, saveSession, type SignInSession } from './session';
+import { apiUrl, requestJson } from '@/lib/api';
+import { isSignInSession, saveSession, type SignInSession } from '@/features/sign-in/session';
 
 export type SocialProvider = 'kakao' | 'google' | 'apple';
 export type SocialCredential = { accessToken: string; code?: string; nonce?: string; name?: string };

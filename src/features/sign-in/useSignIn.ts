@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { apiUrl } from '../../lib/api';
+import { apiUrl } from '@/lib/api';
 
-import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from './api';
-import { completeBrowserSignIn, prepareBrowserRequest, type BrowserRequest } from './browser-auth';
-import type { SignInSession } from './session';
-import { authorizeNative, availableNativeProviders } from './social';
+import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from '@/features/sign-in/api';
+import { completeBrowserSignIn, prepareBrowserRequest, type BrowserRequest } from '@/features/sign-in/browser-auth';
+import type { SignInSession } from '@/features/sign-in/session';
+import { authorizeNative, availableNativeProviders } from '@/features/sign-in/social';
 
 export function useSignIn() {
   const [providers, setProviders] = useState<SocialProvider[]>([]);

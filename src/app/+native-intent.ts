@@ -1,4 +1,4 @@
-import { resetCredentials, resetLinkOrigin } from '../utils/reset-link';
+import { resetCredentials, resetLinkOrigin } from '@/utils/reset-link';
 
 export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }): string | null {
   try {

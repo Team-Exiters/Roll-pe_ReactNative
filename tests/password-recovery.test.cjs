@@ -45,28 +45,28 @@ function recoveryService({ status = 200, payload = { message: '요청되었습�
       require: (name) => {
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: 'web' } };
-        if (name === '../../lib/api') return load('shared-api');
-        if (name === '../sign-in/session') return auth.load('session');
-        if (name === './validation') return load('validation');
-        if (name === '../../utils/reset-link') return load('reset-link');
+        if (name === '@/lib/api') return load('shared-api');
+        if (name === '@/features/sign-in/session') return auth.load('session');
+        if (name === '@/features/password-recovery/validation') return load('validation');
+        if (name === '@/utils/reset-link') return load('reset-link');
         throw new Error(`Unexpected import ${name}`);
       },
     }, { filename });
     if (name === 'shared-api') attachAxiosTransport(exports.apiClient, network);
     return exports;
   }
-  return { ...auth, requests, recovery: load('api'), validation: load('validation') };
+  return { ...auth, requests, recovery: load('api'), validation: load('validation'), resetLink: load('reset-link') };
 }
 
 test('recovery validates the original iOS email/password rules and rejects duplicate or malformed reset params', () => {
-  const { validation: v } = recoveryService();
+  const { validation: v, resetLink } = recoveryService();
   assert.equal(v.isRecoveryEmail(' person@example.com '), true);
   for (const email of ['', 'bad', 'a@b', 'a b@example.com']) assert.equal(v.isRecoveryEmail(email), false);
   for (const password of ['abcd123!', 'ABCD123!', 'a'.repeat(125) + '1!?']) assert.equal(v.isRecoveryPassword(password), true);
   for (const password of ['', 'abc123!', 'abcdefgh!', 'abcd1234', 'a1!' + 'a'.repeat(126)]) assert.equal(v.isRecoveryPassword(password), false);
-  assert.deepEqual(JSON.parse(JSON.stringify(v.resetCredentials(credentials))), credentials);
+  assert.deepEqual(JSON.parse(JSON.stringify(resetLink.resetCredentials(credentials))), credentials);
   for (const params of [{}, { ...credentials, token: [credentials.token] }, { ...credentials, identifyCode: ['Ab123x'] },
-    { ...credentials, identifyCode: 'bad' }, { ...credentials, token: 'missing-signature' }]) assert.equal(v.resetCredentials(params), null);
+    { ...credentials, identifyCode: 'bad' }, { ...credentials, token: 'missing-signature' }]) assert.equal(resetLink.resetCredentials(params), null);
 });
 
 test('requesting mail uses existing anonymous endpoint and never saves a login session', async () => {

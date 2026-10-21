@@ -1,4 +1,4 @@
-import { requestJson } from '../../lib/api';
+import { requestJson } from '@/lib/api';
 
 export type PolicyType = 'terms' | 'privacy';
 export type PolicyBlock = { kind: 'p' | 'h2' | 'h3' | 'li'; text: string };
@@ -72,7 +72,7 @@ export function policyEndpoint(base: string | undefined, type: PolicyType): stri
 export async function fetchPolicy(type: PolicyType, signal: AbortSignal): Promise<PolicyBlock[]> {
   const endpoint = policyEndpoint(process.env.EXPO_PUBLIC_API_URL, type);
   const { response, payload } = await requestJson(endpoint, undefined, 'GET', signal);
-  if (!response.ok || !payload || typeof payload !== 'object' || !('data' in payload) || typeof payload.data !== 'string') {
+  if (!response.ok || typeof payload?.data !== 'string') {
     throw new Error('오류가 발생하였습니다.');
   }
   const blocks = policyBlocks(payload.data);

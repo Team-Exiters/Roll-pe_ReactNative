@@ -1,10 +1,10 @@
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
-import { apiUrl } from '../../lib/api';
+import { apiUrl } from '@/lib/api';
 
-import { requestSession, type SocialProvider } from './api';
-import type { SignInSession } from './session';
+import { requestSession, type SocialProvider } from '@/features/sign-in/api';
+import type { SignInSession } from '@/features/sign-in/session';
 
 export type BrowserRequest = {
   provider: SocialProvider;

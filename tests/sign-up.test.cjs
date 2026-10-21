@@ -42,8 +42,8 @@ function signUpService({ status = 201, payload = { message: '회원가입이 완
       require: (name) => {
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: 'web' } };
-        if (name === '../../lib/api') return load('shared-api');
-        if (name === './validation') return load('validation');
+        if (name === '@/lib/api') return load('shared-api');
+        if (name === '@/features/sign-up/validation') return load('validation');
         throw new Error(`Unexpected import: ${name}`); // No storage or session dependency.
       },
     }, { filename });

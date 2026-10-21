@@ -129,8 +129,8 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
       ...globals, exports,
       require: (name) => {
         if (name === 'axios') return require('axios');
-        if (name === '../../lib/api') return load('shared-api');
-        if (name.startsWith('./')) return load(name.slice(2));
+        if (name === '@/lib/api') return load('shared-api');
+        if (name.startsWith('@/features/sign-in/')) return load(name.slice('@/features/sign-in/'.length));
         assert.ok(name in mocks, `Unexpected import: ${name}`);
         return mocks[name];
       },

@@ -5,9 +5,10 @@ import { StyleSheet, Text, View, type TextInput } from 'react-native';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { PasswordRecoveryError, resetPassword } from './api';
-import { RecoveryScaffold, recoveryMessage } from './RecoveryScaffold';
-import { isRecoveryPassword, passwordPolicyMessage, resetCredentials, type ResetCredentials } from './validation';
+import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
+import { PasswordRecoveryError, resetPassword } from '@/features/password-recovery/api';
+import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/RecoveryScaffold';
+import { isRecoveryPassword, passwordPolicyMessage } from '@/features/password-recovery/validation';
 
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ identifyCode?: string | string[]; token?: string | string[] }>();

@@ -1,6 +1,7 @@
-import { apiUrl, requestJson } from '../../lib/api';
-import { clearSession } from '../sign-in/session';
-import { isRecoveryEmail, isRecoveryPassword, resetCredentials, type ResetCredentials } from './validation';
+import { apiUrl, requestJson } from '@/lib/api';
+import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
+import { clearSession } from '@/features/sign-in/session';
+import { isRecoveryEmail, isRecoveryPassword } from '@/features/password-recovery/validation';
 
 export class PasswordRecoveryError extends Error {
   constructor(message: string, public readonly invalidLink = false) {

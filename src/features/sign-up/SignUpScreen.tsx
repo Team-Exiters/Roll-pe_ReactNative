@@ -9,9 +9,9 @@ import { LoadingView } from '@/components/ui/LoadingView';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { signUp } from './api';
-import { AgreementRow } from './components/AgreementRow';
-import { canSignUp, type SignUpValues } from './validation';
+import { signUp } from '@/features/sign-up/api';
+import { AgreementRow } from '@/features/sign-up/components/AgreementRow';
+import { canSignUp, type SignUpValues } from '@/features/sign-up/validation';
 
 const initialValues: SignUpValues = {
   email: '', name: '', password: '', confirmPassword: '',

@@ -1,5 +1,3 @@
-export { resetCredentials, type ResetCredentials } from '../../utils/reset-link';
-
 export const passwordPolicyMessage = '비밀번호는 8자 이상이며 영문, 숫자, 특수문자(!@#$%^*+=-)를 포함해야 합니다.';
 
 export function isRecoveryEmail(email: string) {

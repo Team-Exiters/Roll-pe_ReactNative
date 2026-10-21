@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/BackButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { fetchPolicy, policySpacing, policyType, type PolicyBlock, type PolicyType } from './content';
+import { fetchPolicy, policySpacing, policyType, type PolicyBlock, type PolicyType } from '@/features/policy/content';
 
 function PolicyContent({ type }: { type: PolicyType }) {
   const colors = useRollpeColors();
@@ -14,14 +14,13 @@ function PolicyContent({ type }: { type: PolicyType }) {
   const [result, setResult] = useState<{ blocks?: PolicyBlock[]; error?: string }>({});
   useEffect(() => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20_000);
     let active = true;
     void fetchPolicy(type, controller.signal).then(blocks => {
       if (active) setResult({ blocks });
     }).catch(() => {
       if (active) setResult({ error: '오류가 발생하였습니다.' });
-    }).finally(() => clearTimeout(timeout));
-    return () => { active = false; controller.abort(); clearTimeout(timeout); };
+    });
+    return () => { active = false; controller.abort(); };
   }, [type, attempt]);
   if (result.error) return <View style={styles.error}>
     <Text style={[styles.text, { color: colors.rollpe_secondary }]} accessibilityRole="alert">{result.error}</Text>
