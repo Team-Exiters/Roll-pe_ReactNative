@@ -26,10 +26,10 @@ export default function SignInScreen() {
 
   async function submitSignIn(action: () => ReturnType<typeof signIn.emailSignIn>) {
     try {
-      const session = await action();
-      if (session) {
-        // The authenticated home screen will be connected when its migration is complete.
-        showSignInMessage('로그인되었습니다.');
+      const tokenState = await action();
+      if (tokenState) {
+        router.dismissAll();
+        router.replace('/home');
       }
     } catch (error) {
       showSignInMessage(error instanceof Error ? error.message : '로그인에 실패했습니다. 다시 시도해주세요.');

@@ -1,5 +1,5 @@
 import { apiUrl, requestJson } from '@/lib/api';
-import { isSignInSession, saveSession, type SignInSession } from '@/features/sign-in/session';
+import { isTokenState, saveTokenState, type TokenState } from '@/features/sign-in/token-state';
 
 export type SocialProvider = 'kakao' | 'google' | 'apple';
 export type SocialCredential = { accessToken: string; code?: string; nonce?: string; name?: string };
@@ -7,9 +7,9 @@ export type EmailCredentials = { email: string; password: string; keepSignIn: bo
 
 class EmailVerificationRequiredError extends Error {}
 
-export async function requestSession(
+export async function requestSignIn(
   url: string, body: object, keepSignIn = true, provider?: SocialProvider,
-): Promise<SignInSession> {
+): Promise<TokenState> {
   const { response, payload } = await requestJson(url, body).catch(() => {
     throw new Error('로그인 서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.');
   });
@@ -18,11 +18,11 @@ export async function requestSession(
     && payload.message === '이메일 인증을 진행해주세요.' && payload.data === null) {
     throw new EmailVerificationRequiredError(payload.message);
   }
-  if (!response.ok || !isSignInSession(payload?.data)
+  if (!response.ok || !isTokenState(payload?.data)
     || (provider && payload.data.user.provider !== provider)) {
     throw new Error(typeof payload?.message === 'string' ? payload.message : '로그인 응답을 확인할 수 없습니다.');
   }
-  await saveSession(payload.data, keepSignIn);
+  await saveTokenState(payload.data, keepSignIn);
   return payload.data;
 }
 
@@ -30,7 +30,7 @@ export async function signInWithEmail({ email, password, keepSignIn }: EmailCred
   if (!apiUrl) throw new Error('로그인 서버 주소가 설정되지 않았습니다.');
   const normalizedEmail = email.trim();
   try {
-    return await requestSession(`${apiUrl}/api/user/signin`, { email: normalizedEmail, password }, keepSignIn);
+    return await requestSignIn(`${apiUrl}/api/user/signin`, { email: normalizedEmail, password }, keepSignIn);
   } catch (error) {
     if (!(error instanceof EmailVerificationRequiredError)) throw error;
     // Keep this within the existing sign-in busy guard, including the resend request.
@@ -49,5 +49,5 @@ async function resendVerificationEmail(email: string) {
 
 export function signInWithSocial(provider: SocialProvider, credential: SocialCredential) {
   if (!apiUrl) throw new Error('로그인 서버 주소가 설정되지 않았습니다.');
-  return requestSession(`${apiUrl}/api/user/social/login/${provider}`, credential, true, provider);
+  return requestSignIn(`${apiUrl}/api/user/social/login/${provider}`, credential, true, provider);
 }

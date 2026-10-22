@@ -1,6 +1,6 @@
 import { apiUrl, requestJson } from '@/lib/api';
 import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
-import { clearSession } from '@/features/sign-in/session';
+import { clearTokenState } from '@/features/sign-in/token-state';
 import { isRecoveryEmail, isRecoveryPassword } from '@/features/password-recovery/validation';
 
 export class PasswordRecoveryError extends Error {
@@ -35,7 +35,7 @@ export async function resetPassword(credentials: ResetCredentials, newPassword: 
   if (!isRecoveryPassword(newPassword)) throw new PasswordRecoveryError('새 비밀번호 형식을 확인해주세요.');
   const message = await requestRecovery('PATCH', { ...credentials, newPassword });
   try {
-    await clearSession();
+    await clearTokenState();
   } catch {
     // The server has already consumed the link; this is still a successful reset.
     return `${message}\n기기에 저장된 로그인 정보를 삭제하지 못했습니다. 다시 로그인해주세요.`;

@@ -1,1 +1,1 @@
-export { default } from '@/features/welcome/WelcomeScreen';
+export { default } from '@/features/sign-in/components/StartupGate';

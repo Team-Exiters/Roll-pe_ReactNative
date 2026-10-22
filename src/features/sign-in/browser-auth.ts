@@ -3,8 +3,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { apiUrl } from '@/lib/api';
 
-import { requestSession, type SocialProvider } from '@/features/sign-in/api';
-import type { SignInSession } from '@/features/sign-in/session';
+import { requestSignIn, type SocialProvider } from '@/features/sign-in/api';
+import type { TokenState } from '@/features/sign-in/token-state';
 
 export type BrowserRequest = {
   provider: SocialProvider;
@@ -49,7 +49,7 @@ export async function prepareBrowserRequest(provider: SocialProvider): Promise<B
   };
 }
 
-export async function completeBrowserSignIn(request: BrowserRequest): Promise<SignInSession | null> {
+export async function completeBrowserSignIn(request: BrowserRequest): Promise<TokenState | null> {
   // Called before any await in the tap handler, so browsers allow the popup.
   let result: WebBrowser.WebBrowserAuthSessionResult;
   try {
@@ -83,5 +83,5 @@ export async function completeBrowserSignIn(request: BrowserRequest): Promise<Si
   if (!code || !/^[A-Za-z0-9_-]{43}$/.test(code)) {
     throw new Error('로그인 응답을 확인할 수 없습니다.');
   }
-  return requestSession(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider);
+  return requestSignIn(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider);
 }

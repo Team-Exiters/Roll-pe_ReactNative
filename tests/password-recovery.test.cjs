@@ -8,7 +8,7 @@ const { attachAxiosTransport } = require('./helpers/axios-transport.cjs');
 const { loadServices } = require('./helpers/auth-service.cjs');
 
 const credentials = { identifyCode: 'Ab123x', token: 'd04abc-' + 'a'.repeat(32) };
-const storedSession = {
+const storedTokenState = {
   access: 'old-access', refresh: 'old-refresh',
   user: { id: 1, name: '기존 사용자', email: 'existing@example.com', identifyCode: 'Ab123x', provider: null },
 };
@@ -46,7 +46,7 @@ function recoveryService({ status = 200, payload = { message: '요청되었습�
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: 'web' } };
         if (name === '@/lib/api') return load('shared-api');
-        if (name === '@/features/sign-in/session') return auth.load('session');
+        if (name === '@/features/sign-in/token-state') return auth.load('token-state');
         if (name === '@/features/password-recovery/validation') return load('validation');
         if (name === '@/utils/reset-link') return load('reset-link');
         throw new Error(`Unexpected import ${name}`);
@@ -69,7 +69,7 @@ test('recovery validates the original iOS email/password rules and rejects dupli
     { ...credentials, identifyCode: 'bad' }, { ...credentials, token: 'missing-signature' }]) assert.equal(resetLink.resetCredentials(params), null);
 });
 
-test('requesting mail uses existing anonymous endpoint and never saves a login session', async () => {
+test('requesting mail uses existing anonymous endpoint and never saves a login token state', async () => {
   const { recovery, requests, calls } = recoveryService();
   assert.equal(await recovery.requestPasswordEmail(' person@example.com '), '요청되었습니다.');
   assert.equal(requests[0][0], 'https://api.example/api/user/forgot-password');
@@ -80,19 +80,19 @@ test('requesting mail uses existing anonymous endpoint and never saves a login s
   assert.equal(calls.saved.length, 0);
 });
 
-test('successful reset sends exact PATCH fields and clears both memory and secure storage sessions', async () => {
+test('successful reset sends exact PATCH fields and clears both memory and secure storage token states', async () => {
   const { load, recovery, requests, calls, storage } = recoveryService();
-  await load('session').saveSession(storedSession);
+  await load('token-state').saveTokenState(storedTokenState);
   assert.equal(await recovery.resetPassword(credentials, 'abcd123!'), '요청되었습니다.');
   assert.equal(requests[0][1].method, 'PATCH');
   assert.equal(requests[0][1].credentials, 'omit');
   assert.deepEqual(JSON.parse(requests[0][1].body), { ...credentials, newPassword: 'abcd123!' });
   assert.equal(storage.has('rollpe.session'), false);
-  assert.equal(await load('session').getSession(), null);
-  assert.equal(calls.saved.length, 1); // Only the preexisting session, never a recovery response.
+  assert.equal(await load('token-state').getTokenState(), null);
+  assert.equal(calls.saved.length, 1); // Only the preexisting token state, never a recovery response.
 });
 
-test('expired and reused links offer fresh-email recovery without changing stored session', async () => {
+test('expired and reused links offer fresh-email recovery without changing stored token state', async () => {
   const { recovery, calls } = recoveryService({ status: 400, payload: { message: '인증 링크가 만료되었습니다.' } });
   await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'), (error) => error.invalidLink && /만료/.test(error.message));
   assert.equal(calls.deleted.length, 0);
@@ -107,7 +107,7 @@ test('missing credentials and invalid password are rejected before any request',
   assert.equal(requests.length, 0);
 });
 
-test('network, timeout, malformed and server failures are bounded and cannot clear sessions', async () => {
+test('network, timeout, malformed and server failures are bounded and cannot clear token states', async () => {
   for (const options of [{ failure: new Error('offline') }, { timeout: true }, { payload: [] }, { status: 503 }, { jsonFailure: new SyntaxError('invalid JSON') }]) {
     const { recovery, calls } = recoveryService(options);
     await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'),
@@ -118,16 +118,16 @@ test('network, timeout, malformed and server failures are bounded and cannot cle
 });
 
 
-test('a completed server reset stays successful if local deletion fails, without restoring the running session', async () => {
+test('a completed server reset stays successful if local deletion fails, without restoring the running token state', async () => {
   for (const platform of ['ios', 'web']) {
     const { load, recovery, requests, storage, state } = recoveryService({ platform });
-    await load('session').saveSession(storedSession);
+    await load('token-state').saveTokenState(storedTokenState);
     state.storageDeleteError = new Error('storage unavailable');
     const message = await recovery.resetPassword(credentials, 'abcd123!');
     assert.match(message, /요청되었습니다/);
     assert.match(message, /로그인 정보를 삭제하지 못했습니다/);
     assert.equal(requests.length, 1);
     assert.equal(storage.has('rollpe.session'), true); // Persistence failure is reported, never hidden.
-    assert.equal(await load('session').getSession(), null); // Do not reload the stale stored session.
+    assert.equal(await load('token-state').getTokenState(), null); // Do not reload the stale stored token state.
   }
 });

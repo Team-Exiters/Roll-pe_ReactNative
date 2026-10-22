@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { loadServices } = require('./helpers/auth-service.cjs');
 
-function session(provider = null) {
+function tokenState(provider = null) {
   return {
     access: 'api-access', refresh: 'api-refresh',
     user: { id: 7, name: '테스트', email: 'test@example.com', identifyCode: 'abcdef', provider },
@@ -11,7 +11,7 @@ function session(provider = null) {
 
 test('email accepts the original 201 response with a null provider and preserves the password', async () => {
   const { load, calls, state } = loadServices({ platform: 'ios' });
-  state.payload = { data: session() };
+  state.payload = { data: tokenState() };
   const result = await load('api').signInWithEmail({ email: ' test@example.com ', password: ' password ', keepSignIn: true });
   assert.equal(result.user.provider, null);
   assert.equal(calls.fetch[0][0], 'https://api.example/api/user/signin');
@@ -20,7 +20,7 @@ test('email accepts the original 201 response with a null provider and preserves
   assert.equal(calls.saved[0].options.keychainAccessible, 'device-only');
 });
 
-test('rejected credentials, malformed replies, and network errors never save a session', async () => {
+test('rejected credentials, malformed replies, and network errors never save a token state', async () => {
   for (const variant of ['rejected', 'malformed', 'network', 'json']) {
     const { load, calls, state } = loadServices({ platform: 'ios' });
     state.ok = variant === 'malformed';
@@ -36,7 +36,7 @@ test('rejected credentials, malformed replies, and network errors never save a s
 test('Google sends its ID token and Kakao sends its access token to the original API', async () => {
   for (const provider of ['google', 'kakao']) {
     const { load, calls, state } = loadServices({ platform: 'ios' });
-    state.payload = { data: session(provider) };
+    state.payload = { data: tokenState(provider) };
     const credential = await load('social.native').authorizeNative(provider);
     await load('api').signInWithSocial(provider, credential);
     assert.equal(calls.fetch[0][0], `https://api.example/api/user/social/login/${provider}`);
@@ -52,7 +52,7 @@ test('Google sends its ID token and Kakao sends its access token to the original
 
 test('native Apple binds state and nonce and sends a code for server-side exchange', async () => {
   const { load, calls, state } = loadServices({ platform: 'ios' });
-  state.payload = { data: session('apple') };
+  state.payload = { data: tokenState('apple') };
   const credential = await load('social.native').authorizeNative('apple');
   assert.equal(credential.code, 'apple-code');
   assert.equal(credential.accessToken, 'apple-id-token');
@@ -79,29 +79,29 @@ test('cancelling any native provider returns without a server request', async ()
 
 test('rejects a social response for a different provider', async () => {
   const { load, state, calls } = loadServices({ platform: 'ios' });
-  state.payload = { data: session('kakao') };
+  state.payload = { data: tokenState('kakao') };
   await assert.rejects(load('api').signInWithSocial('google', { accessToken: 'google-token' }));
   assert.equal(calls.saved.length, 0);
 });
 
-test('turning retention off removes prior credentials but keeps the running session', async () => {
+test('turning retention off removes prior credentials but keeps the running token state', async () => {
   for (const platform of ['ios', 'web']) {
-    const storage = new Map([['rollpe.session', JSON.stringify(session('apple'))]]);
+    const storage = new Map([['rollpe.session', JSON.stringify(tokenState('apple'))]]);
     const first = loadServices({ platform, storage });
-    await first.load('session').saveSession(session(), false);
-    assert.equal((await first.load('session').getSession()).user.id, 7);
+    await first.load('token-state').saveTokenState(tokenState(), false);
+    assert.equal((await first.load('token-state').getTokenState()).user.id, 7);
     assert.equal(storage.has('rollpe.session'), false);
     const relaunched = loadServices({ platform, storage });
-    assert.equal(await relaunched.load('session').getSession(), null);
+    assert.equal(await relaunched.load('token-state').getTokenState(), null);
   }
 });
 
 test('retained credentials can be restored without storing a password', async () => {
   const storage = new Map();
   const first = loadServices({ platform: 'ios', storage });
-  await first.load('session').saveSession(session(), true);
+  await first.load('token-state').saveTokenState(tokenState(), true);
   const relaunched = loadServices({ platform: 'ios', storage });
-  assert.equal((await relaunched.load('session').getSession()).refresh, 'api-refresh');
+  assert.equal((await relaunched.load('token-state').getTokenState()).refresh, 'api-refresh');
   assert.equal(storage.get('rollpe.session').includes('password'), false);
 });
 
@@ -121,7 +121,7 @@ test('Apple availability failures do not disable native Google or Kakao login', 
     if (available === 'error') state.appleAvailabilityError = new Error('Apple is unavailable');
     assert.deepEqual(Array.from(await load('social.native').availableNativeProviders()), ['google', 'kakao']);
     for (const provider of ['google', 'kakao']) {
-      state.payload = { data: session(provider) };
+      state.payload = { data: tokenState(provider) };
       const result = await load('api').signInWithSocial(provider, await load('social.native').authorizeNative(provider));
       assert.equal(result.user.provider, provider);
     }
@@ -130,7 +130,7 @@ test('Apple availability failures do not disable native Google or Kakao login', 
 
 test('Android Google requests an ID token for the web client after checking Play Services', async () => {
   const { load, calls, state } = loadServices({ platform: 'android' });
-  state.payload = { data: session('google') };
+  state.payload = { data: tokenState('google') };
   await load('api').signInWithSocial('google', await load('social.native').authorizeNative('google'));
   assert.deepEqual({ ...calls.google[0] }, { webClientId: 'web.apps.googleusercontent.com' });
   assert.equal(calls.playServices[0].showPlayServicesUpdateDialog, true);
@@ -140,7 +140,7 @@ test('Android Google requests an ID token for the web client after checking Play
 
 test('Android Kakao uses the native access token, and cancelling does not sign in', async () => {
   const { load, calls, state } = loadServices({ platform: 'android' });
-  state.payload = { data: session('kakao') };
+  state.payload = { data: tokenState('kakao') };
   await load('api').signInWithSocial('kakao', await load('social.native').authorizeNative('kakao'));
   assert.equal(JSON.parse(calls.fetch[0][1].body).accessToken, 'kakao-access-token');
   state.kakaoError = Object.assign(new Error('ClientError(reason=Cancelled)'), { code: 'RNKakaoLogins' });
@@ -148,7 +148,7 @@ test('Android Kakao uses the native access token, and cancelling does not sign i
   assert.equal(calls.fetch.length, 1);
 });
 
-test('missing Android Google configuration or Play Services fails before requesting an API session', async () => {
+test('missing Android Google configuration or Play Services fails before requesting an API token state', async () => {
   const missing = loadServices({ platform: 'android', env: { EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: '' } });
   assert.deepEqual(Array.from(await missing.load('social.native').availableNativeProviders()), ['kakao']);
   await assert.rejects(missing.load('social.native').authorizeNative('google'));
@@ -162,23 +162,23 @@ test('missing Android Google configuration or Play Services fails before request
 });
 
 
-test('a pending native storage read cannot restore a session cleared while the read was in flight', async () => {
+test('a pending native storage read cannot restore a token state cleared while the read was in flight', async () => {
   const { load, state } = loadServices({ platform: 'ios' });
   let resolveRead;
   state.storageReadPromise = new Promise((resolve) => { resolveRead = resolve; });
-  const sessionModule = load('session');
-  const reading = sessionModule.getSession();
-  await sessionModule.clearSession();
-  resolveRead(JSON.stringify(session()));
+  const tokenStateModule = load('token-state');
+  const reading = tokenStateModule.getTokenState();
+  await tokenStateModule.clearTokenState();
+  resolveRead(JSON.stringify(tokenState()));
   assert.equal(await reading, null);
-  assert.equal(await sessionModule.getSession(), null);
+  assert.equal(await tokenStateModule.getTokenState(), null);
 });
 
 const unverifiedEmail = {
   status_code: 403, message: '이메일 인증을 진행해주세요.', code: 'FORBIDDEN', link: '/login', data: null,
 };
 
-test('only a confirmed unverified email login resends verification using PATCH, without saving a session', async () => {
+test('only a confirmed unverified email login resends verification using PATCH, without saving a token state', async () => {
   const { load, calls, state } = loadServices({ platform: 'ios' });
   state.responses = [
     { status: 403, payload: unverifiedEmail },
@@ -213,7 +213,7 @@ test('wrong passwords, generic denials, social login and malformed unverified re
   assert.equal(calls.saved.length, 0);
 });
 
-test('failed verification resend explains the failure and never creates a session', async () => {
+test('failed verification resend explains the failure and never creates a token state', async () => {
   for (const reply of [{ status: 503, payload: { message: '메일 전송 실패' } },
     { error: new Error('offline') }, { status: 200, payload: null },
     { status: 200, jsonError: new SyntaxError('invalid JSON') }]) {
