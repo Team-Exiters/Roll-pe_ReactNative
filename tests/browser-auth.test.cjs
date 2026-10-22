@@ -12,7 +12,7 @@ function callback(request, params) {
   return { type: 'success', url: `${request.returnUrl}?${new URLSearchParams({ state: request.state, ...params })}` };
 }
 
-const session = {
+const tokenState = {
   access: 'access-token', refresh: 'refresh-token',
   user: { id: 1, name: '테스트', email: 'test@example.com', identifyCode: '123abc', provider: 'apple' },
 };
@@ -36,23 +36,23 @@ test('prepares an independent state and S256 proof for each attempt', async () =
   assert.notEqual(first.verifier, second.verifier);
 });
 
-test('successful browser return exchanges the bound proof before saving a session', async () => {
+test('successful browser return exchanges the bound proof before saving a token state', async () => {
   const { service, state, calls } = loadService();
   const request = await service.prepareBrowserRequest('apple');
   state.callback = callback(request, { code: 'c'.repeat(43) });
-  state.payload = { data: session };
-  assert.deepEqual(await service.completeBrowserSignIn(request), session);
+  state.payload = { data: tokenState };
+  assert.deepEqual(await service.completeBrowserSignIn(request), tokenState);
   assert.equal(calls.fetch[0][0], 'https://api.example/api/user/social/login/apple/exchange');
   assert.equal(JSON.parse(calls.fetch[0][1].body).code_verifier, request.verifier);
   assert.equal(calls.fetch[0][1].credentials, 'omit');
-  assert.deepEqual(calls.saved[0].value, session);
+  assert.deepEqual(calls.saved[0].value, tokenState);
 });
 
 test('an Apple account without an email is identified by the server account', async () => {
   const { service, state, calls } = loadService();
   const request = await service.prepareBrowserRequest('apple');
   state.callback = callback(request, { code: 'c'.repeat(43) });
-  state.payload = { data: { ...session, user: { ...session.user, email: null } } };
+  state.payload = { data: { ...tokenState, user: { ...tokenState.user, email: null } } };
   assert.equal((await service.completeBrowserSignIn(request)).user.email, null);
   assert.equal(calls.saved.length, 1);
 });
@@ -86,7 +86,7 @@ test('cancelled auth never fetches or persists credentials', async () => {
   assert.equal(calls.saved.length, 0);
 });
 
-test('server errors and malformed credentials do not become successful sessions', async () => {
+test('server errors and malformed credentials do not become successful token states', async () => {
   const { service, state, calls } = loadService();
   const request = await service.prepareBrowserRequest('apple');
   state.callback = callback(request, { code: 'c'.repeat(43) });
@@ -119,7 +119,7 @@ for (const provider of ['google', 'kakao']) {
     assert.equal(url.searchParams.get('code_challenge'), createHash('sha256').update(request.verifier).digest('base64url'));
     assert.equal(url.searchParams.has('client_secret'), false);
     state.callback = callback(request, { code: 'c'.repeat(43) });
-    state.payload = { data: { ...session, user: { ...session.user, provider } } };
+    state.payload = { data: { ...tokenState, user: { ...tokenState.user, provider } } };
     assert.equal((await service.completeBrowserSignIn(request)).user.provider, provider);
     assert.equal(calls.fetch[0][0], `https://api.example/api/user/social/login/${provider}/exchange`);
     assert.deepEqual(JSON.parse(calls.fetch[0][1].body), { code: 'c'.repeat(43), code_verifier: request.verifier });
@@ -136,7 +136,7 @@ for (const provider of ['google', 'kakao']) {
     const request = await service.prepareBrowserRequest(provider);
     assert.ok(request);
     state.callback = callback(request, { code: 'c'.repeat(43) });
-    state.payload = { data: { ...session, user: { ...session.user, provider } } };
+    state.payload = { data: { ...tokenState, user: { ...tokenState.user, provider } } };
     assert.equal((await service.completeBrowserSignIn(request)).user.provider, provider);
     assert.equal(calls.saved.length, 1);
     assert.equal(await loadService({ env: { EXPO_PUBLIC_API_URL: '' } }).service.prepareBrowserRequest(provider), null);
@@ -148,7 +148,7 @@ for (const provider of ['google', 'kakao']) {
     }
   });
 
-  test(`${provider} rejects another provider's return or server session`, async () => {
+  test(`${provider} rejects another provider's return or server token state`, async () => {
     const { service, state, calls } = loadService();
     const request = await service.prepareBrowserRequest(provider);
     state.callback = callback(request, { code: 'c'.repeat(43) });
@@ -156,13 +156,13 @@ for (const provider of ['google', 'kakao']) {
     await assert.rejects(service.completeBrowserSignIn(request));
     assert.equal(calls.fetch.length, 0);
     state.callback = callback(request, { code: 'c'.repeat(43) });
-    state.payload = { data: session };
+    state.payload = { data: tokenState };
     await assert.rejects(service.completeBrowserSignIn(request));
     assert.equal(calls.saved.length, 0);
   });
 }
 
-test('blocked popups explain how to retry without exchanging or saving a session', async () => {
+test('blocked popups explain how to retry without exchanging or saving a token state', async () => {
   const { service, state, calls } = loadService();
   const request = await service.prepareBrowserRequest('google');
   state.browserError = Object.assign(new Error('Popup window was blocked by the browser'), {
@@ -174,7 +174,7 @@ test('blocked popups explain how to retry without exchanging or saving a session
   state.browserError = null;
   const retry = await service.prepareBrowserRequest('google');
   state.callback = callback(retry, { code: 'c'.repeat(43) });
-  state.payload = { data: { ...session, user: { ...session.user, provider: 'google' } } };
+  state.payload = { data: { ...tokenState, user: { ...tokenState.user, provider: 'google' } } };
   assert.equal((await service.completeBrowserSignIn(retry)).user.provider, 'google');
 });
 

@@ -4,7 +4,7 @@ import { apiUrl } from '@/lib/api';
 
 import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from '@/features/sign-in/api';
 import { completeBrowserSignIn, prepareBrowserRequest, type BrowserRequest } from '@/features/sign-in/browser-auth';
-import type { SignInSession } from '@/features/sign-in/session';
+import type { TokenState } from '@/features/sign-in/token-state';
 import { authorizeNative, availableNativeProviders } from '@/features/sign-in/social';
 
 export function useSignIn() {
@@ -29,7 +29,7 @@ export function useSignIn() {
     return () => { active = false; };
   }, []);
 
-  async function run(action: () => Promise<SignInSession | null>) {
+  async function run(action: () => Promise<TokenState | null>) {
     if (busy.current) return null;
     busy.current = true;
     setIsLoading(true);
