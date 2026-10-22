@@ -44,7 +44,7 @@ function signUpService({ status = 201, payload = { message: '회원가입이 완
         if (name === 'react-native') return { Platform: { OS: 'web' } };
         if (name === '@/lib/api') return load('shared-api');
         if (name === '@/features/sign-up/validation') return load('validation');
-        throw new Error(`Unexpected import: ${name}`); // No storage or session dependency.
+        throw new Error(`Unexpected import: ${name}`); // No storage or token state dependency.
       },
     }, { filename });
     if (name === 'shared-api') attachAxiosTransport(exports.apiClient, network);

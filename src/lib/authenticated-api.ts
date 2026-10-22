@@ -3,7 +3,7 @@ import { isAxiosError } from 'axios';
 import { apiClient, apiUrl } from '@/lib/api';
 import {
   clearTokenStateIfCurrent, getTokenSnapshot, isCurrentTokenState, replaceTokens,
-  type TokenSnapshot,
+  type TokenSnapshot, type TokenState,
 } from '@/features/sign-in/token-state';
 
 export class AuthenticationRequiredError extends Error {
@@ -75,6 +75,22 @@ function waitForRefresh(promise: Promise<TokenSnapshot | null>, signal?: AbortSi
     signal.addEventListener('abort', abort, { once: true });
     promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
   });
+}
+
+export async function restoreTokenState(signal?: AbortSignal): Promise<TokenState | null> {
+  if (signal?.aborted) throw cancelled();
+  const snapshot = await getTokenSnapshot();
+  if (signal?.aborted) throw cancelled();
+  if (!snapshot) return null;
+  if (!apiUrl) throw new Error('서버 주소가 설정되지 않았습니다.');
+  try {
+    const restored = await waitForRefresh(refreshTokens(snapshot), signal);
+    if (signal?.aborted) throw cancelled();
+    return restored && isCurrentTokenState(restored) ? restored.tokenState : null;
+  } catch (error) {
+    if (error instanceof AuthenticationRequiredError) return null;
+    throw error;
+  }
 }
 
 export async function authenticatedGet(path: string, signal?: AbortSignal) {

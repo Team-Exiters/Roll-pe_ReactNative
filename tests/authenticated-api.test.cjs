@@ -197,6 +197,142 @@ test('external or traversal paths and missing/cancelled token state send no bear
   assert.equal(env.calls.length, 0);
 });
 
+test('cold start reads retained credentials and validates refresh at server before restoring', async () => {
+  const env = setup(({url}) => {
+    assert.equal(url, 'https://api.example/api/user/token/refresh');
+    return ok({access:'server-confirmed',refresh:'rotated'});
+  });
+  env.storage.set('rollpe.session', JSON.stringify(original));
+  const restored = await env.api.restoreTokenState();
+  assert.equal(restored.access, 'server-confirmed');
+  assert.equal(restored.refresh, 'rotated');
+  assert.equal(JSON.parse(env.storage.get('rollpe.session')).refresh, 'rotated');
+  assert.equal(env.calls.length, 1);
+  assert.equal(env.calls[0].headers.authorization, undefined);
+});
+
+test('cold start without retained credentials makes no refresh call, including nonretention relaunch', async () => {
+  const first = setup(() => { throw Error('unexpected request'); });
+  await first.tokenState.saveTokenState(original, false);
+  const relaunched = setup(() => { throw Error('unexpected request'); });
+  for (const [key,value] of first.storage) relaunched.storage.set(key,value);
+  assert.equal(await relaunched.api.restoreTokenState(), null);
+  assert.equal(relaunched.calls.length, 0);
+});
+
+test('expired or invalidated startup refresh 400/401 returns signed-out state and removes old credentials', async () => {
+  for (const status of [400,401]) {
+    const env = setup(() => ({status,body:{detail:'invalid refresh'}}));
+    env.storage.set('rollpe.session', JSON.stringify(original));
+    assert.equal(await env.api.restoreTokenState(), null);
+    assert.equal(await env.tokenState.getTokenState(), null);
+    assert.equal(env.storage.size, 0);
+  }
+});
+
+test('startup refresh 400/401 invalidates credentials even when its error body is not JSON', async () => {
+  for (const status of [400, 401]) {
+    const env = setup(() => new Response('<html>Rejected refresh</html>', { status }));
+    env.storage.set('rollpe.session', JSON.stringify(original));
+    assert.equal(await env.api.restoreTokenState(), null);
+    assert.equal(await env.tokenState.getTokenState(), null);
+    assert.equal(env.storage.size, 0);
+  }
+});
+
+test('startup network and server failures preserve credentials and allow retry', async () => {
+  for (const failed of [new Error('offline'),{status:503,body:{}},ok({access:123}),new Response('{invalid JSON', {status:200})]) {
+    let recover = false;
+    const env = setup(() => {
+      if (recover) return ok({access:'recovered'});
+      if (failed instanceof Error) throw failed;
+      return failed;
+    });
+    env.storage.set('rollpe.session', JSON.stringify(original));
+    await assert.rejects(env.api.restoreTokenState());
+    assert.equal((await env.tokenState.getTokenState()).refresh, original.refresh);
+    assert.equal(env.storage.size, 1);
+    recover = true;
+    assert.equal((await env.api.restoreTokenState()).access, 'recovered');
+  }
+});
+
+test('duplicate startup restores share refresh, and disposal cancellation leaves the remaining restore usable', async () => {
+  const gate = deferred();const started = deferred();
+  const env = setup(async () => { started.resolve();await gate.promise;return ok({access:'restored'}); });
+  env.storage.set('rollpe.session', JSON.stringify(original));
+  const controller = new AbortController();
+  const first = env.api.restoreTokenState(controller.signal);
+  const rejected = assert.rejects(first);
+  const second = env.api.restoreTokenState();
+  await started.promise;
+  controller.abort();await rejected;
+  gate.resolve();
+  assert.equal((await second).access, 'restored');
+  assert.equal(env.calls.length, 1);
+});
+
+test('late startup refresh cannot restore after clear or overwrite a new login', async () => {
+  for (const newLogin of [false,true]) {
+    const gate=deferred();const started=deferred();
+    const env=setup(async()=>{started.resolve();await gate.promise;return ok({access:'late'});});
+    env.storage.set('rollpe.session',JSON.stringify(original));
+    const restoring=env.api.restoreTokenState();
+    await started.promise;
+    await env.tokenState.clearTokenState();
+    if(newLogin)await env.tokenState.saveTokenState({...original,access:'new-login'},false);
+    gate.resolve();
+    assert.equal(await restoring,null);
+    assert.equal((await env.tokenState.getTokenState())?.access ?? null,newLogin?'new-login':null);
+    assert.equal(env.storage.size,0);
+  }
+});
+
+
+test('startup timeout preserves retained credentials for a later retry', async () => {
+  const env = setup(({signal}) => new Promise((resolve,reject) => {
+    if (signal.aborted) reject(new Error('cancelled'));
+    else signal.addEventListener('abort',()=>reject(new Error('timeout')),{once:true});
+  }), 'ios', true);
+  env.storage.set('rollpe.session', JSON.stringify(original));
+  await assert.rejects(env.api.restoreTokenState());
+  assert.equal((await env.tokenState.getTokenState()).refresh, original.refresh);
+  assert.equal(env.storage.size, 1);
+});
+
+test('startup restores share refresh until the rotated credentials finish persisting', async () => {
+  const gate = deferred();
+  const writing = deferred();
+  const env = setup(() => ok({ access: 'new-access', refresh: 'rotated-refresh' }));
+  env.storage.set('rollpe.session', JSON.stringify(original));
+  env.blockWrites(gate.promise, writing.resolve);
+  const first = env.api.restoreTokenState();
+  await writing.promise;
+  const second = env.api.restoreTokenState();
+  try {
+    await new Promise(setImmediate);
+    assert.equal(env.calls.length, 1);
+  } finally {
+    gate.resolve();
+  }
+  assert.equal((await first).refresh, 'rotated-refresh');
+  assert.equal((await second).refresh, 'rotated-refresh');
+});
+
+test('failed persistence keeps the server-rotated refresh token in memory for retry', async () => {
+  const env = setup(({ body }) => JSON.parse(body).refresh === 'old-refresh'
+    ? ok({ access: 'first-access', refresh: 'first-rotation' })
+    : ok({ access: 'second-access', refresh: 'second-rotation' }));
+  env.storage.set('rollpe.session', JSON.stringify(original));
+  env.failWrites(new Error('secure storage unavailable'));
+  await assert.rejects(env.api.restoreTokenState(), /secure storage/);
+  assert.equal((await env.tokenState.getTokenState()).refresh, 'first-rotation');
+  env.failWrites(undefined);
+  assert.equal((await env.api.restoreTokenState()).refresh, 'second-rotation');
+  assert.equal(JSON.parse(env.calls[1].body).refresh, 'first-rotation');
+  assert.equal(JSON.parse(env.storage.get('rollpe.session')).refresh, 'second-rotation');
+});
+
 test('a stale refresh cannot report the new login as signed out', async () => {
   for (const status of [200, 400, 401]) {
     const gate = deferred();
