@@ -12,8 +12,8 @@ const storedTokenState = {
   access: 'old-access', refresh: 'old-refresh',
   user: { id: 1, name: '기존 사용자', email: 'existing@example.com', identifyCode: 'Ab123x', provider: null },
 };
-function recoveryService({ status = 200, payload = { message: '요청되었습니다.' }, failure, timeout = false, jsonFailure, platform = 'ios' } = {}) {
-  const auth = loadServices({ platform });
+function recoveryService({ status = 200, payload = { message: '요청되었습니다.' }, failure, timeout = false, jsonFailure, platform = 'ios', beforeResponse, storage = new Map() } = {}) {
+  const auth = loadServices({ platform, storage });
   const requests = [];
   const cache = new Map();
   function load(name) {
@@ -35,6 +35,7 @@ function recoveryService({ status = 200, payload = { message: '요청되었습�
       setTimeout: (fn, ms) => setTimeout(fn, timeout ? 1 : ms), clearTimeout,
       fetch: network = async (url, options) => {
         requests.push([url, options]);
+        await beforeResponse?.();
         if (failure) throw failure;
         if (timeout) return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
         return { ok: status >= 200 && status < 300, status, json: async () => {
@@ -92,6 +93,54 @@ test('successful reset sends exact PATCH fields and clears both memory and secur
   assert.equal(calls.saved.length, 1); // Only the preexisting token state, never a recovery response.
 });
 
+test('resetting one account preserves another account already signed in on the device', async () => {
+  const { load, recovery, storage, calls } = recoveryService();
+  const anotherAccount = { ...storedTokenState, user: { ...storedTokenState.user, id: 2, identifyCode: 'Cd456y' } };
+  await load('token-state').saveTokenState(anotherAccount);
+  await recovery.resetPassword(credentials, 'abcd123!');
+  assert.equal(await load('token-state').getTokenState(), anotherAccount);
+  assert.equal(storage.has('rollpe.session'), true);
+  assert.equal(calls.deleted.length, 0);
+});
+
+test('a delayed reset preserves a newer login, including a new login to the same account', async () => {
+  for (const initiallySignedIn of [true, false]) {
+    for (const identifyCode of ['Ab123x', 'Cd456y']) {
+      let started, complete;
+      const requested = new Promise((resolve) => { started = resolve; });
+      const response = new Promise((resolve) => { complete = resolve; });
+      const { load, recovery, calls } = recoveryService({ beforeResponse: () => { started(); return response; } });
+      const tokenState = load('token-state');
+      if (initiallySignedIn) await tokenState.saveTokenState(storedTokenState);
+      const reset = recovery.resetPassword(credentials, 'abcd123!');
+      await requested;
+      const newerLogin = { ...storedTokenState, access: 'newer-access', refresh: 'newer-refresh',
+        user: { ...storedTokenState.user, identifyCode } };
+      await tokenState.saveTokenState(newerLogin);
+      complete();
+      await reset;
+      assert.equal(await tokenState.getTokenState(), newerLogin);
+      assert.equal(calls.deleted.length, 0);
+    }
+  }
+});
+
+test('reset still clears the same account if its access token rotates while the request is pending', async () => {
+  let started, complete;
+  const requested = new Promise((resolve) => { started = resolve; });
+  const response = new Promise((resolve) => { complete = resolve; });
+  const { load, recovery, storage } = recoveryService({ beforeResponse: () => { started(); return response; } });
+  const tokenState = load('token-state');
+  await tokenState.saveTokenState(storedTokenState);
+  const reset = recovery.resetPassword(credentials, 'abcd123!');
+  await requested;
+  await tokenState.replaceTokens(await tokenState.getTokenSnapshot(), 'rotated-access', 'rotated-refresh');
+  complete();
+  await reset;
+  assert.equal(await tokenState.getTokenState(), null);
+  assert.equal(storage.has('rollpe.session'), false);
+});
+
 test('expired and reused links offer fresh-email recovery without changing stored token state', async () => {
   const { recovery, calls } = recoveryService({ status: 400, payload: { message: '인증 링크가 만료되었습니다.' } });
   await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'), (error) => error.invalidLink && /만료/.test(error.message));
@@ -130,4 +179,31 @@ test('a completed server reset stays successful if local deletion fails, without
     assert.equal(storage.has('rollpe.session'), true); // Persistence failure is reported, never hidden.
     assert.equal(await load('token-state').getTokenState(), null); // Do not reload the stale stored token state.
   }
+});
+
+test('unreadable native or web storage does not block the reset or delete an unidentified login', async () => {
+  for (const platform of ['ios', 'web']) {
+    const storage = new Map([['rollpe.session', JSON.stringify(storedTokenState)]]);
+    storage.get = () => { throw new Error('storage read unavailable'); };
+    const { recovery, requests, calls } = recoveryService({ platform, storage });
+    const message = await recovery.resetPassword(credentials, 'abcd123!');
+    assert.match(message, /요청되었습니다/);
+    assert.match(message, /로그인 정보를 삭제하지 못했습니다/);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0][1].method, 'PATCH');
+    assert.equal(storage.has('rollpe.session'), true);
+    assert.equal(calls.deleted.length, 0);
+    assert.equal(calls.saved.length, 0);
+  }
+});
+
+test('an unreadable store never masks a failed server reset as a successful change', async () => {
+  const storage = new Map();
+  storage.get = () => { throw new Error('storage read unavailable'); };
+  const { recovery, requests, calls } = recoveryService({ storage, status: 400,
+    payload: { message: '인증 링크가 만료되었습니다.' } });
+  await assert.rejects(recovery.resetPassword(credentials, 'abcd123!'),
+    (error) => error.invalidLink && /만료/.test(error.message));
+  assert.equal(requests.length, 1);
+  assert.equal(calls.deleted.length, 0);
 });

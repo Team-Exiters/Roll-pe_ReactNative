@@ -20,7 +20,7 @@ export default function SignInScreen() {
     if (Platform.OS === 'web') {
       window.alert(message);
     } else {
-      Alert.alert('로그인', message);
+      Alert.alert('오류', message, [{ text: '확인' }]);
     }
   }
 
@@ -32,7 +32,7 @@ export default function SignInScreen() {
         router.replace('/home');
       }
     } catch (error) {
-      showSignInMessage(error instanceof Error ? error.message : '로그인에 실패했습니다. 다시 시도해주세요.');
+      showSignInMessage(error instanceof Error ? error.message : '로그인에 실패하였습니다.');
     }
   }
 

@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -30,7 +30,8 @@ export default function HomeScreen() {
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [gridWidth, setGridWidth] = useState(0);
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    if (attempt > 0) { setError(false); setResult(null); }
     const controller = new AbortController();
     let active = true;
     void (async () => {
@@ -57,7 +58,7 @@ export default function HomeScreen() {
       }
     })();
     return () => { active = false; controller.abort(); };
-  }, [attempt, router]);
+  }, [attempt, router]));
 
   function retry() { setError(false); setResult(null); setAttempt(value => value + 1); }
   function unavailable() {
@@ -85,7 +86,7 @@ export default function HomeScreen() {
         <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{result.status?.heart ?? '—'}번의 마음을 작성하셨어요.</Text>
         {result.statusError && failure(result.statusError)}
         <PrimaryButton title="초대받은 롤페" onPress={unavailable} style={styles.invited} />
-        <Pressable accessibilityRole="button" onPress={unavailable}
+        <Pressable accessibilityRole="button" onPress={() => router.push('/create-rollpe')}
           style={[styles.create, { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary }]}>
           <Text style={[styles.createText, { color: colors.rollpe_main }]}>롤페 만들기</Text>
         </Pressable>

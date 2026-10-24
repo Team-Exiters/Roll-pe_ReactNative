@@ -1,6 +1,6 @@
 import { apiUrl, requestJson } from '@/lib/api';
 import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
-import { clearTokenState } from '@/features/sign-in/token-state';
+import { clearTokenStateIfCurrent, getTokenSnapshot } from '@/features/sign-in/token-state';
 import { isRecoveryEmail, isRecoveryPassword } from '@/features/password-recovery/validation';
 
 export class PasswordRecoveryError extends Error {
@@ -33,12 +33,23 @@ export function requestPasswordEmail(email: string) {
 export async function resetPassword(credentials: ResetCredentials, newPassword: string) {
   if (!resetCredentials(credentials)) throw new PasswordRecoveryError('올바르지 않은 인증 링크입니다.', true);
   if (!isRecoveryPassword(newPassword)) throw new PasswordRecoveryError('새 비밀번호 형식을 확인해주세요.');
+  // An unreadable local store must not prevent changing the password on the server.
+  // undefined means identity could not be checked; null means no account is signed in.
+  const startingToken = await getTokenSnapshot().catch(() => undefined);
   const message = await requestRecovery('PATCH', { ...credentials, newPassword });
+  const cleanupFailureMessage = `${message}\n기기에 저장된 로그인 정보를 삭제하지 못했습니다. 다시 로그인해주세요.`;
+  if (startingToken === undefined) return cleanupFailureMessage;
   try {
-    await clearTokenState();
+    const currentToken = await getTokenSnapshot();
+    // A delayed reset must not sign out another account or a newer sign-in. Token refresh
+    // keeps the generation, so the reset account's rotated credentials are still removed.
+    if (startingToken && currentToken && startingToken.generation === currentToken.generation
+      && currentToken.tokenState.user.identifyCode === credentials.identifyCode) {
+      await clearTokenStateIfCurrent(currentToken);
+    }
   } catch {
     // The server has already consumed the link; this is still a successful reset.
-    return `${message}\n기기에 저장된 로그인 정보를 삭제하지 못했습니다. 다시 로그인해주세요.`;
+    return cleanupFailureMessage;
   }
   return message;
 }

@@ -19,7 +19,7 @@ async function authenticationFailure() {
     : new AuthenticationRequiredError();
 }
 
-async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, refresh?: string) {
+async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, body?: object) {
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (signal?.aborted) abort();
@@ -27,9 +27,9 @@ async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSig
   const timer = setTimeout(abort, 20_000);
   try {
     return await apiClient.request<unknown>({
-      url: path, method: refresh === undefined ? 'GET' : 'POST',
+      url: path, method: body === undefined ? 'GET' : 'POST',
       headers: snapshot ? { Authorization: `Bearer ${snapshot.tokenState.access}` } : undefined,
-      data: refresh === undefined ? undefined : { refresh }, signal: controller.signal,
+      data: body, signal: controller.signal,
     });
   } catch (error) {
     // Authentication status remains authoritative when its error body is not valid JSON.
@@ -48,7 +48,7 @@ function refreshTokens(snapshot: TokenSnapshot) {
   // Rotation changes the revision before persistence completes; keep sharing until it settles.
   if (refreshing?.generation === snapshot.generation) return refreshing.promise;
   const promise = (async () => {
-    const response = await request('/api/user/token/refresh', undefined, undefined, snapshot.tokenState.refresh);
+    const response = await request('/api/user/token/refresh', undefined, undefined, { refresh: snapshot.tokenState.refresh });
     if (!isCurrentTokenState(snapshot)) return null;
     if (response.status === 400 || response.status === 401) {
       await clearTokenStateIfCurrent(snapshot);
@@ -93,16 +93,17 @@ export async function restoreTokenState(signal?: AbortSignal): Promise<TokenStat
   }
 }
 
-export async function authenticatedGet(path: string, signal?: AbortSignal) {
+async function authenticatedRequest(path: string, signal?: AbortSignal, body?: object) {
   // Reject encoded path separators, dot traversal, protocol-relative and absolute URLs.
+  const pathname = path.split('?')[0];
   if (!apiUrl || !/^\/api\/[A-Za-z0-9/_-]+(?:\?[^#\\]*)?$/.test(path)
-    || /%(?:2f|5c|2e)/i.test(path) || path.includes('..')) {
+    || /%(?:2f|5c|2e)/i.test(pathname) || pathname.includes('..')) {
     throw new Error('올바르지 않은 API 경로입니다.');
   }
   if (signal?.aborted) throw cancelled();
   let snapshot = await getTokenSnapshot();
   if (!snapshot) throw new AuthenticationRequiredError();
-  let response = await request(path, snapshot, signal);
+  let response = await request(path, snapshot, signal, body);
   if (!isCurrentTokenState(snapshot)) {
     const latest = await getTokenSnapshot();
     // Only a concurrent refresh for the same account may supply the retry token.
@@ -117,7 +118,7 @@ export async function authenticatedGet(path: string, signal?: AbortSignal) {
       if (!snapshot) throw await authenticationFailure();
     }
     if (signal?.aborted) throw cancelled();
-    response = await request(path, snapshot, signal);
+    response = await request(path, snapshot, signal, body);
     if (response.status === 401) {
       await clearTokenStateIfCurrent(snapshot);
       throw await authenticationFailure();
@@ -127,4 +128,12 @@ export async function authenticatedGet(path: string, signal?: AbortSignal) {
   const payload = response.data && typeof response.data === 'object' && !Array.isArray(response.data)
     ? response.data as Record<string, unknown> : null;
   return { response: { status: response.status, ok: response.status >= 200 && response.status < 300 }, payload };
+}
+
+export function authenticatedGet(path: string, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal);
+}
+
+export function authenticatedPost(path: string, body: object, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal, body);
 }

@@ -391,3 +391,40 @@ test('a revoked refresh finishing deletion cannot sign out a login saved during 
   assert.equal((await env.tokenState.getTokenState()).access, 'other-login');
   assert.equal(JSON.parse(env.storage.get('rollpe.session')).access, 'other-login');
 });
+
+test('authenticated POST retries only an initial 401 and preserves the exact body through refresh', async () => {
+  const body = { receiverFK: 7, title: '생일 축하', password: 'private-paper' };
+  const env = setup(({ url, headers }) => url.endsWith('/token/refresh') ? ok({ access: 'new-access' })
+    : headers.authorization === 'Bearer old-access' ? unauthorized : { status: 201, body: { data: { created: true } } });
+  await env.tokenState.saveTokenState(original, false);
+  assert.equal((await env.api.authenticatedPost('/api/paper', body)).response.status, 201);
+  assert.deepEqual(env.calls.map(call => call.method), ['POST', 'POST', 'POST']);
+  assert.deepEqual(JSON.parse(env.calls[0].body), body);
+  assert.deepEqual(JSON.parse(env.calls[1].body), { refresh: original.refresh });
+  assert.deepEqual(JSON.parse(env.calls[2].body), body);
+  assert.equal(env.calls[1].headers.authorization, undefined);
+  assert.equal(env.calls[2].headers.authorization, 'Bearer new-access');
+});
+
+test('POST network and server errors are not replayed, preventing ambiguous duplicate creations', async () => {
+  for (const reply of [new Error('offline'), { status: 503, body: {} }]) {
+    const env = setup(() => { if (reply instanceof Error) throw reply; return reply; });
+    await env.tokenState.saveTokenState(original, false);
+    try { await env.api.authenticatedPost('/api/paper', { title: '제목' }); } catch { /* Network errors propagate. */ }
+    assert.equal(env.calls.length, 1);
+    assert.equal((await env.tokenState.getTokenState()).access, original.access);
+  }
+});
+
+test('encoded recipient names may contain path-like text in query parameters without changing the API destination', async () => {
+  const env = setup(() => ok({ data: [] }));
+  await env.tokenState.saveTokenState(original, false);
+  const query = new URLSearchParams({ nameCode: '이름 ../ &검색' });
+  await env.api.authenticatedGet(`/api/user/search-user/?${query}`);
+  const request = new URL(env.calls[0].url);
+  assert.equal(request.origin, 'https://api.example');
+  assert.equal(request.pathname, '/api/user/search-user/');
+  assert.equal(request.searchParams.get('nameCode'), '이름 ../ &검색');
+  await assert.rejects(env.api.authenticatedPost('https://evil.example/api/paper', { title: '제목' }));
+  assert.equal(env.calls.length, 1);
+});
