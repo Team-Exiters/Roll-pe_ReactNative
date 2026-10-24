@@ -3,7 +3,7 @@ import { authenticatedGet } from '@/lib/authenticated-api';
 
 export type HomeStatus = { host: number; heart: number };
 export type HotRollpe = {
-  id: number; code: string; title: string; theme: string;
+  id: number; code: string; title: string; theme: string; viewStat?: boolean;
   host: { name: string };
   receive: { receivingDate: string };
 };
@@ -22,6 +22,7 @@ function receivingDate(value: unknown): value is string {
 function isHotRollpe(value: unknown): value is HotRollpe {
   return record(value) && Number.isSafeInteger(value.id) && typeof value.code === 'string' && Boolean(value.code)
     && typeof value.title === 'string' && typeof value.theme === 'string'
+    && (value.viewStat === undefined || typeof value.viewStat === 'boolean')
     && record(value.host) && typeof value.host.name === 'string'
     && record(value.receive) && receivingDate(value.receive.receivingDate);
 }

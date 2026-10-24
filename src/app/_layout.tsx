@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useTranslation } from '@/i18n';
 import { DeviceLanguage } from '@/i18n/DeviceLanguage';
 import { RollpeFonts, useRollpeColors } from "@/constants/theme";
+import { WebViewport } from '@/components/WebViewport';
 
 export { ErrorBoundary } from "expo-router";
 
@@ -36,7 +37,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <WebViewport style={{ flex: 1 }}>
       <DeviceLanguage />
       <StatusBar style="dark" />
       <Stack
@@ -55,11 +56,13 @@ export default function RootLayout() {
         />
         <Stack.Screen name="home" options={{ title: t('common.home'), gestureEnabled: false }} />
         <Stack.Screen name="create-rollpe" options={{ title: t('common.createRollpe'), gestureEnabled: true }} />
+        <Stack.Screen name="rollpe/[code]" options={{ title: t('info.title'), gestureEnabled: true }} />
+        <Stack.Screen name="rollpe-error" options={{ title: t('common.error'), gestureEnabled: false }} />
         <Stack.Screen name="forgot-password" options={{ title: t('common.forgotPassword'), gestureEnabled: true }} />
         <Stack.Screen name="reset-password" options={{ title: t('common.resetPassword'), gestureEnabled: true }} />
         <Stack.Screen name="sign-up" options={{ title: t('common.signUp'), gestureEnabled: true }} />
         <Stack.Screen name="policy" options={{ title: t('common.policy'), gestureEnabled: true }} />
       </Stack>
-    </>
+    </WebViewport>
   );
 }

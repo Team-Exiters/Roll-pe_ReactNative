@@ -14,12 +14,17 @@ const validation = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync(validationFilename, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, { exports: validation, URL }, { filename: validationFilename });
+const rollpeLink = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../src/utils/rollpe-link.ts'), 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, { exports: rollpeLink });
 
 function loadNativeIntent(apiUrl = 'https://api.example') {
   const exportsObject = {};
   vm.runInNewContext(output, {
     exports: exportsObject, URL, URLSearchParams,
     require: (name) => {
+      if (name === '@/utils/rollpe-link') return rollpeLink;
       assert.equal(name, '@/utils/reset-link');
       return validation;
     },
@@ -28,6 +33,16 @@ function loadNativeIntent(apiUrl = 'https://api.example') {
   return exportsObject.redirectSystemPath;
 }
 const redirectSystemPath = loadNativeIntent();
+
+test('shared rollpe scheme links resolve to the actual detail route on a cold or warm launch', () => {
+  const code = '12345678-1234-4234-8234-123456789abc';
+  for (const initial of [true, false]) for (const path of [`rollpe://rollpe/${code}`, `rollpe:///rollpe/${code}`, `/rollpe/${code}`]) {
+    assert.equal(redirectSystemPath({ path, initial }), `/rollpe/${code}`);
+  }
+  for (const path of ['rollpe://rollpe/bad-code', `rollpe://elsewhere/rollpe/${code}`]) {
+    assert.equal(redirectSystemPath({ path, initial: true }), path);
+  }
+});
 
 const kakaoReturns = [
   'rollpe:///oauth?code=kakao-authorization-code',
