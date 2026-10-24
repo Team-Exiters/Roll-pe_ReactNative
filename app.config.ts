@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import ko from './src/i18n/locales/ko.json';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const plugins: NonNullable<ExpoConfig['plugins']> = [
@@ -6,6 +7,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     'expo-apple-authentication',
     '@react-native-community/datetimepicker',
     ['expo-localization', { supportedLocales: ['ko'], supportsRTL: false }],
+    ['expo-media-library', { photosPermission: false, savePhotosPermission: ko['permission.savePhotos'],
+      granularPermissions: [], isAccessMediaLocationEnabled: false }],
   ];
   const googleScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
   const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;

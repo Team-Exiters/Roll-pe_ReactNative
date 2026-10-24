@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
@@ -9,12 +9,14 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { SignInForm } from '@/features/sign-in/components/SignInForm';
 import { SocialSignInButton } from '@/features/sign-in/components/SocialSignInButton';
 import { useSignIn } from '@/features/sign-in/useSignIn';
+import { rollpeDestination } from '@/utils/rollpe-link';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const safeArea = useSafeAreaSpacing();
   const signIn = useSignIn();
 
@@ -31,7 +33,7 @@ export default function SignInScreen() {
       const tokenState = await action();
       if (tokenState) {
         router.dismissAll();
-        router.replace('/home');
+        router.replace(rollpeDestination(returnTo) ?? '/home');
       }
     } catch (error) {
       showSignInMessage(error instanceof Error ? error.message : t('auth.failed'));

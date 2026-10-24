@@ -1,8 +1,14 @@
 import { resetCredentials, resetLinkOrigin } from '@/utils/reset-link';
+import { rollpeDestination } from '@/utils/rollpe-link';
 
 export function redirectSystemPath({ path, initial }: { path: string; initial: boolean }): string | null {
   try {
     const url = new URL(path, 'rollpe:///');
+    if (url.protocol === 'rollpe:' && ['', 'rollpe'].includes(url.hostname)
+      && !url.username && !url.password && !url.search && !url.hash) {
+      const destination = rollpeDestination(url.hostname === 'rollpe' ? `/rollpe${url.pathname}` : url.pathname);
+      if (destination) return destination;
+    }
     const apiOrigin = resetLinkOrigin(process.env.EXPO_PUBLIC_API_URL);
     // Email reset links use a verified HTTPS app link. Never accept the token in a query.
     if (apiOrigin && url.protocol === 'https:' && url.hostname === new URL(apiOrigin).hostname

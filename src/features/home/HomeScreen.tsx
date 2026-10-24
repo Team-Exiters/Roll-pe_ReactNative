@@ -97,7 +97,9 @@ export default function HomeScreen() {
         <Text accessibilityRole="header" style={[styles.hotTitle, { color: colors.rollpe_secondary }]}>{t('home.hot')}</Text>
         <View style={styles.grid} onLayout={event => setGridWidth(event.nativeEvent.layout.width)}>
           {result.rollpesError ? failure(result.rollpesError) : result.rollpes?.map(rollpe => <View key={rollpe.id} style={{ width: Math.max(0, (gridWidth - 12) / 2) }}>
-            <RollpeCard rollpe={rollpe} onPress={unavailable} />
+            <RollpeCard rollpe={rollpe} onPress={() => router.push({ pathname: '/rollpe/[code]', params: {
+              code: rollpe.code, title: rollpe.title, ...(typeof rollpe.viewStat === 'boolean' ? { public: rollpe.viewStat ? '1' : '0' } : {}),
+            } })} />
           </View>)}
         </View>
       </View>
