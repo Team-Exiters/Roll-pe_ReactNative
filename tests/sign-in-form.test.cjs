@@ -21,6 +21,7 @@ test('login fields accept backend email lengths and passwords accepted by passwo
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
     }).outputText;
     vm.runInNewContext(source, { exports, require: name => {
+      if (name === '@/i18n') return require('./helpers/i18n.cjs');
       if (name === 'react' || name === 'react/jsx-runtime') return require(name);
       if (name === 'react-native') return native;
       if (name === '@/constants/theme') return { RollpeFonts: {}, useRollpeColors: () => ({}) };

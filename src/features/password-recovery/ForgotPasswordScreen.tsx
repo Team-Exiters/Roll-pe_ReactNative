@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
@@ -11,6 +12,7 @@ import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/
 import { isRecoveryEmail } from '@/features/password-recovery/validation';
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -25,9 +27,9 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       const message = await requestPasswordEmail(email);
-      if (active.current) recoveryMessage('알림', message, () => router.replace('/sign-in'));
+      if (active.current) recoveryMessage(t('common.notice'), message, () => router.replace('/sign-in'));
     } catch (error) {
-      if (active.current) recoveryMessage('오류', error instanceof Error ? error.message : '다시 시도해주세요.');
+      if (active.current) recoveryMessage(t('common.error'), error instanceof Error ? error.message : t('common.retryMessage'));
     } finally {
       pending.current = false;
       if (active.current) setLoading(false);
@@ -37,14 +39,14 @@ export default function ForgotPasswordScreen() {
   return (
     <RecoveryScaffold loading={loading}>
       <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
-        accessibilityLabel="롤페" accessible style={styles.logo} />
-      <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>비밀번호 찾기</Text>
+        accessibilityLabel={t('common.brand')} accessible style={styles.logo} />
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.forgotPassword')}</Text>
       <View style={styles.form}>
-        <RoundedBorderTextField accessibilityLabel="이메일" placeholder="이메일" value={email}
+        <RoundedBorderTextField accessibilityLabel={t('common.email')} placeholder={t('common.email')} value={email}
           onChangeText={setEmail} maxLength={254} editable={!loading} keyboardType="email-address"
           autoComplete="email" textContentType="emailAddress" returnKeyType="send"
           submitBehavior="blurAndSubmit" onSubmitEditing={() => { void submit(); }} />
-        <PrimaryButton title="이메일 인증" disabled={loading || !isRecoveryEmail(email)}
+        <PrimaryButton title={t('recovery.verifyEmail')} disabled={loading || !isRecoveryEmail(email)}
           onPress={() => { void submit(); }} style={styles.submit} />
       </View>
     </RecoveryScaffold>

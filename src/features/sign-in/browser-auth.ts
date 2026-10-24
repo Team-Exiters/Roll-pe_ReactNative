@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
+import { t } from '@/i18n';
 import { apiUrl } from '@/lib/api';
 
 import { requestSignIn, type SocialProvider } from '@/features/sign-in/api';
@@ -15,7 +16,7 @@ export type BrowserRequest = {
   exchangeUrl: string;
 };
 
-const names = { google: '구글', kakao: '카카오', apple: '애플' };
+const names = { google: 'auth.google', kakao: 'auth.kakao', apple: 'auth.apple' } as const;
 
 function randomSecret() {
   return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join('');
@@ -56,7 +57,7 @@ export async function completeBrowserSignIn(request: BrowserRequest): Promise<To
     result = await WebBrowser.openAuthSessionAsync(request.authorizationUrl, request.returnUrl);
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_WEB_BROWSER_BLOCKED') {
-      throw new Error('로그인 팝업을 열지 못했습니다. 브라우저에서 팝업을 허용한 뒤 다시 시도해주세요.');
+      throw new Error(t('auth.popupBlocked'));
     }
     throw error;
   }
@@ -69,19 +70,19 @@ export async function completeBrowserSignIn(request: BrowserRequest): Promise<To
     || params.getAll('state').length !== 1 || params.get('state') !== request.state
     || params.getAll('error').length > 1 || params.getAll('code').length > 1
     || (params.has('error') && params.has('code'))) {
-    throw new Error('로그인 요청을 확인할 수 없습니다. 다시 시도해주세요.');
+    throw new Error(t('auth.requestInvalid'));
   }
   if (params.has('error')) {
     const error = params.get('error');
     if (error === 'cancelled') return null;
-    if (error === 'email_required') throw new Error('로그인하려면 이메일 제공에 동의해주세요.');
-    if (error === 'account_conflict') throw new Error('이미 다른 로그인 방식으로 가입된 이메일입니다.');
-    if (error === 'account_inactive') throw new Error('로그인할 수 없는 계정입니다.');
-    throw new Error(`${names[request.provider]} 로그인에 실패했습니다. 다시 시도해주세요.`);
+    if (error === 'email_required') throw new Error(t('auth.emailRequired'));
+    if (error === 'account_conflict') throw new Error(t('auth.accountConflict'));
+    if (error === 'account_inactive') throw new Error(t('auth.accountInactive'));
+    throw new Error(t('auth.providerFailed', { provider: t(names[request.provider]) }));
   }
   const code = params.get('code');
   if (!code || !/^[A-Za-z0-9_-]{43}$/.test(code)) {
-    throw new Error('로그인 응답을 확인할 수 없습니다.');
+    throw new Error(t('auth.responseInvalid'));
   }
   return requestSignIn(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider);
 }

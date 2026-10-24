@@ -4,6 +4,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 
+import { useTranslation } from '@/i18n';
+import { DeviceLanguage } from '@/i18n/DeviceLanguage';
 import { RollpeFonts, useRollpeColors } from "@/constants/theme";
 
 export { ErrorBoundary } from "expo-router";
@@ -11,6 +13,7 @@ export { ErrorBoundary } from "expo-router";
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const [fontsLoaded, fontError] = useFonts({
     [RollpeFonts.display]: require("@/assets/fonts/Hakgyoansim-Dunggeunmiso-R.otf"),
@@ -34,6 +37,7 @@ export default function RootLayout() {
 
   return (
     <>
+      <DeviceLanguage />
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -43,18 +47,18 @@ export default function RootLayout() {
       >
         <Stack.Screen
           name="index"
-          options={{ title: "롤페", gestureEnabled: false }}
+          options={{ title: t('common.brand'), gestureEnabled: false }}
         />
         <Stack.Screen
           name="sign-in"
-          options={{ title: "로그인", gestureEnabled: true }}
+          options={{ title: t('common.signIn'), gestureEnabled: true }}
         />
-        <Stack.Screen name="home" options={{ title: "홈", gestureEnabled: false }} />
-        <Stack.Screen name="create-rollpe" options={{ title: "롤페 만들기", gestureEnabled: true }} />
-        <Stack.Screen name="forgot-password" options={{ title: "비밀번호 찾기", gestureEnabled: true }} />
-        <Stack.Screen name="reset-password" options={{ title: "비밀번호 변경", gestureEnabled: true }} />
-        <Stack.Screen name="sign-up" options={{ title: "회원가입", gestureEnabled: true }} />
-        <Stack.Screen name="policy" options={{ title: "약관", gestureEnabled: true }} />
+        <Stack.Screen name="home" options={{ title: t('common.home'), gestureEnabled: false }} />
+        <Stack.Screen name="create-rollpe" options={{ title: t('common.createRollpe'), gestureEnabled: true }} />
+        <Stack.Screen name="forgot-password" options={{ title: t('common.forgotPassword'), gestureEnabled: true }} />
+        <Stack.Screen name="reset-password" options={{ title: t('common.resetPassword'), gestureEnabled: true }} />
+        <Stack.Screen name="sign-up" options={{ title: t('common.signUp'), gestureEnabled: true }} />
+        <Stack.Screen name="policy" options={{ title: t('common.policy'), gestureEnabled: true }} />
       </Stack>
     </>
   );

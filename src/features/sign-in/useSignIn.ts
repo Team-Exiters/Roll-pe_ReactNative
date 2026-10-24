@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { t } from '@/i18n';
 import { apiUrl } from '@/lib/api';
 
 import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from '@/features/sign-in/api';
@@ -53,7 +54,7 @@ export function useSignIn() {
           setBrowserRequests((current) => ({ ...current, [provider]: next }));
         }
       }
-      if (!providers.includes(provider)) throw new Error('로그인이 아직 준비되지 않았습니다.');
+      if (!providers.includes(provider)) throw new Error(t('auth.notReady'));
       const credential = await authorizeNative(provider);
       return credential ? signInWithSocial(provider, credential) : null;
     });

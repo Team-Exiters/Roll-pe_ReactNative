@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
@@ -11,6 +12,7 @@ import { SocialSignInButton } from '@/features/sign-in/components/SocialSignInBu
 import { useSignIn } from '@/features/sign-in/useSignIn';
 
 export default function SignInScreen() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -20,7 +22,7 @@ export default function SignInScreen() {
     if (Platform.OS === 'web') {
       window.alert(message);
     } else {
-      Alert.alert('오류', message, [{ text: '확인' }]);
+      Alert.alert(t('common.error'), message, [{ text: t('common.confirm') }]);
     }
   }
 
@@ -32,7 +34,7 @@ export default function SignInScreen() {
         router.replace('/home');
       }
     } catch (error) {
-      showSignInMessage(error instanceof Error ? error.message : '로그인에 실패하였습니다.');
+      showSignInMessage(error instanceof Error ? error.message : t('auth.failed'));
     }
   }
 
@@ -64,14 +66,14 @@ export default function SignInScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}>
           <Image
-            accessibilityLabel="롤페"
+            accessibilityLabel={t('common.brand')}
             accessible
             source={require('@/assets/images/welcome/logo.png')}
             contentFit="contain"
             style={styles.logo}
           />
           <Text numberOfLines={2} style={[styles.title, { color: colors.rollpe_secondary }]}>
-            {'다같이 한 마음으로\n사랑하는 사람에게 전달해보세요'}
+            {t('welcome.tagline')}
           </Text>
           <SignInForm
             disabled={signIn.isLoading}
@@ -80,9 +82,9 @@ export default function SignInScreen() {
               : undefined}
           />
           <View style={styles.menus}>
-            <Pressable accessibilityRole="link" accessibilityLabel="비밀번호 찾기"
+            <Pressable accessibilityRole="link" accessibilityLabel={t('common.forgotPassword')}
               disabled={signIn.isLoading} hitSlop={12} onPress={() => router.push('/forgot-password')}>
-              <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>비밀번호 찾기</Text>
+              <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>{t('common.forgotPassword')}</Text>
             </Pressable>
             <Text accessible={false} style={[styles.menuText, { color: colors.rollpe_gray }]}>|</Text>
             <Pressable
@@ -90,7 +92,7 @@ export default function SignInScreen() {
               disabled={signIn.isLoading}
               hitSlop={12}
               onPress={() => router.push('/sign-up')}>
-              <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>회원가입</Text>
+              <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>{t('common.signUp')}</Text>
             </Pressable>
           </View>
           <View style={styles.socials}>
@@ -110,14 +112,14 @@ export default function SignInScreen() {
               accessibilityRole="link"
               disabled={signIn.isLoading}
               onPress={() => router.push({ pathname: '/policy', params: { type: 'terms' } })}>
-              <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>서비스 이용약관</Text>
+              <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>{t('common.terms')}</Text>
             </Pressable>
             <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>|</Text>
             <Pressable
               accessibilityRole="link"
               disabled={signIn.isLoading}
               onPress={() => router.push({ pathname: '/policy', params: { type: 'privacy' } })}>
-              <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>개인정보처리방침</Text>
+              <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>{t('common.privacy')}</Text>
             </Pressable>
           </View>
         </ScrollView>

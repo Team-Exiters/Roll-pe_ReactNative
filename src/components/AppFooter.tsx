@@ -2,14 +2,16 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { useTranslation } from '@/i18n';
 
 export function AppFooter() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.team_exiters }]}>
       <Image
-        accessibilityLabel="Team Exiters"
+        accessibilityLabel={t('footer.team')}
         accessible
         source={require('@/assets/images/welcome/team-exiters.svg')}
         contentFit="contain"
@@ -19,7 +21,7 @@ export function AppFooter() {
         team.exiters@gmail.com
       </Text>
       <Text numberOfLines={1} style={[styles.copyright, { color: colors.rollpe_primary }]}>
-        Copyright 2025 Team Exiters. All rights reserved.
+        {t('footer.copyright')}
       </Text>
     </View>
   );

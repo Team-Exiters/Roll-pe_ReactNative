@@ -29,6 +29,7 @@ function setup(respond) {
     }).outputText;
     vm.runInNewContext(source, { exports, Date: FixedDate, Error, URLSearchParams,
       require: name => {
+        if (name === '@/i18n') return require('./helpers/i18n.cjs');
         if (name === '@/features/create-rollpe/validation') return load('validation');
         assert.equal(name, '@/lib/authenticated-api');
         return {

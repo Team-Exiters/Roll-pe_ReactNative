@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 export function Welcome3rdSection() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
 
   return (
@@ -13,11 +15,11 @@ export function Welcome3rdSection() {
           accessibilityRole="header"
           numberOfLines={2}
           style={[styles.title, { color: colors.rollpe_secondary }]}>
-          {'함께 나누었던 추억,\n언제 어디서나'}
+          {t('welcome.memories')}
         </Text>
         <Image
           accessible
-          accessibilityLabel="모바일에서 롤페를 확인하고 추억을 간직하는 화면 예시"
+          accessibilityLabel={t('welcome.memoriesImage')}
           source={require('@/assets/images/welcome/memory-preview.png')}
           contentFit="contain"
           style={styles.preview}

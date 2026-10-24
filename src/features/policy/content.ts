@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { requestJson } from '@/lib/api';
 
 export type PolicyType = 'terms' | 'privacy';
@@ -59,23 +60,23 @@ export function policyBlocks(html: string): PolicyBlock[] {
 }
 
 export function policyEndpoint(base: string | undefined, type: PolicyType): string {
-  if (!policyType(type)) throw new Error('잘못된 입력값입니다.');
+  if (!policyType(type)) throw new Error(t('common.invalidInput'));
   try {
     const url = new URL(base ?? '');
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
     if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && local))
         || url.username || url.password || url.search || url.hash || !['', '/'].includes(url.pathname)) throw new Error();
     return `${url.origin}/api/user/docs?docs=${type}`;
-  } catch { throw new Error('서버 주소를 확인해주세요.'); }
+  } catch { throw new Error(t('common.serverInvalid')); }
 }
 
 export async function fetchPolicy(type: PolicyType, signal: AbortSignal): Promise<PolicyBlock[]> {
   const endpoint = policyEndpoint(process.env.EXPO_PUBLIC_API_URL, type);
   const { response, payload } = await requestJson(endpoint, undefined, 'GET', signal);
   if (!response.ok || typeof payload?.data !== 'string') {
-    throw new Error('오류가 발생하였습니다.');
+    throw new Error(t('common.genericError'));
   }
   const blocks = policyBlocks(payload.data);
-  if (!blocks.length) throw new Error('오류가 발생하였습니다.');
+  if (!blocks.length) throw new Error(t('common.genericError'));
   return blocks;
 }

@@ -1,11 +1,14 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
-export function LoadingView({ accessibilityLabel = '로그인 중' }: { accessibilityLabel?: string }) {
+import { useTranslation } from '@/i18n';
+
+export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: string }) {
+  const { t } = useTranslation();
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ?? t('auth.signingIn')}
       style={[StyleSheet.absoluteFill, styles.overlay]}>
       <Image
         source={require('@/assets/images/loading.gif')}

@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { authenticatedGet } from '@/lib/authenticated-api';
 
 export type HomeStatus = { host: number; heart: number };
@@ -30,7 +31,7 @@ export async function fetchHomeStatus(signal: AbortSignal): Promise<HomeStatus> 
   const data = payload?.data;
   if (!response.ok || !record(data) || !Number.isSafeInteger(data.host) || (data.host as number) < 0
     || !Number.isSafeInteger(data.heart) || (data.heart as number) < 0) {
-    throw new Error('내 정보를 불러오지 못했습니다.');
+    throw new Error(t('home.statusFailed'));
   }
   return { host: data.host as number, heart: data.heart as number };
 }
@@ -39,7 +40,7 @@ export async function fetchHotRollpes(signal: AbortSignal): Promise<HotRollpe[]>
   const { response, payload } = await authenticatedGet('/api/paper/user?type=hot', signal);
   const data = payload?.data;
   if (!response.ok || !Array.isArray(data) || !data.every(isHotRollpe)) {
-    throw new Error('롤페를 불러오지 못했습니다.');
+    throw new Error(t('home.rollpesFailed'));
   }
   return data;
 }
@@ -51,5 +52,5 @@ export function dDay(value: string, now = new Date()): string {
     - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000);
   const difference = calendarDays > 0 && (now.getHours() || now.getMinutes() || now.getSeconds() || now.getMilliseconds())
     ? calendarDays - 1 : calendarDays;
-  return difference === 0 ? 'D-Day' : difference > 0 ? `D-${difference}` : '마감';
+  return difference === 0 ? t('home.dDay') : difference > 0 ? t('home.daysLeft', { count: difference }) : t('home.closed');
 }

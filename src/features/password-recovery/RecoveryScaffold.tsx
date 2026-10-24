@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { t, useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { useRollpeColors } from '@/constants/theme';
@@ -12,13 +13,14 @@ export function recoveryMessage(title: string, message: string, onConfirm?: () =
     window.alert(message);
     onConfirm?.();
   } else {
-    Alert.alert(title, message, [{ text: '확인', onPress: onConfirm }]);
+    Alert.alert(title, message, [{ text: t('common.confirm'), onPress: onConfirm }]);
   }
 }
 
 export function RecoveryScaffold({ children, loading, reset = false }: {
   children: ReactNode; loading: boolean; reset?: boolean;
 }) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -37,7 +39,7 @@ export function RecoveryScaffold({ children, loading, reset = false }: {
       </KeyboardAvoidingView>
       <BackButton disabled={loading} style={[styles.back, { top: insets.top + 20 }]}
         onPress={() => router.canGoBack() ? router.back() : router.replace('/sign-in')} />
-      {loading && <LoadingView accessibilityLabel="요청 처리 중" />}
+      {loading && <LoadingView accessibilityLabel={t('common.processing')} />}
     </View>
   );
 }

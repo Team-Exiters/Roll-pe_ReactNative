@@ -44,6 +44,7 @@ function setup(reply, platform = 'ios', fastTimeout = false) {
       process: { env: { EXPO_PUBLIC_API_URL: 'https://api.example' } },
       window: { sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } },
       require: name => {
+        if (name === '@/i18n') return require('./helpers/i18n.cjs');
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: platform } };
         if (name === 'expo-secure-store') return secure;

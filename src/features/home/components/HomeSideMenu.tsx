@@ -2,9 +2,11 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, Linking, Modal, PanResponder, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 export function HomeSideMenu({ onClose, onUnavailable }: { onClose: () => void; onUnavailable: () => void }) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const { width } = useWindowDimensions();
   const menuWidth = width * 0.8;
@@ -37,20 +39,20 @@ export function HomeSideMenu({ onClose, onUnavailable }: { onClose: () => void; 
   return <Modal transparent visible animationType="none" onRequestClose={close}>
     <View style={styles.screen} accessibilityViewIsModal>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000000', opacity }]} />
-      <Pressable accessibilityRole="button" accessibilityLabel="메뉴 닫기" style={StyleSheet.absoluteFill} onPress={close} />
+      <Pressable accessibilityRole="button" accessibilityLabel={t('home.menuClose')} style={StyleSheet.absoluteFill} onPress={close} />
       <Animated.View {...pan.panHandlers} style={[styles.menu, { width: menuWidth, backgroundColor: colors.rollpe_primary,
         transform: [{ translateX: offset }] }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="메뉴 닫기" hitSlop={16} style={styles.close} onPress={close}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('home.menuClose')} hitSlop={16} style={styles.close} onPress={close}>
           <Image source={require('@/assets/images/home/close.svg')} contentFit="contain" accessible={false} style={styles.closeIcon} />
         </Pressable>
         <View style={styles.contents}>
-          {['홈', '검색', '1:1 문의', '마이페이지'].map(label => <Pressable key={label} accessibilityRole="button"
+          {(['home', 'search', 'contact', 'myPage'] as const).map(item => <Pressable key={item} accessibilityRole="button"
             onPress={() => {
-              if (label === '홈') return;
-              if (label === '1:1 문의') void Linking.openURL('https://forms.gle/WGC7ibNBgTnomRgZ7').catch(onUnavailable);
+              if (item === 'home') return;
+              if (item === 'contact') void Linking.openURL('https://forms.gle/WGC7ibNBgTnomRgZ7').catch(onUnavailable);
               else onUnavailable();
             }}>
-            <Text style={[styles.label, { color: label === '홈' ? colors.rollpe_main : colors.rollpe_secondary }]}>{label}</Text>
+            <Text style={[styles.label, { color: item === 'home' ? colors.rollpe_main : colors.rollpe_secondary }]}>{t(item === 'home' ? 'common.home' : `home.${item}`)}</Text>
           </Pressable>)}
         </View>
       </Animated.View>

@@ -2,13 +2,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { StyleSheet, Text, View, type TextInput } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
 import { PasswordRecoveryError, resetPassword } from '@/features/password-recovery/api';
 import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/RecoveryScaffold';
-import { isRecoveryPassword, passwordPolicyMessage } from '@/features/password-recovery/validation';
+import { isRecoveryPassword } from '@/features/password-recovery/validation';
 
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ identifyCode?: string | string[]; token?: string | string[] }>();
@@ -18,6 +19,7 @@ export default function ResetPasswordScreen() {
 }
 
 function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | null }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const colors = useRollpeColors();
   const confirmation = useRef<ComponentRef<typeof TextInput>>(null);
@@ -36,7 +38,7 @@ function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | nu
   async function submit() {
     if (pending.current || !credentials || expired || !password || password !== confirmPassword) return;
     if (!isRecoveryPassword(password)) {
-      recoveryMessage('오류', passwordPolicyMessage);
+      recoveryMessage(t('common.error'), t('validation.password'));
       return;
     }
     pending.current = true;
@@ -47,14 +49,14 @@ function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | nu
         setPassword(''); setConfirmPassword('');
         // Remove the used secret from navigation immediately, before presenting success.
         router.replace('/sign-in');
-        recoveryMessage('알림', message);
+        recoveryMessage(t('common.notice'), message);
       }
     } catch (error) {
       if (active.current) {
         if (error instanceof PasswordRecoveryError && error.invalidLink) {
           setExpired(true); setPassword(''); setConfirmPassword('');
         }
-        recoveryMessage('오류', error instanceof Error ? error.message : '다시 시도해주세요.');
+        recoveryMessage(t('common.error'), error instanceof Error ? error.message : t('common.retryMessage'));
       }
     } finally {
       pending.current = false;
@@ -65,24 +67,23 @@ function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | nu
   const invalidLink = !credentials || expired;
   return (
     <RecoveryScaffold loading={loading} reset>
-      <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>비밀번호 변경</Text>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.resetPassword')}</Text>
       <View style={styles.form}>
         {invalidLink ? <>
           <Text accessibilityRole="alert" style={[styles.explanation, { color: colors.rollpe_secondary }]}>
-            인증 링크가 올바르지 않거나 만료되었습니다. 새 인증 메일을 요청해주세요.
-          </Text>
-          <PrimaryButton title="새 인증 메일 요청" style={styles.retry}
+            {t('recovery.invalidLink')}</Text>
+          <PrimaryButton title={t('recovery.newEmail')} style={styles.retry}
             onPress={() => router.replace('/forgot-password')} />
         </> : <>
-          <RoundedBorderTextField accessibilityLabel="새 비밀번호" placeholder="새 비밀번호" value={password}
+          <RoundedBorderTextField accessibilityLabel={t('recovery.newPassword')} placeholder={t('recovery.newPassword')} value={password}
             onChangeText={setPassword} maxLength={128} editable={!loading} secureTextEntry
             textContentType="newPassword" autoComplete="new-password" returnKeyType="next"
             submitBehavior="submit" onSubmitEditing={() => confirmation.current?.focus()} />
-          <RoundedBorderTextField ref={confirmation} accessibilityLabel="새 비밀번호 확인" placeholder="새 비밀번호 확인"
+          <RoundedBorderTextField ref={confirmation} accessibilityLabel={t('recovery.confirmPassword')} placeholder={t('recovery.confirmPassword')}
             value={confirmPassword} onChangeText={setConfirmPassword} maxLength={128} editable={!loading}
             secureTextEntry textContentType="newPassword" autoComplete="new-password" returnKeyType="done"
             submitBehavior="blurAndSubmit" onSubmitEditing={() => { void submit(); }} style={styles.confirm} />
-          <PrimaryButton title="변경하기" disabled={loading || !password || password !== confirmPassword}
+          <PrimaryButton title={t('recovery.submit')} disabled={loading || !password || password !== confirmPassword}
             onPress={() => { void submit(); }} style={styles.submit} />
         </>}
       </View>

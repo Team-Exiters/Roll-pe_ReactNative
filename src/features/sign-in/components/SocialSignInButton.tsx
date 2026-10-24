@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { useRollpeColors } from '@/constants/theme';
 
 type SocialSignInButtonProps = {
@@ -10,22 +11,23 @@ type SocialSignInButtonProps = {
 };
 
 export function SocialSignInButton({ provider, onPress, disabled = false }: SocialSignInButtonProps) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const providers = {
     kakao: {
-      label: '카카오로 로그인',
+      label: t('auth.kakaoButton'),
       source: require('@/assets/icons/icon_kakao.svg'),
       backgroundColor: colors.kakao,
       aspectRatio: 20 / 19,
     },
     google: {
-      label: 'Google로 로그인',
+      label: t('auth.googleButton'),
       source: require('@/assets/icons/icon_google.svg'),
       backgroundColor: colors.rollpe_white,
       aspectRatio: 1,
     },
     apple: {
-      label: 'Apple로 로그인',
+      label: t('auth.appleButton'),
       source: require('@/assets/icons/icon_apple.svg'),
       backgroundColor: colors.real_black,
       aspectRatio: 1,
@@ -37,7 +39,7 @@ export function SocialSignInButton({ provider, onPress, disabled = false }: Soci
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={config.label}
-      accessibilityHint={!onPress ? '현재 사용할 수 없습니다.' : undefined}
+      accessibilityHint={!onPress ? t('common.unavailable') : undefined}
       accessibilityState={{ disabled: disabled || !onPress }}
       disabled={disabled || !onPress}
       onPress={onPress}
