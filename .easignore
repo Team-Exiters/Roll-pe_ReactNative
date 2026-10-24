@@ -51,3 +51,9 @@ example
 !assets/fonts/Hakgyoansim-Dunggeunmiso-R.otf
 !assets/fonts/Pretendard-Regular.otf
 !assets/fonts/Pretendard-SemiBold.otf
+
+# Original iOS fonts used by rollpe previews.
+!assets/fonts/JalnanGothic.otf
+!assets/fonts/JalnanOTF.otf
+!assets/fonts/NanumMyeongjo.ttf
+!assets/fonts/NanumPen.otf

@@ -37,6 +37,7 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
         accessibilityLabel="이메일"
         placeholder="이메일"
         value={email}
+        maxLength={254}
         onChangeText={setEmail}
         editable={!disabled}
         keyboardType="email-address"
@@ -51,6 +52,7 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
         accessibilityLabel="비밀번호"
         placeholder="비밀번호"
         value={password}
+        maxLength={128}
         onChangeText={setPassword}
         editable={!disabled}
         secureTextEntry

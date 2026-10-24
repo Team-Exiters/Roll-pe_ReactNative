@@ -4,6 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const plugins: NonNullable<ExpoConfig['plugins']> = [
     ...(config.plugins ?? []),
     'expo-apple-authentication',
+    '@react-native-community/datetimepicker',
   ];
   const googleScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
   const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;
