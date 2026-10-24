@@ -181,5 +181,6 @@
   "footer.team": "Team Exiters",
   "footer.copyright": "Copyright 2025 Team Exiters. All rights reserved.",
   "home.dDay": "D-Day",
-  "home.daysLeft": "D-{{count}}"
+  "home.daysLeft": "D-{{count}}",
+  "info.previewFailed": "롤페 미리보기를 불러오지 못했습니다."
 }

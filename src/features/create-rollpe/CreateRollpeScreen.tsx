@@ -143,14 +143,16 @@ export default function CreateRollpeScreen() {
           <View style={styles.field}><PickerField label={t('create.selectRecipient')} disabled={loading} onPress={() => setSearchOpen(true)}
             value={values.recipient ? `${values.recipient.name}(${values.recipient.identifyCode})` : ''} /></View>
         </View>
-        <View style={[styles.section, styles.inset]}>
-          <Text style={titleStyle}>{t('create.preview')}</Text>
-          <Text style={[descriptionStyle, styles.descriptionGap]}>
-            {values.size ? t('create.maxParticipants', { count: values.size.query.max }) : ' '}
-          </Text>
-        </View>
-        {values.ratio && values.theme && values.size && <RollpePreview title={values.title}
-          ratio={values.ratio.name} theme={values.theme.name} size={values.size.name} />}
+        {values.ratio && values.theme && values.size && <>
+          <View style={[styles.section, styles.inset]}>
+            <Text style={titleStyle}>{t('create.preview')}</Text>
+            <Text style={[descriptionStyle, styles.descriptionGap]}>
+              {t('create.maxParticipants', { count: values.size.query.max })}
+            </Text>
+          </View>
+          <RollpePreview title={values.title}
+            ratio={values.ratio.name} theme={values.theme.name} size={values.size.name} />
+        </>}
         <PrimaryButton title={t('create.submit')} disabled={!options || loading || Boolean(creationError(values))}
           style={[styles.inset, styles.create]} onPress={() => { void submit(); }} />
       </ScrollView>
