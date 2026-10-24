@@ -1,7 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
@@ -10,12 +9,13 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { SignInForm } from '@/features/sign-in/components/SignInForm';
 import { SocialSignInButton } from '@/features/sign-in/components/SocialSignInButton';
 import { useSignIn } from '@/features/sign-in/useSignIn';
+import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const safeArea = useSafeAreaSpacing();
   const signIn = useSignIn();
 
   function showSignInMessage(message: string) {
@@ -47,7 +47,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
+    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') }]}>
       <Image
         source={require('@/assets/images/welcome/background.jpg')}
         contentFit="cover"
@@ -56,9 +56,9 @@ export default function SignInScreen() {
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[styles.screen, { paddingTop: insets.top }]}>
+        style={[styles.screen, { paddingTop: safeArea('top') }]}>
         <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
+          contentContainerStyle={[styles.content, { paddingBottom: 40 }]}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
           keyboardShouldPersistTaps="handled"
@@ -124,7 +124,7 @@ export default function SignInScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <BackButton onPress={goBack} style={[styles.back, { top: insets.top + 20 }]} />
+      <BackButton onPress={goBack} style={[styles.back, { top: safeArea('top', 20) }]} />
       {signIn.isLoading && <LoadingView />}
     </View>
   );

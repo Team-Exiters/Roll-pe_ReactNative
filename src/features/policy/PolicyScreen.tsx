@@ -2,12 +2,12 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { fetchPolicy, policySpacing, policyType, type PolicyBlock, type PolicyType } from '@/features/policy/content';
+import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 function PolicyContent({ type }: { type: PolicyType }) {
   const { t } = useTranslation();
@@ -43,11 +43,11 @@ export default function PolicyScreen() {
   const { type: parameter } = useLocalSearchParams<{ type?: string | string[] }>();
   const type = policyType(parameter);
   const colors = useRollpeColors();
-  const insets = useSafeAreaInsets();
+  const safeArea = useSafeAreaSpacing();
   const router = useRouter();
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
     <ScrollView bounces={false} contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 80, paddingBottom: insets.bottom + 20 }]}>
+      contentContainerStyle={[styles.content, { paddingTop: safeArea('top', 80), paddingBottom: safeArea('bottom', 20) }]}>
       <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
         accessible accessibilityLabel={t('common.brand')} style={styles.logo} />
       <Text style={[styles.title, { color: colors.rollpe_secondary }]} accessibilityRole="header">
@@ -56,7 +56,7 @@ export default function PolicyScreen() {
       <View style={styles.body}>{type ? <PolicyContent key={type} type={type} />
         : <Text style={[styles.text, { color: colors.rollpe_secondary }]}>{t('common.invalidInput')}</Text>}</View>
     </ScrollView>
-    <BackButton style={[styles.back, { top: insets.top + 20 }]}
+    <BackButton style={[styles.back, { top: safeArea('top', 20) }]}
       onPress={() => router.canGoBack() ? router.back() : router.replace('/sign-in')} />
   </View>;
 }

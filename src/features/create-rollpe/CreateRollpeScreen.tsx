@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
@@ -18,11 +17,12 @@ import { RecipientPicker } from '@/features/create-rollpe/components/RecipientPi
 import { RollpePreview } from '@/features/create-rollpe/components/RollpePreview';
 import { creationError, receivingDateLimits, type CreateRollpeValues } from '@/features/create-rollpe/validation';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
+import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 export default function CreateRollpeScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const insets = useSafeAreaInsets();
+  const safeArea = useSafeAreaSpacing();
   const router = useRouter();
   const [values, setValues] = useState<CreateRollpeValues>(() => ({
     title: '', ratio: null, theme: null, size: null, isPrivate: true, password: '',
@@ -92,11 +92,11 @@ export default function CreateRollpeScreen() {
 
   const titleStyle = [styles.sectionTitle, { color: colors.rollpe_secondary }];
   const descriptionStyle = [styles.description, { color: colors.rollpe_secondary }];
-  return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
+  return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') }]}>
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
-        contentContainerStyle={{ paddingTop: insets.top + 88, paddingBottom: insets.bottom + 40 }}>
+        contentContainerStyle={{ paddingTop: safeArea('top', 88), paddingBottom: 40 }}>
         <Text accessibilityRole="header" style={[styles.pageTitle, { color: colors.rollpe_secondary }]}>{t('common.createRollpe')}</Text>
         <View style={[styles.inset, styles.titleSection]}>
           <Text style={titleStyle}>{t('create.title')}</Text>
@@ -155,7 +155,7 @@ export default function CreateRollpeScreen() {
           style={[styles.inset, styles.create]} onPress={() => { void submit(); }} />
       </ScrollView>
     </KeyboardAvoidingView>
-    <View style={[styles.navigation, { top: insets.top, backgroundColor: colors.rollpe_primary }]}>
+    <View style={[styles.navigation, { top: safeArea('top'), backgroundColor: colors.rollpe_primary }]}>
       <BackButton disabled={loading} onPress={goBack} style={styles.back} />
       <Pressable accessibilityRole="button" accessibilityLabel={t('common.goHome')} disabled={loading} onPress={() => router.dismissTo('/home')}>
         <Image source={require('@/assets/images/welcome/logo.png')} accessible={false} contentFit="contain" style={styles.logo} />

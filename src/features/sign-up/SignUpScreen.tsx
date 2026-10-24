@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type TextInput } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
@@ -13,6 +12,7 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { signUp } from '@/features/sign-up/api';
 import { AgreementRow } from '@/features/sign-up/components/AgreementRow';
 import { canSignUp, type SignUpValues } from '@/features/sign-up/validation';
+import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 const initialValues: SignUpValues = {
   email: '', name: '', password: '', confirmPassword: '',
@@ -22,7 +22,7 @@ const initialValues: SignUpValues = {
 export default function SignUpScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const insets = useSafeAreaInsets();
+  const safeArea = useSafeAreaSpacing();
   const router = useRouter();
   const nameInput = useRef<ComponentRef<typeof TextInput>>(null);
   const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
@@ -73,12 +73,12 @@ export default function SignUpScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
+    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') }]}>
       <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
           showsVerticalScrollIndicator={false} bounces={false}
-          contentContainerStyle={[styles.content, { paddingTop: insets.top + 80, paddingBottom: insets.bottom }]}>
+          contentContainerStyle={[styles.content, { paddingTop: safeArea('top', 80) }]}>
           <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
             accessibilityLabel={t('common.brand')} accessible style={styles.logo} />
           <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.signUp')}</Text>
@@ -112,7 +112,7 @@ export default function SignUpScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <BackButton disabled={loading} style={[styles.back, { top: insets.top + 20 }]} onPress={goBack} />
+      <BackButton disabled={loading} style={[styles.back, { top: safeArea('top', 20) }]} onPress={goBack} />
       {loading && <LoadingView accessibilityLabel={t('signup.loading')} />}
     </View>
   );
