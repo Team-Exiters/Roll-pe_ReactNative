@@ -1,6 +1,7 @@
 import { useRef, useState, type ComponentRef } from 'react';
 import { StyleSheet, Text, View, type TextInput } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
@@ -18,6 +19,7 @@ type SignInFormProps = {
 };
 
 export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   const [email, setEmail] = useState('');
@@ -34,8 +36,8 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
   return (
     <View style={styles.form}>
       <RoundedBorderTextField
-        accessibilityLabel="이메일"
-        placeholder="이메일"
+        accessibilityLabel={t('common.email')}
+        placeholder={t('common.email')}
         value={email}
         maxLength={254}
         onChangeText={setEmail}
@@ -49,8 +51,8 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
       />
       <RoundedBorderTextField
         ref={passwordInput}
-        accessibilityLabel="비밀번호"
-        placeholder="비밀번호"
+        accessibilityLabel={t('common.password')}
+        placeholder={t('common.password')}
         value={password}
         maxLength={128}
         onChangeText={setPassword}
@@ -65,18 +67,18 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
       />
       <View style={styles.keepSignIn}>
         <Checkbox
-          accessibilityLabel="로그인 유지"
+          accessibilityLabel={t('auth.keepSignIn')}
           checked={keepSignIn}
           onCheckedChange={setKeepSignIn}
           disabled={disabled}
         />
-        <Text style={[styles.keepSignInText, { color: colors.rollpe_gray }]}>로그인 유지</Text>
+        <Text style={[styles.keepSignInText, { color: colors.rollpe_gray }]}>{t('auth.keepSignIn')}</Text>
       </View>
       <PrimaryButton
-        title="로그인"
+        title={t('common.signIn')}
         disabled={!canSubmit}
         onPress={submit}
-        accessibilityHint={!onSubmit ? '현재 사용할 수 없습니다.' : undefined}
+        accessibilityHint={!onSubmit ? t('common.unavailable') : undefined}
         style={styles.submit}
       />
     </View>

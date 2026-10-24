@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTranslation } from '@/i18n';
 import { AppFooter } from '@/components/AppFooter';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
@@ -22,6 +23,7 @@ type HomeResult = {
 };
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -49,50 +51,50 @@ export default function HomeScreen() {
         }
         setResult({ userName: tokenState.user.name,
           status: status.status === 'fulfilled' ? status.value : undefined,
-          statusError: status.status === 'rejected' ? '내 정보를 불러오지 못했습니다.' : undefined,
+          statusError: status.status === 'rejected' ? t('home.statusFailed') : undefined,
           rollpes: rollpes.status === 'fulfilled' ? rollpes.value : undefined,
-          rollpesError: rollpes.status === 'rejected' ? '롤페를 불러오지 못했습니다.' : undefined,
+          rollpesError: rollpes.status === 'rejected' ? t('home.rollpesFailed') : undefined,
         });
       } catch {
         if (active) setError(true);
       }
     })();
     return () => { active = false; controller.abort(); };
-  }, [attempt, router]));
+  }, [attempt, router, t]));
 
   function retry() { setError(false); setResult(null); setAttempt(value => value + 1); }
   function unavailable() {
-    if (Platform.OS === 'web') window.alert('준비 중인 기능입니다.');
-    else Alert.alert('알림', '준비 중인 기능입니다.');
+    if (Platform.OS === 'web') window.alert(t('common.comingSoon'));
+    else Alert.alert(t('common.notice'), t('common.comingSoon'));
   }
   function failure(message: string) {
     return <View style={styles.failure}>
       <Text accessibilityRole="alert" style={[styles.error, { color: colors.rollpe_secondary }]}>{message}</Text>
       <Pressable accessibilityRole="button" onPress={retry} hitSlop={12}>
-        <Text style={[styles.error, { color: colors.rollpe_main }]}>다시 시도</Text>
+        <Text style={[styles.error, { color: colors.rollpe_main }]}>{t('common.retry')}</Text>
       </Pressable>
     </View>;
   }
   if (!result) return <View style={[styles.loading, { backgroundColor: colors.rollpe_primary }]}>
-    {error ? failure('홈을 불러오지 못했습니다.') : <ActivityIndicator accessibilityLabel="홈 불러오는 중" color={colors.rollpe_main} />}
+    {error ? failure(t('home.failed')) : <ActivityIndicator accessibilityLabel={t('home.loading')} color={colors.rollpe_main} />}
   </View>;
 
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: insets.top }]}>
     <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never"
       automaticallyAdjustContentInsets={false} contentContainerStyle={styles.contents}>
       <View style={[styles.top, { backgroundColor: colors.rollpe_primary }]}>
-        <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>{result.userName}님은</Text>
-        <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>{result.status?.host ?? '—'}개의 롤페를 만드셨어요.</Text>
-        <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{result.status?.heart ?? '—'}번의 마음을 작성하셨어요.</Text>
+        <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>{t('home.greeting', { name: result.userName })}</Text>
+        <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>{t('home.hostCount', { count: result.status?.host ?? '—' })}</Text>
+        <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{t('home.heartCount', { count: result.status?.heart ?? '—' })}</Text>
         {result.statusError && failure(result.statusError)}
-        <PrimaryButton title="초대받은 롤페" onPress={unavailable} style={styles.invited} />
+        <PrimaryButton title={t('home.invited')} onPress={unavailable} style={styles.invited} />
         <Pressable accessibilityRole="button" onPress={() => router.push('/create-rollpe')}
           style={[styles.create, { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary }]}>
-          <Text style={[styles.createText, { color: colors.rollpe_main }]}>롤페 만들기</Text>
+          <Text style={[styles.createText, { color: colors.rollpe_main }]}>{t('common.createRollpe')}</Text>
         </Pressable>
       </View>
       <View style={[styles.hot, { backgroundColor: colors.rollpe_section_background }]}>
-        <Text accessibilityRole="header" style={[styles.hotTitle, { color: colors.rollpe_secondary }]}>지금 뜨고있는 롤페</Text>
+        <Text accessibilityRole="header" style={[styles.hotTitle, { color: colors.rollpe_secondary }]}>{t('home.hot')}</Text>
         <View style={styles.grid} onLayout={event => setGridWidth(event.nativeEvent.layout.width)}>
           {result.rollpesError ? failure(result.rollpesError) : result.rollpes?.map(rollpe => <View key={rollpe.id} style={{ width: Math.max(0, (gridWidth - 12) / 2) }}>
             <RollpeCard rollpe={rollpe} onPress={unavailable} />
@@ -101,7 +103,7 @@ export default function HomeScreen() {
       </View>
       <AppFooter />
     </ScrollView>
-    <Pressable accessibilityRole="button" accessibilityLabel="메뉴 열기" accessibilityState={{ expanded: menuOpen }}
+    <Pressable accessibilityRole="button" accessibilityLabel={t('home.menuOpen')} accessibilityState={{ expanded: menuOpen }}
       hitSlop={8} onPress={() => setMenuOpen(true)} style={[styles.menuButton, { top: insets.top + 20, backgroundColor: colors.rollpe_primary }]}>
       <Image source={require('@/assets/images/home/menu.svg')} accessible={false} contentFit="contain" style={styles.menuIcon} />
     </Pressable>

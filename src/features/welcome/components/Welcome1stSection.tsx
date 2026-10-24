@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useTranslation } from '@/i18n';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
@@ -18,6 +19,7 @@ type Welcome1stSectionProps = {
 };
 
 export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const { height } = useWindowDimensions();
   const arrowOffset = useSharedValue(-8);
@@ -53,17 +55,17 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
       />
       <View style={styles.content}>
         <Image
-          accessibilityLabel="롤페"
+          accessibilityLabel={t('common.brand')}
           accessible
           source={require('@/assets/images/welcome/logo.png')}
           contentFit="contain"
           style={styles.logo}
         />
         <Text numberOfLines={2} style={[styles.tagline, { color: colors.rollpe_secondary }]}>
-          {'다같이 한 마음으로\n사랑하는 사람에게 전달해보세요'}
+          {t('welcome.tagline')}
         </Text>
         <PrimaryButton
-          title="롤페 시작하기"
+          title={t('welcome.start')}
           onPress={onStart}
           style={styles.startButton}
         />
@@ -78,8 +80,7 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
           />
         </Animated.View>
         <Text style={[styles.scrollHintText, { color: colors.rollpe_gray }]}>
-          아래로 스크롤 해보아요!
-        </Text>
+          {t('welcome.scroll')}</Text>
       </View>
     </View>
   );

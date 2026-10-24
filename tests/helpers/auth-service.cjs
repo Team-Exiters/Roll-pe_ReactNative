@@ -128,6 +128,7 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
     vm.runInNewContext(output, {
       ...globals, exports,
       require: (name) => {
+        if (name === '@/i18n') return require('./i18n.cjs');
         if (name === 'axios') return require('axios');
         if (name === '@/lib/api') return load('shared-api');
         if (name.startsWith('@/features/sign-in/')) return load(name.slice('@/features/sign-in/'.length));

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -19,6 +20,7 @@ const initialValues: SignUpValues = {
 };
 
 export default function SignUpScreen() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -48,7 +50,7 @@ export default function SignUpScreen() {
       window.alert(message);
       onConfirm?.();
     } else {
-      Alert.alert(title, message, [{ text: '확인', onPress: onConfirm }]);
+      Alert.alert(title, message, [{ text: t('common.confirm'), onPress: onConfirm }]);
     }
   }
 
@@ -60,10 +62,10 @@ export default function SignUpScreen() {
       const message = await signUp(values);
       if (active.current) {
         setValues(initialValues);
-        showMessage('알림', message, () => { if (active.current) goBack(); });
+        showMessage(t('common.notice'), message, () => { if (active.current) goBack(); });
       }
     } catch (error) {
-      if (active.current) showMessage('오류', error instanceof Error ? error.message : '회원가입에 실패했습니다. 다시 시도해주세요.');
+      if (active.current) showMessage(t('common.error'), error instanceof Error ? error.message : t('signup.failed'));
     } finally {
       pending.current = false;
       if (active.current) setLoading(false);
@@ -78,40 +80,40 @@ export default function SignUpScreen() {
           showsVerticalScrollIndicator={false} bounces={false}
           contentContainerStyle={[styles.content, { paddingTop: insets.top + 80, paddingBottom: insets.bottom }]}>
           <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
-            accessibilityLabel="롤페" accessible style={styles.logo} />
-          <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>회원가입</Text>
+            accessibilityLabel={t('common.brand')} accessible style={styles.logo} />
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.signUp')}</Text>
           <View style={styles.form}>
-            <RoundedBorderTextField accessibilityLabel="이메일" placeholder="이메일" value={values.email}
+            <RoundedBorderTextField accessibilityLabel={t('common.email')} placeholder={t('common.email')} value={values.email}
               onChangeText={(value) => change('email', value)} editable={!loading} keyboardType="email-address"
               autoComplete="email" textContentType="emailAddress" returnKeyType="next" submitBehavior="submit"
               onSubmitEditing={() => nameInput.current?.focus()} />
-            <RoundedBorderTextField ref={nameInput} accessibilityLabel="닉네임(2-6자)" placeholder="닉네임(2-6자)"
+            <RoundedBorderTextField ref={nameInput} accessibilityLabel={t('signup.nickname')} placeholder={t('signup.nickname')}
               value={values.name} onChangeText={(value) => change('name', value)} editable={!loading} maxLength={6}
               autoComplete="nickname" textContentType="nickname" returnKeyType="next" submitBehavior="submit"
               onSubmitEditing={() => passwordInput.current?.focus()} style={styles.nextField} />
-            <RoundedBorderTextField ref={passwordInput} accessibilityLabel="비밀번호" placeholder="비밀번호"
+            <RoundedBorderTextField ref={passwordInput} accessibilityLabel={t('common.password')} placeholder={t('common.password')}
               value={values.password} onChangeText={(value) => change('password', value)} editable={!loading}
               secureTextEntry autoComplete="new-password" textContentType="newPassword" returnKeyType="next"
               submitBehavior="submit" onSubmitEditing={() => confirmationInput.current?.focus()} style={styles.nextField} />
-            <RoundedBorderTextField ref={confirmationInput} accessibilityLabel="비밀번호 확인" placeholder="비밀번호 확인"
+            <RoundedBorderTextField ref={confirmationInput} accessibilityLabel={t('common.confirmPassword')} placeholder={t('common.confirmPassword')}
               value={values.confirmPassword} onChangeText={(value) => change('confirmPassword', value)} editable={!loading}
               secureTextEntry autoComplete="new-password" textContentType="newPassword" returnKeyType="done"
               submitBehavior="blurAndSubmit" onSubmitEditing={() => { void submit(); }} style={styles.nextField} />
             <View style={styles.agreements}>
-              <AgreementRow label="저는 만 14세 이상입니다." checked={values.ageChecked}
+              <AgreementRow label={t('signup.age')} checked={values.ageChecked}
                 onCheckedChange={(value) => change('ageChecked', value)} disabled={loading} />
-              <AgreementRow label="서비스 이용약관에 동의합니다." checked={values.termsChecked} policy="terms"
+              <AgreementRow label={t('signup.terms')} checked={values.termsChecked} policy="terms"
                 onCheckedChange={(value) => change('termsChecked', value)} disabled={loading} />
-              <AgreementRow label="개인정보 수집 및 이용에 동의합니다." checked={values.privacyChecked} policy="privacy"
+              <AgreementRow label={t('signup.privacy')} checked={values.privacyChecked} policy="privacy"
                 onCheckedChange={(value) => change('privacyChecked', value)} disabled={loading} />
             </View>
-            <PrimaryButton title="가입" disabled={loading || !canSignUp(values)} style={styles.submit}
+            <PrimaryButton title={t('signup.submit')} disabled={loading || !canSignUp(values)} style={styles.submit}
               onPress={() => { void submit(); }} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
       <BackButton disabled={loading} style={[styles.back, { top: insets.top + 20 }]} onPress={goBack} />
-      {loading && <LoadingView accessibilityLabel="회원가입 중" />}
+      {loading && <LoadingView accessibilityLabel={t('signup.loading')} />}
     </View>
   );
 }

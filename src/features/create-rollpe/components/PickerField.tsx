@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
+import { t } from '@/i18n';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 export function PickerField({ value, label, disabled, onPress }: {
@@ -18,7 +19,7 @@ export function PickerField({ value, label, disabled, onPress }: {
 
 export function dateLabel(value: string) {
   const [year, month, day] = value.split('-').map(Number);
-  return `${year}년 ${month}월 ${day}일 오전 10시`;
+  return t('create.dateLabel', { year, month, day });
 }
 
 const styles = StyleSheet.create({

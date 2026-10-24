@@ -1,3 +1,5 @@
+
+import { t } from '@/i18n';
 export type RollpeChoice = {
   id: number; name: string; type: 'RATIO' | 'THEME' | 'SIZE';
   query: { max?: number }; is_vip: boolean;
@@ -28,14 +30,14 @@ export function isReceivingDate(value: string, now = new Date()) {
 }
 
 export function creationError(values: CreateRollpeValues, now = new Date()): string | null {
-  if (!values.title.length) return '제목을 입력하세요.';
-  if (values.title.length > 20) return '제목은 20자까지 입력할 수 있습니다.';
-  if (!values.ratio || values.ratio.type !== 'RATIO' || !Number.isSafeInteger(values.ratio.id) || values.ratio.id <= 0) return '비율을 선택하세요.';
-  if (!values.theme || values.theme.type !== 'THEME' || !Number.isSafeInteger(values.theme.id) || values.theme.id <= 0) return '테마를 선택하세요.';
-  if (!values.size || values.size.type !== 'SIZE' || !Number.isSafeInteger(values.size.id) || values.size.id <= 0) return '크기를 선택하세요.';
-  if (values.isPrivate && !values.password.length) return '비밀번호를 입력하세요.';
-  if (values.isPrivate && values.password.length > 50) return '비밀번호는 50자까지 입력할 수 있습니다.';
-  if (!isReceivingDate(values.receivingDate, now)) return '전달일은 내일부터 30일 이내로 설정해주세요.';
-  if (!values.recipient || !Number.isSafeInteger(values.recipient.id) || values.recipient.id <= 0) return '전달할 사람을 선택해주세요.';
+  if (!values.title.length) return t('create.enterTitle');
+  if (values.title.length > 20) return t('create.titleTooLong');
+  if (!values.ratio || values.ratio.type !== 'RATIO' || !Number.isSafeInteger(values.ratio.id) || values.ratio.id <= 0) return t('create.ratioRequired');
+  if (!values.theme || values.theme.type !== 'THEME' || !Number.isSafeInteger(values.theme.id) || values.theme.id <= 0) return t('create.themeRequired');
+  if (!values.size || values.size.type !== 'SIZE' || !Number.isSafeInteger(values.size.id) || values.size.id <= 0) return t('create.sizeRequired');
+  if (values.isPrivate && !values.password.length) return t('create.passwordRequired');
+  if (values.isPrivate && values.password.length > 50) return t('create.passwordTooLong');
+  if (!isReceivingDate(values.receivingDate, now)) return t('create.dateRequired');
+  if (!values.recipient || !Number.isSafeInteger(values.recipient.id) || values.recipient.id <= 0) return t('create.recipientRequired');
   return null;
 }

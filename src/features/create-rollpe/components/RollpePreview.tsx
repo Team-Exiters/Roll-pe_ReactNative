@@ -3,6 +3,8 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { choiceLabel, useTranslation } from '@/i18n';
+
 // Original A4 layouts and rotations from the six iOS RollpeV1 theme views.
 const horizontal = [
   [16.5, 26, -2.72], [187.5, 24, 0], [344.5, 24, 5.39], [512.5, 21, 0.22],
@@ -26,6 +28,7 @@ const fonts = {
 };
 
 export function RollpePreview({ title, ratio, theme, size }: { title: string; ratio: string; theme: string; size: string }) {
+  const { t } = useTranslation();
   const [width, setWidth] = useState(0);
   const [loaded, fontError] = useFonts(fonts);
   if (size !== 'A4' || !['가로', '세로'].includes(ratio) || !['화이트', '추모', '축하'].includes(theme)) return null;
@@ -38,7 +41,9 @@ export function RollpePreview({ title, ratio, theme, size }: { title: string; ra
   const titleWidth = memorial ? (isVertical ? 381 : 396) : (isVertical ? 400 : 416);
   const backgroundColor = memorial ? '#393939' : congrats ? '#FFC0F4' : '#FFFFFF';
   return <View style={styles.frame} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
-    {width > 0 && <View accessibilityRole="image" accessibilityLabel={`${ratio} ${theme} ${size} 롤페 미리보기: ${title || '제목을 입력하세요.'}`}
+    {width > 0 && <View accessibilityRole="image" accessibilityLabel={t('create.previewDescription', {
+      ratio: choiceLabel(ratio), theme: choiceLabel(theme), size, title: title || t('create.enterTitle'),
+    })}
       style={{ width, height: paperHeight * scale, backgroundColor,
         boxShadow: `0 ${4 * scale}px ${4 * scale}px rgba(0,0,0,0.25)` }}>
       {congrats && <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
@@ -60,7 +65,7 @@ export function RollpePreview({ title, ratio, theme, size }: { title: string; ra
             backgroundColor: (memorial ? memorialMemoColors : memoColors)[index], transform: [{ rotate: `${rotation}deg` }],
             boxShadow: `0 ${4 * scale}px ${4 * scale}px rgba(0,0,0,0.25)` }}>
             <Text style={{ fontFamily: 'previewMemo', fontSize: 18 * scale, color: '#181818', textAlign: 'center', includeFontPadding: false }}>
-              {`가나다라마바사\n- 테스트${index + 1}`}
+              {t('create.previewSample', { count: index + 1 })}
             </Text>
           </View>;
         })}
@@ -69,11 +74,11 @@ export function RollpePreview({ title, ratio, theme, size }: { title: string; ra
           <Text style={{ fontFamily: memorial ? 'previewMemorial' : congrats ? 'previewCongrats' : 'previewWhite',
             fontSize: (isVertical ? 40 : 52) * scale, lineHeight: memorial ? undefined : (isVertical ? 52 : 64) * scale,
             color: memorial || congrats ? '#FFFFFF' : '#181818', textAlign: 'center', includeFontPadding: false }}>
-            {title || '제목을 입력하세요.'}
+            {title || t('create.enterTitle')}
           </Text>
         </View>
       </> : <View style={styles.loading}>
-        {fontError ? <Text>미리보기 글꼴을 불러오지 못했습니다.</Text> : <ActivityIndicator accessibilityLabel="미리보기 불러오는 중" />}
+        {fontError ? <Text>{t('create.fontFailed')}</Text> : <ActivityIndicator accessibilityLabel={t('create.previewLoading')} />}
       </View>}
     </View>}
   </View>;

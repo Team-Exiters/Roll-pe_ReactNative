@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { choiceLabel, useTranslation } from '@/i18n';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import type { RollpeChoice } from '@/features/create-rollpe/validation';
 
 export function OptionPicker({ choices, selected, disabled, onSelect }: {
   choices: RollpeChoice[]; selected: RollpeChoice | null; disabled: boolean; onSelect: (choice: RollpeChoice) => void;
 }) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
     {choices.map(choice => {
@@ -14,7 +16,7 @@ export function OptionPicker({ choices, selected, disabled, onSelect }: {
       const color = active ? colors.rollpe_secondary : colors.rollpe_gray;
       const theme = choice.type === 'THEME';
       const ratio = choice.type === 'RATIO';
-      return <Pressable key={choice.id} accessibilityRole="radio" accessibilityLabel={choice.name}
+      return <Pressable key={choice.id} accessibilityRole="radio" accessibilityLabel={choiceLabel(choice.name)}
         accessibilityState={{ checked: active, disabled }} disabled={disabled} onPress={() => onSelect(choice)}
         style={[
           theme ? styles.theme : ratio ? styles.ratio : styles.size,
@@ -31,8 +33,8 @@ export function OptionPicker({ choices, selected, disabled, onSelect }: {
               accessible={false} contentFit="contain" style={styles.cake} />}
           </View> : null}
         <Text numberOfLines={1} style={[styles.label, ratio && styles.ratioLabel,
-          { color, fontSize: choice.type === 'SIZE' ? 24 : 16 }]}>{choice.name}</Text>
-        {choice.type === 'SIZE' && <Text style={[styles.maximum, { color }]}>최대 {choice.query.max}명</Text>}
+          { color, fontSize: choice.type === 'SIZE' ? 24 : 16 }]}>{choiceLabel(choice.name)}</Text>
+        {choice.type === 'SIZE' && <Text style={[styles.maximum, { color }]}>{t('create.maximum', { count: choice.query.max })}</Text>}
       </Pressable>;
     })}
   </ScrollView>;

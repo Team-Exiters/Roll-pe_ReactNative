@@ -25,6 +25,7 @@ function load(respond = async () => { throw Error('unexpected network'); }, base
     return { status: result.status ?? (result.ok ? 200 : 400), json: result.json };
   });
   return evaluate('../src/features/policy/content.ts', name => {
+    if (name === '@/i18n') return require('./helpers/i18n.cjs');
     assert.equal(name, '@/lib/api');
     return common;
   });

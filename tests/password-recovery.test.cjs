@@ -44,6 +44,7 @@ function recoveryService({ status = 200, payload = { message: '요청되었습�
         } };
       },
       require: (name) => {
+        if (name === '@/i18n') return require('./helpers/i18n.cjs');
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: 'web' } };
         if (name === '@/lib/api') return load('shared-api');

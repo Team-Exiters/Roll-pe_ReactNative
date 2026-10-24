@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 export function Welcome2ndSection() {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
 
   return (
@@ -13,11 +15,11 @@ export function Welcome2ndSection() {
           accessibilityRole="header"
           numberOfLines={2}
           style={[styles.title, { color: colors.rollpe_secondary }]}>
-          {'쉽게 만드는\n우리만의 롤페'}
+          {t('welcome.create')}
         </Text>
         <Image
           accessible
-          accessibilityLabel="다양한 테마와 메모지로 구성된 롤링페이퍼 예시"
+          accessibilityLabel={t('welcome.themesImage')}
           source={require('@/assets/images/welcome/create-preview.png')}
           contentFit="contain"
           style={styles.preview}

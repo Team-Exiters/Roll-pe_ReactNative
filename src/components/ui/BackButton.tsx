@@ -1,16 +1,18 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
+import { useTranslation } from '@/i18n';
 import { useRollpeColors } from '@/constants/theme';
 
 type BackButtonProps = Omit<PressableProps, 'children'>;
 
 export function BackButton({ style, ...props }: BackButtonProps) {
+  const { t } = useTranslation();
   const colors = useRollpeColors();
 
   return (
     <Pressable
-      accessibilityLabel="뒤로가기"
+      accessibilityLabel={t('common.back')}
       accessibilityRole="button"
       hitSlop={16}
       {...props}

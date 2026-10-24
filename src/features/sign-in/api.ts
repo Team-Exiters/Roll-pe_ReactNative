@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { apiUrl, requestJson } from '@/lib/api';
 import { isTokenState, saveTokenState, type TokenState } from '@/features/sign-in/token-state';
 
@@ -11,7 +12,7 @@ export async function requestSignIn(
   url: string, body: object, keepSignIn = true, provider?: SocialProvider,
 ): Promise<TokenState> {
   const { response, payload } = await requestJson(url, body).catch(() => {
-    throw new Error('로그인 서버에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.');
+    throw new Error(t('auth.networkError'));
   });
   if (!provider && url === `${apiUrl}/api/user/signin` && response.status === 403
     && payload?.status_code === 403 && payload.code === 'FORBIDDEN' && payload.link === '/login'
@@ -20,14 +21,14 @@ export async function requestSignIn(
   }
   if (!response.ok || !isTokenState(payload?.data)
     || (provider && payload.data.user.provider !== provider)) {
-    throw new Error(typeof payload?.message === 'string' ? payload.message : '로그인 응답을 확인할 수 없습니다.');
+    throw new Error(typeof payload?.message === 'string' ? payload.message : t('auth.responseInvalid'));
   }
   await saveTokenState(payload.data, keepSignIn);
   return payload.data;
 }
 
 export async function signInWithEmail({ email, password, keepSignIn }: EmailCredentials) {
-  if (!apiUrl) throw new Error('로그인 서버 주소가 설정되지 않았습니다.');
+  if (!apiUrl) throw new Error(t('auth.serverMissing'));
   const normalizedEmail = email.trim();
   try {
     return await requestSignIn(`${apiUrl}/api/user/signin`, { email: normalizedEmail, password }, keepSignIn);
@@ -35,12 +36,12 @@ export async function signInWithEmail({ email, password, keepSignIn }: EmailCred
     if (!(error instanceof EmailVerificationRequiredError)) throw error;
     // Keep this within the existing sign-in busy guard, including the resend request.
     await resendVerificationEmail(normalizedEmail);
-    throw new Error('이메일 인증되지 않은 계정입니다.\n인증 메일을 다시 보냈습니다. 이메일 인증 후 로그인해주세요.');
+    throw new Error(t('auth.verificationSent'));
   }
 }
 
 async function resendVerificationEmail(email: string) {
-  const failureMessage = '이메일 인증이 필요합니다. 인증 메일을 다시 보내지 못했습니다. 잠시 후 다시 로그인해주세요.';
+  const failureMessage = t('auth.verificationFailed');
   const { response, payload } = await requestJson(`${apiUrl}/api/user/verify-email`, {
     email, pathCode: 'email',
   }, 'PATCH').catch(() => { throw new Error(failureMessage); });
@@ -48,6 +49,6 @@ async function resendVerificationEmail(email: string) {
 }
 
 export function signInWithSocial(provider: SocialProvider, credential: SocialCredential) {
-  if (!apiUrl) throw new Error('로그인 서버 주소가 설정되지 않았습니다.');
+  if (!apiUrl) throw new Error(t('auth.serverMissing'));
   return requestSignIn(`${apiUrl}/api/user/social/login/${provider}`, credential, true, provider);
 }

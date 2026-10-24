@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios';
 
+import { t } from '@/i18n';
 import { apiClient, apiUrl } from '@/lib/api';
 import {
   clearTokenStateIfCurrent, getTokenSnapshot, isCurrentTokenState, replaceTokens,
@@ -7,15 +8,15 @@ import {
 } from '@/features/sign-in/token-state';
 
 export class AuthenticationRequiredError extends Error {
-  constructor() { super('다시 로그인해주세요.'); this.name = 'AuthenticationRequiredError'; }
+  constructor() { super(t('auth.signInAgain')); this.name = 'AuthenticationRequiredError'; }
 }
 
-function cancelled() { const error = new Error('요청이 취소되었습니다.'); error.name = 'AbortError'; return error; }
+function cancelled() { const error = new Error(t('auth.cancelled')); error.name = 'AbortError'; return error; }
 
 async function authenticationFailure() {
   // An obsolete request must not send a newer login back to the welcome screen.
   return await getTokenSnapshot()
-    ? new Error('로그인 정보가 변경되었습니다. 다시 시도해주세요.')
+    ? new Error(t('auth.changed'))
     : new AuthenticationRequiredError();
 }
 
@@ -57,7 +58,7 @@ function refreshTokens(snapshot: TokenSnapshot) {
     const payload = response.data as Record<string, unknown> | null;
     if (response.status !== 200 || !payload || typeof payload.access !== 'string' || !payload.access
       || (payload.refresh !== undefined && (typeof payload.refresh !== 'string' || !payload.refresh))) {
-      throw new Error('로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
+      throw new Error(t('auth.restoreFailed'));
     }
     return replaceTokens(snapshot, payload.access, (payload.refresh as string | undefined) ?? snapshot.tokenState.refresh);
   })();
@@ -82,7 +83,7 @@ export async function restoreTokenState(signal?: AbortSignal): Promise<TokenStat
   const snapshot = await getTokenSnapshot();
   if (signal?.aborted) throw cancelled();
   if (!snapshot) return null;
-  if (!apiUrl) throw new Error('서버 주소가 설정되지 않았습니다.');
+  if (!apiUrl) throw new Error(t('common.serverMissing'));
   try {
     const restored = await waitForRefresh(refreshTokens(snapshot), signal);
     if (signal?.aborted) throw cancelled();
@@ -98,7 +99,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
   const pathname = path.split('?')[0];
   if (!apiUrl || !/^\/api\/[A-Za-z0-9/_-]+(?:\?[^#\\]*)?$/.test(path)
     || /%(?:2f|5c|2e)/i.test(pathname) || pathname.includes('..')) {
-    throw new Error('올바르지 않은 API 경로입니다.');
+    throw new Error(t('auth.invalidApiPath'));
   }
   if (signal?.aborted) throw cancelled();
   let snapshot = await getTokenSnapshot();
@@ -108,7 +109,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
     const latest = await getTokenSnapshot();
     // Only a concurrent refresh for the same account may supply the retry token.
     if (!latest) throw new AuthenticationRequiredError();
-    if (latest.generation !== snapshot.generation) throw new Error('로그인 정보가 변경되었습니다. 다시 시도해주세요.');
+    if (latest.generation !== snapshot.generation) throw new Error(t('auth.changed'));
     snapshot = latest;
   }
   if (response.status === 401) {
@@ -124,7 +125,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
       throw await authenticationFailure();
     }
   }
-  if (!isCurrentTokenState(snapshot)) throw new Error('로그인 정보가 변경되었습니다. 다시 시도해주세요.');
+  if (!isCurrentTokenState(snapshot)) throw new Error(t('auth.changed'));
   const payload = response.data && typeof response.data === 'object' && !Array.isArray(response.data)
     ? response.data as Record<string, unknown> : null;
   return { response: { status: response.status, ok: response.status >= 200 && response.status < 300 }, payload };

@@ -40,6 +40,7 @@ function signUpService({ status = 201, payload = { message: '회원가입이 완
         } };
       },
       require: (name) => {
+        if (name === '@/i18n') return require('./helpers/i18n.cjs');
         if (name === 'axios') return require('axios');
         if (name === 'react-native') return { Platform: { OS: 'web' } };
         if (name === '@/lib/api') return load('shared-api');
