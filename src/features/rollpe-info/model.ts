@@ -4,7 +4,7 @@ export { normalizeRollpeCode } from '@/utils/rollpe-link';
 
 export type RollpeUser = { id: number; name: string; identifyCode: string };
 export type RollpeHeart = {
-  id: number; code: string; index: number; author: RollpeUser; content: string; color: string;
+  id: number; code: string; index: number; author: RollpeUser; content: string; color: string; revisionCount?: number;
 };
 export type RollpeInfo = {
   id: number; code: string; title: string; host: RollpeUser;

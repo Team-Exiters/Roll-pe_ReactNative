@@ -12,6 +12,7 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { enterRollpe, fetchRollpeInfo, RollpeAccessError } from '@/features/rollpe-info/api';
 import { RollpeEntry } from '@/features/rollpe-info/components/RollpeEntry';
 import { RollpeActionDialog } from '@/features/rollpe-info/components/RollpeActionDialog';
+import { HeartHistoryModal } from '@/features/rollpe-content/components/HeartHistoryModal';
 import { canDeleteRollpe, canSendRollpe, isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, rollpeShareUrl, type RollpeAction, type RollpeInfo } from '@/features/rollpe-info/model';
 import { saveRollpeImage } from '@/features/rollpe-info/save-image';
 import { getTokenState, type TokenState } from '@/features/sign-in/token-state';
@@ -42,6 +43,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [action, setAction] = useState<RollpeAction | null>(null);
+  const [history, setHistory] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const request = useRef<AbortController | null>(null);
@@ -61,6 +63,11 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
       setNeedsJoin(true);
     } else setError(cause instanceof Error ? cause.message : t('info.loadFailed'));
   }, [code, router, t]);
+
+  const authenticate = useCallback(() => {
+    managing.current = false; setHistory(null); setAction(null);
+    handleFailure(new AuthenticationRequiredError());
+  }, [handleFailure]);
 
   useFocusEffect(useCallback(() => {
     focused.current = true;
@@ -148,7 +155,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   }
 
   const role = result ? rollpeRole(result.rollpe, result.user.id, now) : null;
-  if (role === 'unavailable' && !action) return <Redirect href="/rollpe-error" />;
+  if (role === 'unavailable' && !action && !history) return <Redirect href="/rollpe-error" />;
   const rollpe = result?.rollpe;
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') }]}>
     <View style={styles.navigation}>
@@ -175,10 +182,14 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
         </Pressable>
         <Text style={[styles.explanation, { color: colors.rollpe_secondary }]}>{t('info.explanation')}</Text>
         <Text style={[styles.writers, { color: colors.rollpe_secondary }]}>{t('info.writers', { count: rollpe.hearts.count, max: rollpe.maxHeartLength })}</Text>
-        <View style={styles.writerList}>{rollpe.hearts.data.map(heart =>
-          <Text key={heart.id} numberOfLines={1} style={[styles.writer, { color: colors.rollpe_secondary }]}>
-            {heart.author.name}({heart.author.identifyCode})
-          </Text>)}</View>
+        <View style={styles.writerList}>{rollpe.hearts.data.map(heart => <View key={heart.id} style={styles.writerRow}>
+          <Text numberOfLines={1} style={[styles.writer, { color: colors.rollpe_secondary }]}>{heart.author.name}({heart.author.identifyCode})</Text>
+          {(heart.revisionCount ?? 0) > 0 && (result && [rollpe.host.id, heart.author.id].includes(result.user.id)
+            ? <Pressable accessibilityRole="button" accessibilityLabel={t('history.forUser', { name: heart.author.name })}
+              onPress={() => { managing.current = true; setHistory(heart.code); }}>
+              <Text style={[styles.edited, { color: colors.rollpe_main }]}>{t('history.edited')}</Text></Pressable>
+            : <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>{t('history.edited')}</Text>)}
+        </View>)}</View>
       </ScrollView>
       <View style={[styles.buttons, { marginBottom: safeArea('bottom') }]}>
         {role === 'receiver' ? <PrimaryButton title={t('info.saveImage')} disabled={busy || !ready}
@@ -209,6 +220,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
     </>}
     {needsJoin && <RollpeEntry title={title} isPublic={passwordRequired ? false : isPublic} error={entryError} busy={joining}
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
+    {history && <HeartHistoryModal code={history} onClose={() => { managing.current = false; setHistory(null); }} onAuthenticationRequired={authenticate} />}
     {action && result && <RollpeActionDialog key={action} action={action} paper={result.rollpe} userId={result.user.id} onClose={() => toggleAction(null)}
       onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
       onReload={() => { toggleAction(null); setAttempt(value => value + 1); }}
@@ -225,6 +237,8 @@ const styles = StyleSheet.create({
   paper: { marginTop: 52 }, explanation: { marginTop: 16, textAlign: 'center', fontFamily: RollpeFonts.display, fontSize: 16 },
   writers: { marginTop: 40, fontFamily: RollpeFonts.display, fontSize: 20 }, writerList: { marginTop: 20, gap: 8 },
   writer: { fontFamily: RollpeFonts.display, fontSize: 20 }, buttons: { marginHorizontal: 20, gap: 8 },
+  writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8 },
+  edited: { fontFamily: RollpeFonts.display, fontSize: 16 },
   row: { flexDirection: 'row', gap: 8 }, share: { flex: 1 },
   deleteButton: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 14, alignItems: 'center', justifyContent: 'center' },
   deleteLabel: { fontFamily: RollpeFonts.semibold, fontSize: 16, textAlign: 'center' },

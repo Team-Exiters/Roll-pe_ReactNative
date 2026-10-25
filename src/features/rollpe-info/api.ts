@@ -26,7 +26,8 @@ function heart(value: unknown): value is RollpeHeart {
   return record(value) && positive(value.id) && Boolean(normalizeRollpeCode(value.code))
     && Number.isInteger(value.index) && (value.index as number) >= 0 && (value.index as number) < 12
     && user(value.author) && typeof value.content === 'string'
-    && typeof value.color === 'string' && /^#?[0-9a-f]{6}$/i.test(value.color);
+    && typeof value.color === 'string' && /^#?[0-9a-f]{6}$/i.test(value.color)
+    && (value.revisionCount === undefined || (Number.isSafeInteger(value.revisionCount) && (value.revisionCount as number) >= 0));
 }
 
 export async function fetchRollpeInfo(code: string, signal?: AbortSignal): Promise<RollpeInfo> {

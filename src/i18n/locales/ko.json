@@ -262,5 +262,15 @@
   "heart.failed": "마음 처리 중 오류가 발생하였습니다.",
   "heart.uncertainResult": "처리 결과를 확인하지 못했습니다. 롤페를 다시 불러와 확인해주세요.",
   "heart.emptySlot": "{{index}}번째 빈 메모, 마음 작성하기",
-  "heart.writtenSlot": "{{index}}번째 메모, {{name}}님의 마음 보기"
+  "heart.writtenSlot": "{{index}}번째 메모, {{name}}님의 마음 보기",
+  "history.title": "수정 이력",
+  "history.close": "수정 이력 닫기",
+  "history.loading": "수정 이력 불러오는 중",
+  "history.failed": "수정 이력을 불러오지 못했습니다.",
+  "history.forbidden": "방장과 해당 마음의 작성자만 수정 이력을 볼 수 있습니다.",
+  "history.edited": "(수정함)",
+  "history.forUser": "{{name}}님의 마음 수정 이력 보기",
+  "history.original": "원본",
+  "history.revision": "{{count}}차 수정",
+  "history.baseline": "기존 기준본"
 }

@@ -10,6 +10,7 @@ import { RollpeFonts } from '@/constants/theme';
 import { deleteHeart, fetchHeartColors, HeartMutationError, saveHeart } from '@/features/rollpe-content/api';
 import { cleanHeartContent, heartDraftError, normalizeHeartColor, reportHeartUrl, type HeartColor } from '@/features/rollpe-content/model';
 import { HeartDialog } from '@/features/rollpe-content/components/HeartDialog';
+import { HeartHistoryContent } from '@/features/rollpe-content/components/HeartHistoryModal';
 import type { RollpeHeart, RollpeInfo } from '@/features/rollpe-info/model';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 import { useTranslation } from '@/i18n';
@@ -28,6 +29,7 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
   const [colorsError, setColorsError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [textHeight, setTextHeight] = useState(112);
   const [dialog, setDialog] = useState<{ message: string; onConfirm: () => void; onCancel?: () => void } | null>(null);
@@ -91,8 +93,9 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
   const canEdit = heart?.author.id === user.id;
   const canDelete = canEdit || paper.host.id === user.id;
   const canReport = Boolean(heart && !canEdit);
-  return <AppModal visible avoidKeyboard onClose={() => { if (dialog) dialog.onCancel?.(); else if (!pending.current) onClose(); }} contentStyle={styles.frame}>
-    <View style={styles.screen} onLayout={({ nativeEvent: { layout } }) => setSize({ width: layout.width, height: layout.height })}>
+  return <AppModal visible avoidKeyboard={!history} onClose={() => { if (history) setHistory(false); else if (dialog) dialog.onCancel?.(); else if (!pending.current) onClose(); }} contentStyle={styles.frame}>
+    {history && heart ? <View style={styles.historyFrame}><HeartHistoryContent code={heart.code} onClose={() => setHistory(false)} onAuthenticationRequired={onAuthenticationRequired} /></View>
+      : <View style={styles.screen} onLayout={({ nativeEvent: { layout } }) => setSize({ width: layout.width, height: layout.height })}>
       <View aria-hidden={Boolean(dialog)} importantForAccessibility={dialog ? 'no-hide-descendants' : 'auto'} style={styles.body}>
         {loaded && width > 0 ? <>
           <View style={[styles.memo, { width, height: width * 8 / 7, backgroundColor: color || '#AAAAAA' }]}>
@@ -102,9 +105,15 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
               autoCapitalize="none" textAlignVertical="center" onContentSizeChange={event => setTextHeight(event.nativeEvent.contentSize.height)}
               style={[styles.memoText, styles.input, { height: Math.min(Math.max(60, textHeight), width * 8 / 7 - 32) }]} />
             </View> : <>
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.readContents} style={styles.read}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.readContents}
+                style={[styles.read, (heart?.revisionCount ?? 0) > 0 && { marginBottom: 80 }]}>
                 <Text style={styles.memoText}>{heart?.content}{'\n- '}{heart?.author.name}</Text>
               </ScrollView>
+              {(heart?.revisionCount ?? 0) > 0 && <View style={styles.edited}>
+                {canDelete ? <Pressable accessibilityRole="button" accessibilityLabel={t('history.title')} onPress={() => setHistory(true)}>
+                  <Text style={[styles.editedText, styles.historyLink]}>{t('history.edited')}</Text></Pressable>
+                  : <Text style={styles.editedText}>{t('history.edited')}</Text>}
+              </View>}
               <View style={[styles.actions, !canDelete && { justifyContent: 'center' }]}>
                 {canEdit && <Pressable accessibilityRole="button" disabled={busy} onPress={() => setEditing(true)}><Text style={styles.actionText}>{t('heart.edit')}</Text></Pressable>}
                 {canReport && <Pressable accessibilityRole="button" disabled={busy} onPress={() => {
@@ -141,10 +150,11 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
       </View>
       {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
       {dialog && <HeartDialog {...dialog} />}
-    </View>
+    </View>}
   </AppModal>;
 }
 const styles = StyleSheet.create({
+  historyFrame: { flex: 1, justifyContent: 'center', padding: 20 },
   screen: { flex: 1 }, frame: { padding: 0 }, body: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   navigation: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   close: { width: 20, height: 20 }, done: { fontFamily: RollpeFonts.display, fontSize: 20, color: '#FFFFFF' },
@@ -153,6 +163,8 @@ const styles = StyleSheet.create({
   input: { padding: 0, width: '100%' }, read: { flex: 1, marginBottom: 48 }, readContents: { flexGrow: 1, padding: 16, justifyContent: 'center' },
   actions: { position: 'absolute', left: 20, right: 20, bottom: 20, flexDirection: 'row', justifyContent: 'space-between' },
   actionText: { fontFamily: RollpeFonts.display, fontSize: 20, color: '#181818' }, danger: { color: '#EF3C3C' },
+  edited: { position: 'absolute', left: 20, right: 20, bottom: 56, alignItems: 'center' },
+  editedText: { fontFamily: RollpeFonts.display, fontSize: 16, color: '#181818' }, historyLink: { textDecorationLine: 'underline' },
   palette: { marginTop: 40, height: 40, maxWidth: '100%', paddingHorizontal: 20 },
   swatches: { gap: 12, alignItems: 'center' }, swatch: { width: 40, height: 40, borderRadius: 20 },
   whiteText: { fontFamily: RollpeFonts.regular, fontSize: 16, color: '#FFFFFF', textAlign: 'center' },
