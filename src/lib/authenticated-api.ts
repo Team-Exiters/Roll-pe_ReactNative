@@ -20,7 +20,7 @@ async function authenticationFailure() {
     : new AuthenticationRequiredError();
 }
 
-type ApiMethod = 'GET' | 'POST' | 'DELETE';
+type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, body?: object,
   method: ApiMethod = body === undefined ? 'GET' : 'POST') {
@@ -141,6 +141,10 @@ export function authenticatedGet(path: string, signal?: AbortSignal) {
 
 export function authenticatedPost(path: string, body: object, signal?: AbortSignal) {
   return authenticatedRequest(path, signal, body);
+}
+
+export function authenticatedPatch(path: string, body: object, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal, body, 'PATCH');
 }
 
 export function authenticatedDelete(path: string, body?: object, signal?: AbortSignal) {

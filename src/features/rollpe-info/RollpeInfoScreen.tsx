@@ -167,7 +167,10 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
         <Text style={[styles.countdown, { color: colors.rollpe_secondary }]}>{isRollpeDelivered(rollpe, now)
           ? t('info.closed') : remainingTime(rollpe.receive.receivingDate, now)}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={t('info.openPaper')} style={styles.paper}
-          onPress={() => showMessage(t(role === 'receiver' ? 'info.noMoreWriting' : 'common.comingSoon'))}>
+          onPress={() => {
+            if (role === 'receiver') showMessage(t('info.noMoreWriting'));
+            else router.push({ pathname: '/rollpe/[code]/content', params: { code } });
+          }}>
           <RollpePaper key={`${rollpe.code}:${rollpe.theme}:${rollpe.ratio}`} {...rollpe} messages={rollpe.hearts.data} />
         </Pressable>
         <Text style={[styles.explanation, { color: colors.rollpe_secondary }]}>{t('info.explanation')}</Text>

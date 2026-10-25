@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { useEffect, useState, type ComponentRef, type Ref } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { choiceLabel, useTranslation } from '@/i18n';
 
@@ -32,10 +32,11 @@ type RollpePaperProps = {
   title: string; ratio: string; theme: string; size: string;
   sample?: boolean; messages?: readonly PaperMessage[]; width?: number; shadow?: boolean;
   paperRef?: Ref<ComponentRef<typeof View>>; onReadyChange?: (ready: boolean) => void;
+  onMemoPress?: (index: number) => void;
 };
 
 export function RollpePaper({ title, ratio, theme, size, sample = false, messages = [], width: fixedWidth,
-  shadow = true, paperRef, onReadyChange }: RollpePaperProps) {
+  shadow = true, paperRef, onReadyChange, onMemoPress }: RollpePaperProps) {
   const { t } = useTranslation();
   const [measuredWidth, setWidth] = useState(0);
   const width = fixedWidth ?? measuredWidth;
@@ -55,8 +56,9 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
   const dropShadow = `0 ${4 * scale}px ${8 * scale}px rgba(0,0,0,0.25)`;
   const titleWidth = memorial ? (isVertical ? 381 : 396) : (isVertical ? 400 : 416);
   const backgroundColor = memorial ? '#393939' : congrats ? '#FFC0F4' : '#FFFFFF';
+  const Memo = onMemoPress ? Pressable : View;
   return <View style={fixedWidth ? { width: fixedWidth } : styles.frame} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
-    {width > 0 && <View ref={paperRef} collapsable={false} accessibilityRole="image" accessibilityLabel={t('create.previewDescription', {
+    {width > 0 && <View ref={paperRef} collapsable={false} accessible={onMemoPress ? false : undefined} accessibilityRole={onMemoPress ? undefined : 'image'} accessibilityLabel={t('create.previewDescription', {
       ratio: choiceLabel(ratio), theme: choiceLabel(theme), size, title: title || t('create.enterTitle'),
     })}
       style={{ width, height: paperHeight * scale, backgroundColor,
@@ -77,7 +79,9 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
           const rotatedWidth = 140 * Math.abs(Math.cos(radians)) + 160 * Math.abs(Math.sin(radians));
           const rotatedHeight = 140 * Math.abs(Math.sin(radians)) + 160 * Math.abs(Math.cos(radians));
           const message = messages.find(value => value.index === index);
-          return <View key={index} accessible={false} style={{ position: 'absolute',
+          return <Memo key={index} accessible={Boolean(onMemoPress)} accessibilityRole={onMemoPress ? 'button' : undefined}
+            accessibilityLabel={onMemoPress ? t(message ? 'heart.writtenSlot' : 'heart.emptySlot', { index: index + 1, name: message?.author.name ?? '' }) : undefined}
+            onPress={onMemoPress ? () => onMemoPress(index) : undefined} style={{ position: 'absolute',
             left: (x + (rotatedWidth - 140) / 2) * scale, top: (y + (rotatedHeight - 160) / 2) * scale,
             width: 140 * scale, height: 160 * scale, padding: 8 * scale, justifyContent: 'center',
             backgroundColor: sample ? (memorial ? memorialMemoColors : memoColors)[index] : message?.color ?? 'rgba(170,170,170,0.5)',
@@ -87,9 +91,9 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
             <Text style={{ maxHeight: '100%', fontFamily: 'previewMemo', fontSize: 18 * scale, color: '#181818', textAlign: 'center', includeFontPadding: false }}>
               {sample ? t('create.previewSample', { count: index + 1 }) : message ? `${message.content}\n- ${message.author.name}` : ''}
             </Text>
-          </View>;
+          </Memo>;
         })}
-        <View style={{ position: 'absolute', width: titleWidth * scale, left: (paperWidth - titleWidth) * scale / 2,
+        <View pointerEvents="none" style={{ position: 'absolute', width: titleWidth * scale, left: (paperWidth - titleWidth) * scale / 2,
           top: isVertical ? 60 * scale : 0, height: isVertical ? undefined : paperHeight * scale, justifyContent: 'center' }}>
           <Text style={{ fontFamily: memorial ? 'previewMemorial' : congrats ? 'previewCongrats' : 'previewWhite',
             fontSize: (isVertical ? 40 : 52) * scale, lineHeight: memorial ? undefined : (isVertical ? 52 : 64) * scale,
