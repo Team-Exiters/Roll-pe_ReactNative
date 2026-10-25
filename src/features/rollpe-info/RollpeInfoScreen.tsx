@@ -12,6 +12,7 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { enterRollpe, fetchRollpeInfo, RollpeAccessError } from '@/features/rollpe-info/api';
 import { RollpeEntry } from '@/features/rollpe-info/components/RollpeEntry';
 import { RollpeActionDialog } from '@/features/rollpe-info/components/RollpeActionDialog';
+import { ParticipantModal } from '@/features/rollpe-info/components/ParticipantModal';
 import { HeartHistoryModal } from '@/features/rollpe-content/components/HeartHistoryModal';
 import { canDeleteRollpe, canSendRollpe, isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, rollpeShareUrl, type RollpeAction, type RollpeInfo } from '@/features/rollpe-info/model';
 import { saveRollpeImage } from '@/features/rollpe-info/save-image';
@@ -42,7 +43,8 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   const [joining, setJoining] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [action, setAction] = useState<RollpeAction | null>(null);
+  const [action, setAction] = useState<RollpeAction | 'leave' | null>(null);
+  const [members, setMembers] = useState(false);
   const [history, setHistory] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -65,7 +67,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   }, [code, router, t]);
 
   const authenticate = useCallback(() => {
-    managing.current = false; setHistory(null); setAction(null);
+    managing.current = false; setMembers(false); setHistory(null); setAction(null);
     handleFailure(new AuthenticationRequiredError());
   }, [handleFailure]);
 
@@ -99,7 +101,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   }, [code, attempt, handleFailure]));
 
   function goBack() { if (router.canGoBack()) router.back(); else router.replace('/home'); }
-  function toggleAction(value: RollpeAction | null) { managing.current = value !== null; setAction(value); }
+  function toggleAction(value: RollpeAction | 'leave' | null) { managing.current = value !== null; setAction(value); }
   function showMessage(message: string, failure = false) {
     if (Platform.OS === 'web') window.alert(message);
     else Alert.alert(t(failure ? 'common.error' : 'common.notice'), message, [{ text: t('common.confirm') }]);
@@ -155,7 +157,7 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
   }
 
   const role = result ? rollpeRole(result.rollpe, result.user.id, now) : null;
-  if (role === 'unavailable' && !action && !history) return <Redirect href="/rollpe-error" />;
+  if (role === 'unavailable' && !action && !members && !history) return <Redirect href="/rollpe-error" />;
   const rollpe = result?.rollpe;
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') }]}>
     <View style={styles.navigation}>
@@ -190,6 +192,11 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
               <Text style={[styles.edited, { color: colors.rollpe_main }]}>{t('history.edited')}</Text></Pressable>
             : <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>{t('history.edited')}</Text>)}
         </View>)}</View>
+        {role === 'host' && <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin} style={styles.participants}
+          onPress={() => { managing.current = true; setMembers(true); }}>
+          <Text style={[styles.writer, { color: colors.rollpe_secondary }]}>{t('participants.title')}</Text>
+          <Image source={require('@/assets/icons/chevron-right.svg')} tintColor={colors.rollpe_secondary} style={styles.chevron} accessible={false} />
+        </Pressable>}
       </ScrollView>
       <View style={[styles.buttons, { marginBottom: safeArea('bottom') }]}>
         {role === 'receiver' ? <PrimaryButton title={t('info.saveImage')} disabled={busy || !ready}
@@ -211,7 +218,11 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
             </Pressable>
             <PrimaryButton title={t('info.sendAction')} style={styles.share} disabled={loading || busy || needsJoin || !canSendRollpe(rollpe, result.user.id, now)}
               accessibilityHint={!rollpe.receive.receiver ? t('info.sendRecipientRequired') : undefined} onPress={() => toggleAction('send')} />
-          </View>}</>}
+          </View>}
+          {role === 'participant' && <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin}
+            onPress={() => toggleAction('leave')} style={[styles.deleteButton, { flex: 0, borderColor: colors.rollpe_main }]}>
+            <Text style={[styles.deleteLabel, { color: colors.rollpe_main }]}>{t('participants.leave')}</Text>
+          </Pressable>}</>}
       </View>
       {role === 'receiver' && <View pointerEvents="none" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.export}>
         <RollpePaper {...rollpe} messages={rollpe.hearts.data} width={rollpe.ratio === '세로' ? 595 : 842}
@@ -220,6 +231,8 @@ function RollpeInfoContent({ code, title, isPublic }: { code: string; title: str
     </>}
     {needsJoin && <RollpeEntry title={title} isPublic={passwordRequired ? false : isPublic} error={entryError} busy={joining}
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
+    {members && <ParticipantModal code={code} onClose={() => { managing.current = false; setMembers(false); setAttempt(value => value + 1); }}
+      onAuthenticationRequired={authenticate} />}
     {history && <HeartHistoryModal code={history} onClose={() => { managing.current = false; setHistory(null); }} onAuthenticationRequired={authenticate} />}
     {action && result && <RollpeActionDialog key={action} action={action} paper={result.rollpe} userId={result.user.id} onClose={() => toggleAction(null)}
       onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
@@ -239,6 +252,7 @@ const styles = StyleSheet.create({
   writer: { fontFamily: RollpeFonts.display, fontSize: 20 }, buttons: { marginHorizontal: 20, gap: 8 },
   writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8 },
   edited: { fontFamily: RollpeFonts.display, fontSize: 16 },
+  participants: { marginTop: 40, flexDirection: 'row', alignItems: 'center', gap: 4 }, chevron: { width: 20, height: 20 },
   row: { flexDirection: 'row', gap: 8 }, share: { flex: 1 },
   deleteButton: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 14, alignItems: 'center', justifyContent: 'center' },
   deleteLabel: { fontFamily: RollpeFonts.semibold, fontSize: 16, textAlign: 'center' },

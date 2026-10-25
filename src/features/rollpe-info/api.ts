@@ -70,7 +70,7 @@ export async function enterRollpe(code: string, password?: string, signal?: Abor
   if (response.ok || response.status === 473) return;
   if ([400, 472].includes(response.status)) throw new RollpeAccessError('password',
     response.status === 472 ? t('info.wrongPassword') : t('create.passwordRequired'));
-  if ([403, 404, 410].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
+  if ([403, 404, 410, 483].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   throw new Error(typeof payload?.message === 'string' ? payload.message : t('info.joinFailed'));
 }
 
