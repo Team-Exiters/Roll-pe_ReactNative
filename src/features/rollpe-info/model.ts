@@ -33,12 +33,27 @@ export function remainingTime(date: string, now = Date.now()): string {
   return t('info.remaining', { value });
 }
 
+export function isRollpeDelivered(rollpe: RollpeInfo, now = Date.now()): boolean {
+  return rollpe.receive.receivingStat === 1 || now >= rollpeDeadline(rollpe.receive.receivingDate);
+}
+
 export function rollpeRole(rollpe: RollpeInfo, userId: number, now = Date.now()) {
-  if (now >= rollpeDeadline(rollpe.receive.receivingDate)) {
+  if (isRollpeDelivered(rollpe, now)) {
     return rollpe.receive.receiver?.id === userId ? 'receiver' : 'unavailable';
   }
   return rollpe.host.id === userId ? 'host' : 'participant';
 }
+
+export function canDeleteRollpe(rollpe: RollpeInfo, userId: number, now = Date.now()): boolean {
+  return rollpe.host.id === userId && rollpe.receive.receivingStat === 0
+    && now < rollpeDeadline(rollpe.receive.receivingDate);
+}
+
+export function canSendRollpe(rollpe: RollpeInfo, userId: number, now = Date.now()): boolean {
+  return canDeleteRollpe(rollpe, userId, now) && rollpe.receive.receiver !== null;
+}
+
+export type RollpeAction = 'delete' | 'send';
 
 export function rollpeShareUrl(code: string, website?: string): string {
   const normalized = normalizeRollpeCode(code);

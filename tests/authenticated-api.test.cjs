@@ -429,3 +429,14 @@ test('encoded recipient names may contain path-like text in query parameters wit
   await assert.rejects(env.api.authenticatedPost('https://evil.example/api/paper', { title: '제목' }));
   assert.equal(env.calls.length, 1);
 });
+
+test('paper DELETE preserves its JSON body and cancellation signal through token renewal', async () => {
+  const env = setup(({ url, headers }) => url.endsWith('/token/refresh') ? ok({ access: 'new-access' })
+    : headers.authorization === 'Bearer old-access' ? unauthorized : new Response(null, { status: 204 }));
+  await env.tokenState.saveTokenState(original, false);
+  const body = { pcode: '12345678-1234-4234-8234-123456789abc' };
+  await env.api.authenticatedDelete('/api/paper/user', body, new AbortController().signal);
+  assert.deepEqual(env.calls.map(call => call.method), ['DELETE', 'POST', 'DELETE']);
+  assert.deepEqual(JSON.parse(env.calls[0].body), body);
+  assert.equal(env.calls[0].body, env.calls[2].body);
+});

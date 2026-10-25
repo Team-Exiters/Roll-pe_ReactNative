@@ -5,7 +5,7 @@ export type HomeStatus = { host: number; heart: number };
 export type HotRollpe = {
   id: number; code: string; title: string; theme: string; viewStat?: boolean;
   host: { name: string };
-  receive: { receivingDate: string };
+  receive: { receivingDate: string; receivingStat?: number };
 };
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -24,7 +24,8 @@ function isHotRollpe(value: unknown): value is HotRollpe {
     && typeof value.title === 'string' && typeof value.theme === 'string'
     && (value.viewStat === undefined || typeof value.viewStat === 'boolean')
     && record(value.host) && typeof value.host.name === 'string'
-    && record(value.receive) && receivingDate(value.receive.receivingDate);
+    && record(value.receive) && receivingDate(value.receive.receivingDate)
+    && (value.receive.receivingStat === undefined || [0, 1].includes(value.receive.receivingStat as number));
 }
 
 export async function fetchHomeStatus(signal: AbortSignal): Promise<HomeStatus> {

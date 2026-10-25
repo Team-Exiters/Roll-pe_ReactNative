@@ -39,11 +39,13 @@ test('home rejects malformed counts, cards, dates and HTTP errors while acceptin
   for (const data of [null, [], { host: -1, heart: 0 }, { host: '3', heart: 1 }, { host: 0, heart: 0.5 }]) {
     await assert.rejects(service(data).fetchHomeStatus(signal));
   }
-  for (const data of [null, {}, [null], [{ ...rollpe, host: null }], [{ ...rollpe, receive: { receivingDate: '2026-02-30' } }]]) {
+  for (const data of [null, {}, [null], [{ ...rollpe, host: null }], [{ ...rollpe, receive: { receivingDate: '2026-02-30' } }],
+    [{ ...rollpe, receive: { ...rollpe.receive, receivingStat: '1' } }]]) {
     await assert.rejects(service(data).fetchHotRollpes(signal));
   }
   await assert.rejects(service([rollpe], false).fetchHotRollpes(signal));
   assert.equal((await service([]).fetchHotRollpes(signal)).length, 0);
+  assert.equal((await service([{ ...rollpe, receive: { ...rollpe.receive, receivingStat: 1 } }]).fetchHotRollpes(signal))[0].receive.receivingStat, 1);
 });
 
 test('home propagates authentication and cancellation errors without hiding them as malformed data', async () => {

@@ -3,12 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useRollpeColors } from '@/constants/theme';
 import { MarqueeText } from '@/components/ui/MarqueeText';
+import { useTranslation } from '@/i18n';
 import { dDay, type HotRollpe } from '@/features/home/api';
 
 
 export function RollpeCard({ rollpe, onPress }: { rollpe: HotRollpe; onPress: () => void }) {
   const colors = useRollpeColors();
-  const deadline = dDay(rollpe.receive.receivingDate);
+  const { t } = useTranslation();
+  const deadline = rollpe.receive.receivingStat === 1 ? t('home.closed') : dDay(rollpe.receive.receivingDate);
   const backgroundColor = rollpe.theme === '추모' ? '#393939' : rollpe.theme === '축하' ? '#FFC0F4' : colors.rollpe_white;
   return <Pressable accessibilityRole="button" accessibilityLabel={`${rollpe.title}, ${rollpe.host.name}, ${deadline}`}
     onPress={onPress} style={styles.card}>
