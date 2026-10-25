@@ -51,6 +51,8 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
   const paperWidth = isVertical ? 595 : 842;
   const paperHeight = isVertical ? 842 : 595;
   const scale = width / paperWidth;
+  // RN converts boxShadow blur to CALayer.shadowRadius by dividing it by two.
+  const dropShadow = `0 ${4 * scale}px ${8 * scale}px rgba(0,0,0,0.25)`;
   const titleWidth = memorial ? (isVertical ? 381 : 396) : (isVertical ? 400 : 416);
   const backgroundColor = memorial ? '#393939' : congrats ? '#FFC0F4' : '#FFFFFF';
   return <View style={fixedWidth ? { width: fixedWidth } : styles.frame} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
@@ -58,7 +60,7 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
       ratio: choiceLabel(ratio), theme: choiceLabel(theme), size, title: title || t('create.enterTitle'),
     })}
       style={{ width, height: paperHeight * scale, backgroundColor,
-        boxShadow: shadow ? `0 ${4 * scale}px ${4 * scale}px rgba(0,0,0,0.25)` : undefined }}>
+        boxShadow: shadow ? dropShadow : undefined }}>
       {congrats && <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
         <Image source={require('@/assets/images/create-rollpe/confetti.png')} accessible={false} contentFit="cover" loading="eager"
           onLoad={() => setLoadedImage(theme)} onError={() => setImageFailed(true)}
@@ -81,7 +83,7 @@ export function RollpePaper({ title, ratio, theme, size, sample = false, message
             backgroundColor: sample ? (memorial ? memorialMemoColors : memoColors)[index] : message?.color ?? 'rgba(170,170,170,0.5)',
             borderWidth: !sample && !message ? scale : 0, borderStyle: 'dashed', borderColor: '#181818',
             overflow: 'hidden', transform: [{ rotate: `${rotation}deg` }],
-            boxShadow: `0 ${4 * scale}px ${4 * scale}px rgba(0,0,0,0.25)` }}>
+            boxShadow: dropShadow }}>
             <Text style={{ maxHeight: '100%', fontFamily: 'previewMemo', fontSize: 18 * scale, color: '#181818', textAlign: 'center', includeFontPadding: false }}>
               {sample ? t('create.previewSample', { count: index + 1 }) : message ? `${message.content}\n- ${message.author.name}` : ''}
             </Text>
