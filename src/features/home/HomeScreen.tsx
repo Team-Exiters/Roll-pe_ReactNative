@@ -9,7 +9,7 @@ import { AppFooter } from '@/components/AppFooter';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { fetchHomeStatus, fetchHotRollpes, type HomeStatus, type HotRollpe } from '@/features/home/api';
-import { HomeSideMenu } from '@/features/home/components/HomeSideMenu';
+import { AppSideMenu } from '@/components/AppSideMenu';
 import { RollpeCard } from '@/features/home/components/RollpeCard';
 import { getTokenState } from '@/features/sign-in/token-state';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
@@ -109,7 +109,7 @@ export default function HomeScreen() {
       hitSlop={8} onPress={() => setMenuOpen(true)} style={[styles.menuButton, { top: safeArea('top', 20), backgroundColor: colors.rollpe_primary }]}>
       <Image source={require('@/assets/images/home/menu.svg')} accessible={false} contentFit="contain" style={styles.menuIcon} />
     </Pressable>
-    {menuOpen && <HomeSideMenu onClose={() => setMenuOpen(false)} onUnavailable={unavailable} />}
+    {menuOpen && <AppSideMenu onClose={() => setMenuOpen(false)} />}
   </View>;
 }
 
