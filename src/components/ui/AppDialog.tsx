@@ -34,10 +34,11 @@ export function AppDialog({ title, message, children, confirmLabel, cancelLabel,
       {busy && <ActivityIndicator accessibilityLabel={t('common.processing')} color={colors.rollpe_main} style={styles.spinner} />}
       <View style={styles.buttons}>
         {onCancel && <Pressable accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }}
-          onPress={onCancel} style={styles.button}>
+          onPress={onCancel} style={({ pressed }) => [styles.button, pressed && !busy && styles.pressed]}>
           <Text style={[styles.label, { color: colors.rollpe_secondary, opacity: busy ? 0.5 : 1 }]}>{cancelLabel ?? t('common.cancel')}</Text>
         </Pressable>}
-        <PrimaryButton title={confirmLabel ?? t('common.confirm')} textStyle={styles.label} disabled={busy} style={styles.button} onPress={onConfirm} />
+        <PrimaryButton title={confirmLabel ?? t('common.confirm')} textStyle={styles.label} disabled={busy}
+          style={({ pressed }) => [styles.button, pressed && !busy && styles.pressed]} onPress={onConfirm} />
       </View>
     </View>
   </AppModal>;
@@ -49,6 +50,7 @@ const styles = StyleSheet.create({
   message: { fontFamily: RollpeFonts.display, fontSize: 16, marginTop: 16, textAlign: 'center' },
   buttons: { flexDirection: 'row', gap: 8, marginTop: 24 },
   button: { flex: 1, padding: 16, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.7 },
   label: { fontFamily: RollpeFonts.display, fontSize: 16, textAlign: 'center' },
   spinner: { marginTop: 20 },
 });
