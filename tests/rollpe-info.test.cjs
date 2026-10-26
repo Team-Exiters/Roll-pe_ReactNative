@@ -86,6 +86,19 @@ test('unknown, malformed and obsolete entry metadata never guesses whether a pas
   await assert.rejects(api.fetchRollpeInfo(code), error => error.reason === 'unavailable' && !error.entry);
 });
 
+test('only valid server invitation metadata offers private entry by acceptance, without joining during GET', async () => {
+  const data = { code, title: '초대받은 비공개 롤페', viewStat: false, canEnter: true, invitationCode: message.code };
+  const { api, calls } = setup(() => ({ response: { status: 471 }, payload: { data } }));
+  await assert.rejects(api.fetchRollpeInfo(code), error => error.reason === 'join'
+    && error.entry.invitationCode === message.code && error.entry.title === data.title && error.entry.isPublic === false);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].method, 'GET');
+  for (const change of [{ invitationCode: 'bad' }, { invitationCode: null }, { title: ' ' }]) {
+    await assert.rejects(setup(() => ({ response: { status: 471 }, payload: { data: { ...data, ...change } } })).api.fetchRollpeInfo(code),
+      error => error.reason !== 'join');
+  }
+});
+
 test('all six original A4 themes are accepted and unsupported layouts fail explicitly', async () => {
   for (const ratio of ['가로', '세로']) for (const theme of ['화이트', '축하', '추모']) {
     const data = await setup(() => ({ response: { status: 200, ok: true }, payload: { data: { ...paper(), ratio, theme } } })).api.fetchRollpeInfo(code);

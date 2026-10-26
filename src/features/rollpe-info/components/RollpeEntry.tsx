@@ -6,18 +6,20 @@ import { RoundedBorderTextField } from '@/components/ui/RoundedBorderTextField';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { useTranslation } from '@/i18n';
 
-export function RollpeEntry({ title, isPublic, error, busy, onSubmit, onCancel }: {
-  title: string; isPublic: boolean; error?: string; busy: boolean;
+export function RollpeEntry({ title, isPublic, invited = false, error, busy, onSubmit, onCancel }: {
+  title: string; isPublic: boolean; invited?: boolean; error?: string; busy: boolean;
   onSubmit: (password?: string) => void; onCancel: () => void;
 }) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const [password, setPassword] = useState('');
-  return <AppDialog title={t(isPublic ? 'common.notice' : 'info.joinTitle')}
-    message={isPublic ? t('info.confirmJoin', { title }) : t('info.enterPassword')} busy={busy}
-    onCancel={onCancel} onConfirm={() => onSubmit(isPublic ? undefined : password)}>
-    {(!isPublic || error) && <View>
-      {!isPublic && <RoundedBorderTextField accessibilityLabel={t('create.password')} placeholder={t('common.password')}
+  const needsPassword = !isPublic && !invited;
+  return <AppDialog title={t(invited ? 'home.invited' : isPublic ? 'common.notice' : 'info.joinTitle')}
+    message={invited ? t('invitations.confirmAccept', { title }) : isPublic ? t('info.confirmJoin', { title }) : t('info.enterPassword')} busy={busy}
+    confirmLabel={invited ? t('invitations.accept') : undefined}
+    onCancel={onCancel} onConfirm={() => onSubmit(needsPassword ? password : undefined)}>
+    {(needsPassword || error) && <View>
+      {needsPassword && <RoundedBorderTextField accessibilityLabel={t('create.password')} placeholder={t('common.password')}
         secureTextEntry autoFocus maxLength={50} value={password} onChangeText={setPassword} editable={!busy}
         returnKeyType="go" onSubmitEditing={() => { if (!busy) onSubmit(password); }} style={styles.input} />}
       {error && <Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_main }]}>{error}</Text>}
