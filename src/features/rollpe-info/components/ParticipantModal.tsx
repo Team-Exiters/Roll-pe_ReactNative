@@ -3,14 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppModal } from '@/components/ui/AppModal';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { UserList } from '@/components/ui/UserList';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { RecipientPickerContent } from '@/features/create-rollpe/components/RecipientPicker';
-import { HeartDialog } from '@/features/rollpe-content/components/HeartDialog';
 import { HeartHistoryContent } from '@/features/rollpe-content/components/HeartHistoryModal';
-import { fetchParticipants, inviteParticipant, kickParticipant, ParticipantError } from '@/features/rollpe-info/participants';
+import { fetchParticipants, kickParticipant, ParticipantError } from '@/features/rollpe-info/participants';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
@@ -21,7 +20,7 @@ export function ParticipantModal({ code, onClose, onAuthenticationRequired }: {
   const [users, setUsers] = useState<Awaited<ReturnType<typeof fetchParticipants>>>([]);
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
-  const [picker, setPicker] = useState(false), [history, setHistory] = useState<string | null>(null);
+  const [history, setHistory] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ message: string; onConfirm: () => void; onCancel?: () => void } | null>(null);
   const active = useRef(true), pending = useRef(false), mutation = useRef<AbortController | null>(null);
   useEffect(() => { active.current = true; return () => { active.current = false; mutation.current?.abort(); }; }, []);
@@ -41,7 +40,7 @@ export function ParticipantModal({ code, onClose, onAuthenticationRequired }: {
   }
   async function change(action: (signal: AbortSignal) => Promise<void>, message: string) {
     if (pending.current) return;
-    pending.current = true; setBusy(true); setPicker(false); setDialog(null);
+    pending.current = true; setBusy(true); setDialog(null);
     const controller = new AbortController(); mutation.current = controller;
     try {
       await action(controller.signal);
@@ -58,27 +57,17 @@ export function ParticipantModal({ code, onClose, onAuthenticationRequired }: {
   return <AppModal visible onClose={() => {
     if (dialog) dialog.onCancel?.();
     else if (history) setHistory(null);
-    else if (picker) setPicker(false);
     else close();
   }} avoidKeyboard>
-    {picker ? <RecipientPickerContent title={t('participants.invite')} actionTitle={t('participants.inviteAction')} onClose={() => setPicker(false)}
-      closeLabel={t('participants.closeInvite')} searchLabel={t('participants.searchUsers')}
-      onError={cause => cause instanceof AuthenticationRequiredError ? onAuthenticationRequired() : notice(cause instanceof Error ? cause.message : t('participants.failed'))}
-      onSelect={user => { void change(signal => inviteParticipant(code, user.id, signal), t('participants.invited', { name: user.name })); }} />
-      : history ? <HeartHistoryContent code={history} onClose={() => setHistory(null)} onAuthenticationRequired={onAuthenticationRequired} /> :
+    {history ? <HeartHistoryContent code={history} onClose={() => setHistory(null)} onAuthenticationRequired={onAuthenticationRequired} /> :
       <View accessibilityViewIsModal style={[styles.content, { height: height * 0.62, backgroundColor: colors.rollpe_primary }]}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('participants.close')} disabled={busy} hitSlop={12} onPress={close} style={styles.close}>
           <Image source={require('@/assets/images/home/close.svg')} tintColor={colors.rollpe_secondary} accessible={false} style={StyleSheet.absoluteFill} />
         </Pressable>
         <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('participants.title')}</Text>
-        <Pressable accessibilityRole="button" disabled={loading || busy || Boolean(error)} onPress={() => setPicker(true)}
-          style={[styles.invite, { opacity: loading || busy || error ? 0.5 : 1 }]}>
-          <Image source={require('@/assets/icons/user-invite.svg')} tintColor={colors.rollpe_main} style={styles.icon} accessible={false} />
-          <Text style={[styles.inviteText, { color: colors.rollpe_main }]}>{t('participants.invite')}</Text>
-        </Pressable>
         {error ? <View style={styles.failure}>
           <Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_secondary }]}>{error}</Text>
-          <PrimaryButton title={t('common.retry')} onPress={() => reload()} />
+          <PrimaryButton title={t('common.retry')} textStyle={styles.buttonText} onPress={() => reload()} />
         </View> : <UserList users={users} loading={loading} loadingLabel={t('participants.loading')} renderDetail={user => <View style={styles.status}>
           {(user.isHost || user.isReceiver) && <Text style={[styles.description, { color: colors.rollpe_secondary }]}>{t(user.isHost ? 'participants.host' : 'participants.receiver')}</Text>}
           <Text style={[styles.description, { color: colors.rollpe_secondary }]}>{t(user.hasWritten ? 'participants.written' : 'participants.unwritten')}</Text>
@@ -93,16 +82,16 @@ export function ParticipantModal({ code, onClose, onAuthenticationRequired }: {
         {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
       </View>
     }
-    {dialog && <HeartDialog {...dialog} />}
+    {dialog && <AppDialog {...dialog} />}
   </AppModal>;
 }
 const styles = StyleSheet.create({
   content: { borderRadius: 16, paddingHorizontal: 20, paddingBottom: 20 },
   close: { position: 'absolute', top: 28, left: 20, width: 20, height: 20, zIndex: 1 },
   title: { marginTop: 24, fontFamily: RollpeFonts.display, fontSize: 28, textAlign: 'center' },
-  invite: { marginTop: 28, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  icon: { width: 24, height: 24 }, inviteText: { fontFamily: RollpeFonts.display, fontSize: 20 },
+  icon: { width: 24, height: 24 },
+  buttonText: { fontFamily: RollpeFonts.display },
   status: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, marginTop: 4 },
-  description: { fontFamily: RollpeFonts.regular, fontSize: 13 }, edited: { fontFamily: RollpeFonts.regular, fontSize: 13, textDecorationLine: 'underline' },
+  description: { fontFamily: RollpeFonts.display, fontSize: 13 }, edited: { fontFamily: RollpeFonts.display, fontSize: 13, textDecorationLine: 'underline' },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, failure: { flex: 1, justifyContent: 'center', gap: 20 },
 });

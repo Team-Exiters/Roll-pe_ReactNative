@@ -5,11 +5,11 @@ import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Sty
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppModal } from '@/components/ui/AppModal';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { RollpeFonts } from '@/constants/theme';
 import { deleteHeart, fetchHeartColors, HeartMutationError, saveHeart } from '@/features/rollpe-content/api';
 import { cleanHeartContent, heartDraftError, normalizeHeartColor, reportHeartUrl, type HeartColor } from '@/features/rollpe-content/model';
-import { HeartDialog } from '@/features/rollpe-content/components/HeartDialog';
 import { HeartHistoryContent } from '@/features/rollpe-content/components/HeartHistoryModal';
 import type { RollpeHeart, RollpeInfo } from '@/features/rollpe-info/model';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
@@ -149,7 +149,7 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
         </Pressable>}
       </View>
       {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
-      {dialog && <HeartDialog {...dialog} />}
+      {dialog && <AppDialog {...dialog} />}
     </View>}
   </AppModal>;
 }
@@ -167,5 +167,5 @@ const styles = StyleSheet.create({
   editedText: { fontFamily: RollpeFonts.display, fontSize: 16, color: '#181818' }, historyLink: { textDecorationLine: 'underline' },
   palette: { marginTop: 40, height: 40, maxWidth: '100%', paddingHorizontal: 20 },
   swatches: { gap: 12, alignItems: 'center' }, swatch: { width: 40, height: 40, borderRadius: 20 },
-  whiteText: { fontFamily: RollpeFonts.regular, fontSize: 16, color: '#FFFFFF', textAlign: 'center' },
+  whiteText: { fontFamily: RollpeFonts.display, fontSize: 16, color: '#FFFFFF', textAlign: 'center' },
 });

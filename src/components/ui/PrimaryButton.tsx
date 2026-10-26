@@ -7,15 +7,18 @@ import {
   StyleSheet,
   Text,
   type PressableProps,
+  type StyleProp,
+  type TextStyle,
 } from 'react-native';
 
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 
 type PrimaryButtonProps = Omit<PressableProps, 'children'> & {
   title: string;
+  textStyle?: StyleProp<TextStyle>;
 };
 
-export function PrimaryButton({ title, disabled, style, ...props }: PrimaryButtonProps) {
+export function PrimaryButton({ title, textStyle, disabled, style, ...props }: PrimaryButtonProps) {
   const colors = useRollpeColors();
   const [backgroundOpacity] = useState(() => new Animated.Value(disabled ? 0.5 : 1));
 
@@ -49,7 +52,7 @@ export function PrimaryButton({ title, disabled, style, ...props }: PrimaryButto
           { backgroundColor: colors.rollpe_main, opacity: backgroundOpacity },
         ]}
       />
-      <Text style={[styles.title, { color: colors.rollpe_primary }]}>{title}</Text>
+      <Text style={[styles.title, { color: colors.rollpe_primary }, textStyle]}>{title}</Text>
     </Pressable>
   );
 }

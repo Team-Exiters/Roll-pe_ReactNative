@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
@@ -10,17 +10,21 @@ import { searchRecipients } from '@/features/create-rollpe/api';
 import type { Recipient } from '@/features/create-rollpe/validation';
 import { AppModal } from '@/components/ui/AppModal';
 import { UserList } from '@/components/ui/UserList';
+import { LoadingView } from '@/components/ui/LoadingView';
 
 type RecipientPickerProps = {
   onSelect: (user: Recipient) => void; onClose: () => void; onError: (error: unknown) => void;
   title?: string; actionTitle?: string; closeLabel?: string; searchLabel?: string;
+  busy?: boolean;
+  renderActions?: (selected: Recipient | null, searching: boolean) => ReactNode;
 };
 
 export function RecipientPicker(props: RecipientPickerProps) {
   return <AppModal visible onClose={props.onClose} avoidKeyboard><RecipientPickerContent {...props} /></AppModal>;
 }
 
-export function RecipientPickerContent({ onSelect, onClose, onError, title, actionTitle, closeLabel, searchLabel }: RecipientPickerProps) {
+export function RecipientPickerContent({ onSelect, onClose, onError, title, actionTitle, closeLabel, searchLabel,
+  busy = false, renderActions }: RecipientPickerProps) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const { height } = useWindowDimensions();
@@ -32,6 +36,7 @@ export function RecipientPickerContent({ onSelect, onClose, onError, title, acti
   useEffect(() => () => { request.current?.abort(); }, []);
 
   async function search() {
+    if (busy) return;
     if (!keyword.trim()) { onError(new Error(t('create.enterName'))); return; }
     request.current?.abort();
     const controller = new AbortController();
@@ -52,23 +57,25 @@ export function RecipientPickerContent({ onSelect, onClose, onError, title, acti
   }
 
   return <View accessibilityViewIsModal style={[styles.content, { height: height * 0.62, backgroundColor: colors.rollpe_primary }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={closeLabel ?? t('create.closeRecipients')} hitSlop={12} onPress={onClose} style={styles.close}>
+      <Pressable accessibilityRole="button" accessibilityLabel={closeLabel ?? t('create.closeRecipients')} disabled={busy} hitSlop={12} onPress={onClose} style={styles.close}>
         <Image source={require('@/assets/images/home/close.svg')} tintColor={colors.rollpe_secondary} accessible={false} contentFit="contain" style={StyleSheet.absoluteFill} />
       </Pressable>
       <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{title ?? t('create.send')}</Text>
       <View style={styles.search}>
         <RoundedBorderTextField accessibilityLabel={searchLabel ?? t('create.recipientSearch')} placeholder={t('create.searchPlaceholder')} value={keyword}
-          onChangeText={setKeyword} returnKeyType="search" onSubmitEditing={() => { void search(); }} style={styles.input} />
-        <Pressable accessibilityRole="button" accessibilityLabel={t('create.searchUsers')} onPress={() => { void search(); }} hitSlop={12} style={styles.searchButton}>
+          editable={!busy} onChangeText={value => { setKeyword(value); setSelected(null); }} returnKeyType="search" onSubmitEditing={() => { void search(); }} style={styles.input} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('create.searchUsers')} disabled={busy} onPress={() => { void search(); }} hitSlop={12} style={styles.searchButton}>
           <Image source={require('@/assets/images/create-rollpe/search.svg')} tintColor={colors.rollpe_secondary}
             contentFit="contain" accessible={false} style={styles.searchIcon} />
         </Pressable>
       </View>
-      <UserList users={users} loading={loading} loadingLabel={t('create.searchingUsers')} selectedId={selected?.id} onSelect={setSelected} />
-      <PrimaryButton title={actionTitle ?? t('create.select')} style={styles.select} disabled={loading} onPress={() => {
-        if (selected) onSelect(selected);
-        else onError(new Error(t('create.selectUser')));
-      }} />
+      <UserList users={users} loading={loading} loadingLabel={t('create.searchingUsers')} selectedId={selected?.id} onSelect={busy ? undefined : setSelected} />
+      <View style={styles.select}>{renderActions ? renderActions(selected, loading)
+        : <PrimaryButton title={actionTitle ?? t('create.select')} textStyle={styles.label} disabled={loading || busy} onPress={() => {
+          if (selected) onSelect(selected);
+          else onError(new Error(t('create.selectUser')));
+        }} />}</View>
+      {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
     </View>;
 }
 
@@ -80,4 +87,5 @@ const styles = StyleSheet.create({
   searchButton: { position: 'absolute', right: 16, top: 0, bottom: 0, justifyContent: 'center' },
   searchIcon: { width: 22, height: 22 },
   select: { marginTop: 28 },
+  label: { fontFamily: RollpeFonts.display },
 });

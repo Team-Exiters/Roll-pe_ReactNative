@@ -45,10 +45,10 @@ test('detail uses the original authenticated endpoint, normalizes UUIDs and memo
   assert.equal(calls.length, 1); // Reading never joins implicitly or asks an invited user for a password.
 });
 
-test('entry is offered only for the explicit membership response; errors and malformed replies never display a paper', async () => {
-  for (const status of [471, 404, 403, 410, 503]) {
+test('errors and malformed replies never display a paper or offer entry', async () => {
+  for (const status of [471, 404, 403, 410, 483, 503]) {
     const { api, calls } = setup(() => ({ response: { status, ok: false }, payload: null }));
-    await assert.rejects(api.fetchRollpeInfo(code), error => status === 471 ? error.reason === 'join' : error.reason !== 'join');
+    await assert.rejects(api.fetchRollpeInfo(code), error => error.reason !== 'join');
     assert.equal(calls.length, 1);
   }
   for (const data of [null, { ...paper(), code: message.code }, { ...paper(), receive: { ...paper().receive, receivingDate: '2026-02-30' } },
@@ -59,6 +59,31 @@ test('entry is offered only for the explicit membership response; errors and mal
   }
   const empty = { ...paper(), hearts: { count: 0 }, receive: { ...paper().receive, receiver: null } };
   assert.equal((await setup(() => ({ response: { status: 200, ok: true }, payload: { data: empty } })).api.fetchRollpeInfo(code)).hearts.data.length, 0);
+});
+
+test('link entry uses validated server visibility, public title and availability without joining during GET', async () => {
+  for (const viewStat of [false, true]) {
+    const data = { code, title: viewStat ? '공개 롤페' : 'discarded private title', viewStat, canEnter: true };
+    const { api, calls } = setup(() => ({ response: { status: 471 }, payload: { data } }));
+    const signal = new AbortController().signal;
+    await assert.rejects(api.fetchRollpeInfo(code, signal), error => error instanceof api.RollpeAccessError
+      && error.reason === 'join' && error.entry.isPublic === viewStat && error.entry.title === (viewStat ? data.title : ''));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, 'GET');
+    assert.equal(calls[0].signal, signal);
+  }
+});
+
+test('unknown, malformed and obsolete entry metadata never guesses whether a password is required', async () => {
+  const entry = { code, title: '공개 롤페', viewStat: true, canEnter: true };
+  for (const data of [null, {}, { ...entry, code: message.code }, { ...entry, viewStat: 'true' },
+    { ...entry, title: null }, { ...entry, title: '  ' }, { ...entry, canEnter: undefined }, { ...entry, canEnter: 1 }]) {
+    const { api, calls } = setup(() => ({ response: { status: 471 }, payload: { data } }));
+    await assert.rejects(api.fetchRollpeInfo(code), error => error.reason !== 'join');
+    assert.equal(calls.length, 1);
+  }
+  const { api } = setup(() => ({ response: { status: 471 }, payload: { data: { ...entry, canEnter: false } } }));
+  await assert.rejects(api.fetchRollpeInfo(code), error => error.reason === 'unavailable' && !error.entry);
 });
 
 test('all six original A4 themes are accepted and unsupported layouts fail explicitly', async () => {

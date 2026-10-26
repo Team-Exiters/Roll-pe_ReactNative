@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-
-import { AppModal } from '@/components/ui/AppModal';
-import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { deleteRollpe, sendRollpe, RollpeActionError } from '@/features/rollpe-info/api';
 import { canDeleteRollpe, canSendRollpe, isRollpeDelivered, type RollpeAction, type RollpeInfo } from '@/features/rollpe-info/model';
 import { leaveRollpe, ParticipantError } from '@/features/rollpe-info/participants';
@@ -13,7 +10,7 @@ export function RollpeActionDialog({ action, paper, userId, onClose, onCompleted
   action: RollpeAction | 'leave'; paper: RollpeInfo; userId: number; onClose: () => void; onCompleted: () => void;
   onReload: () => void; onAuthenticationRequired: () => void;
 }) {
-  const { t } = useTranslation(), colors = useRollpeColors();
+  const { t } = useTranslation();
   const labels = {
     delete: { title: 'info.delete', action: 'info.deleteAction', confirmation: 'info.deleteConfirmation', completed: 'info.deleted', uncertain: 'info.deleteUncertain' },
     send: { title: 'info.send', action: 'info.sendAction', confirmation: 'info.sendConfirmation', completed: 'info.sent', uncertain: 'info.sendUncertain' },
@@ -57,31 +54,8 @@ export function RollpeActionDialog({ action, paper, userId, onClose, onCompleted
   const message = stage === 'confirm' ? t(label.confirmation,
     { title: paper.title, receiver: paper.receive.receiver?.name ?? '' })
     : stage === 'pending' ? t('common.processing') : stage === 'completed' ? t(label.completed) : failure?.message;
-  return <AppModal visible onClose={finish}>
-    <View role="alertdialog" aria-modal accessibilityViewIsModal
-      style={[styles.dialog, { backgroundColor: colors.rollpe_primary }]}>
-      <Text style={[styles.title, { color: colors.rollpe_secondary }]}>{t(label.title)}</Text>
-      {message && <Text accessibilityLiveRegion="polite" style={[styles.message, { color: colors.rollpe_secondary }]}>{message}</Text>}
-      {stage === 'pending' ? <ActivityIndicator accessibilityLabel={t('common.processing')} style={styles.spinner} color={colors.rollpe_main} />
-        : <View style={styles.buttons}>
-          {stage === 'confirm' && <Pressable accessibilityRole="button" onPress={onClose} style={styles.button}>
-            <Text style={[styles.label, { color: colors.rollpe_secondary }]}>{t('common.cancel')}</Text>
-          </Pressable>}
-          <Pressable accessibilityRole="button" onPress={() => {
-            if (stage === 'confirm') void submit();
-            else finish();
-          }} style={styles.button}>
-            <Text style={[styles.label, { color: colors.rollpe_main }]}>{t(stage === 'confirm' ? label.action : 'common.confirm')}</Text>
-          </Pressable>
-        </View>}
-    </View>
-  </AppModal>;
+  return <AppDialog title={t(label.title)} message={message} busy={stage === 'pending'}
+    confirmLabel={t(stage === 'confirm' ? label.action : 'common.confirm')}
+    onCancel={stage === 'confirm' ? onClose : undefined} onClose={finish}
+    onConfirm={() => { if (stage === 'confirm') void submit(); else finish(); }} />;
 }
-
-const styles = StyleSheet.create({
-  dialog: { width: '100%', maxWidth: 360, alignSelf: 'center', padding: 20, borderRadius: 16 },
-  title: { fontFamily: RollpeFonts.display, fontSize: 28, textAlign: 'center' },
-  message: { fontFamily: RollpeFonts.regular, fontSize: 16, marginTop: 20, lineHeight: 24, textAlign: 'center' },
-  buttons: { flexDirection: 'row', gap: 8, marginTop: 20 }, button: { flex: 1, padding: 12, alignItems: 'center' },
-  label: { fontFamily: RollpeFonts.semibold, fontSize: 16 }, spinner: { marginTop: 20 },
-});

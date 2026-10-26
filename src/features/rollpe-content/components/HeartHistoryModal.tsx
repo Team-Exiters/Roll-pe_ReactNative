@@ -33,8 +33,8 @@ export function HeartHistoryContent({ code, onClose, onAuthenticationRequired }:
       </Pressable>
       <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('history.title')}</Text>
       {loading ? <ActivityIndicator style={styles.loading} accessibilityLabel={t('history.loading')} color={colors.rollpe_main} />
-        : error ? <View style={styles.failure}><Text accessibilityRole="alert" style={{ color: colors.rollpe_secondary }}>{error}</Text>
-          <PrimaryButton title={t('common.retry')} onPress={() => reload()} /></View>
+        : error ? <View style={styles.failure}><Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_secondary }]}>{error}</Text>
+          <PrimaryButton title={t('common.retry')} textStyle={styles.description} onPress={() => reload()} /></View>
           : <ScrollView style={[styles.list, { borderColor: colors.rollpe_secondary }]} contentContainerStyle={styles.rows}>
             {revisions.map(revision => <View key={revision.number} style={[styles.revision, { borderColor: colors.rollpe_gray }]}>
               <View style={styles.heading}>
@@ -56,6 +56,6 @@ const styles = StyleSheet.create({
   list: { marginTop: 28, borderWidth: 2, borderRadius: 16 }, rows: { paddingHorizontal: 16, paddingVertical: 4 },
   revision: { paddingVertical: 16, borderBottomWidth: 1 }, heading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   swatch: { width: 20, height: 20, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: '#888888' },
-  label: { fontFamily: RollpeFonts.display, fontSize: 20 }, date: { fontFamily: RollpeFonts.regular, fontSize: 12, marginTop: 8 },
-  text: { fontFamily: RollpeFonts.regular, fontSize: 16, lineHeight: 24, marginTop: 12 },
+  label: { fontFamily: RollpeFonts.display, fontSize: 20 }, date: { fontFamily: RollpeFonts.display, fontSize: 12, marginTop: 8 },
+  text: { fontFamily: RollpeFonts.display, fontSize: 16, lineHeight: 24, marginTop: 12 }, description: { fontFamily: RollpeFonts.display, fontSize: 16 },
 });

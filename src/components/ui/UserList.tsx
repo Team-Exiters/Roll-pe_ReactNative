@@ -45,5 +45,5 @@ const styles = StyleSheet.create({
   selectable: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }, name: { flex: 1 },
   userName: { fontFamily: RollpeFonts.display, fontSize: 20 }, check: { width: 10, height: 10 },
   separator: { height: 2, marginHorizontal: 16, borderRadius: 1 },
-  empty: { fontFamily: RollpeFonts.regular, fontSize: 14, padding: 20, textAlign: 'center' },
+  empty: { fontFamily: RollpeFonts.display, fontSize: 14, padding: 20, textAlign: 'center' },
 });
