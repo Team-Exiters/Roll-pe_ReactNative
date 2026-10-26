@@ -20,7 +20,10 @@ async function authenticationFailure() {
     : new AuthenticationRequiredError();
 }
 
-async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, body?: object) {
+type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+
+async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, body?: object,
+  method: ApiMethod = body === undefined ? 'GET' : 'POST') {
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (signal?.aborted) abort();
@@ -28,7 +31,7 @@ async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSig
   const timer = setTimeout(abort, 20_000);
   try {
     return await apiClient.request<unknown>({
-      url: path, method: body === undefined ? 'GET' : 'POST',
+      url: path, method,
       headers: snapshot ? { Authorization: `Bearer ${snapshot.tokenState.access}` } : undefined,
       data: body, signal: controller.signal,
     });
@@ -94,7 +97,8 @@ export async function restoreTokenState(signal?: AbortSignal): Promise<TokenStat
   }
 }
 
-async function authenticatedRequest(path: string, signal?: AbortSignal, body?: object) {
+async function authenticatedRequest(path: string, signal?: AbortSignal, body?: object,
+  method: ApiMethod = body === undefined ? 'GET' : 'POST') {
   // Reject encoded path separators, dot traversal, protocol-relative and absolute URLs.
   const pathname = path.split('?')[0];
   if (!apiUrl || !/^\/api\/[A-Za-z0-9/_-]+(?:\?[^#\\]*)?$/.test(path)
@@ -104,7 +108,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
   if (signal?.aborted) throw cancelled();
   let snapshot = await getTokenSnapshot();
   if (!snapshot) throw new AuthenticationRequiredError();
-  let response = await request(path, snapshot, signal, body);
+  let response = await request(path, snapshot, signal, body, method);
   if (!isCurrentTokenState(snapshot)) {
     const latest = await getTokenSnapshot();
     // Only a concurrent refresh for the same account may supply the retry token.
@@ -119,7 +123,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
       if (!snapshot) throw await authenticationFailure();
     }
     if (signal?.aborted) throw cancelled();
-    response = await request(path, snapshot, signal, body);
+    response = await request(path, snapshot, signal, body, method);
     if (response.status === 401) {
       await clearTokenStateIfCurrent(snapshot);
       throw await authenticationFailure();
@@ -137,4 +141,12 @@ export function authenticatedGet(path: string, signal?: AbortSignal) {
 
 export function authenticatedPost(path: string, body: object, signal?: AbortSignal) {
   return authenticatedRequest(path, signal, body);
+}
+
+export function authenticatedPatch(path: string, body: object, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal, body, 'PATCH');
+}
+
+export function authenticatedDelete(path: string, body?: object, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal, body, 'DELETE');
 }

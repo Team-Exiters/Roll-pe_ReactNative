@@ -429,3 +429,42 @@ test('encoded recipient names may contain path-like text in query parameters wit
   await assert.rejects(env.api.authenticatedPost('https://evil.example/api/paper', { title: '제목' }));
   assert.equal(env.calls.length, 1);
 });
+
+test('PATCH and DELETE keep their method and body through the single authorized refresh retry', async () => {
+  for (const method of ['PATCH', 'DELETE']) {
+    const env = setup(({ url, headers }) => url.endsWith('/token/refresh') ? ok({ access: 'new-access' })
+      : headers.authorization === 'Bearer old-access' ? unauthorized : ok({ data: {} }));
+    await env.tokenState.saveTokenState(original, false);
+    const body = { paperFK: 3, heartPK: 7, context: '수정할 마음', color: 'F2EB28', location: 2 };
+    if (method === 'PATCH') await env.api.authenticatedPatch('/api/heart', body);
+    else await env.api.authenticatedDelete('/api/heart?hcode=test-code');
+    assert.deepEqual(env.calls.map(call => call.method), [method, 'POST', method]);
+    assert.equal(env.calls[0].body, env.calls[2].body);
+    if (method === 'PATCH') assert.deepEqual(JSON.parse(env.calls[2].body), body);
+    else assert.equal(env.calls[2].body, '');
+    assert.equal(env.calls[2].headers.authorization, 'Bearer new-access');
+  }
+});
+
+test('paper DELETE preserves its JSON body and cancellation signal through token renewal', async () => {
+  const env = setup(({ url, headers }) => url.endsWith('/token/refresh') ? ok({ access: 'new-access' })
+    : headers.authorization === 'Bearer old-access' ? unauthorized : new Response(null, { status: 204 }));
+  await env.tokenState.saveTokenState(original, false);
+  const body = { pcode: '12345678-1234-4234-8234-123456789abc' };
+  await env.api.authenticatedDelete('/api/paper/user', body, new AbortController().signal);
+  assert.deepEqual(env.calls.map(call => call.method), ['DELETE', 'POST', 'DELETE']);
+  assert.deepEqual(JSON.parse(env.calls[0].body), body);
+  assert.equal(env.calls[0].body, env.calls[2].body);
+});
+
+test('PATCH and DELETE server failures never repeat mutations or refresh a valid token', async () => {
+  for (const method of ['PATCH', 'DELETE']) {
+    const env = setup(() => ({ status: 503, body: {} }));
+    await env.tokenState.saveTokenState(original, false);
+    if (method === 'PATCH') await env.api.authenticatedPatch('/api/heart', { context: '마음' });
+    else await env.api.authenticatedDelete('/api/heart?hcode=test-code');
+    assert.equal(env.calls.length, 1);
+    assert.equal(env.calls[0].method, method);
+    assert.equal((await env.tokenState.getTokenState()).access, original.access);
+  }
+});

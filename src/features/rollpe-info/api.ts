@@ -1,10 +1,16 @@
 import { t } from '@/i18n';
-import { authenticatedGet, authenticatedPost } from '@/lib/authenticated-api';
-import { normalizeRollpeCode, validReceivingDate, type RollpeHeart, type RollpeInfo, type RollpeUser } from '@/features/rollpe-info/model';
+import { AuthenticationRequiredError, authenticatedDelete, authenticatedGet, authenticatedPost } from '@/lib/authenticated-api';
+import { normalizeRollpeCode, validReceivingDate, type RollpeAction, type RollpeHeart, type RollpeInfo, type RollpeUser } from '@/features/rollpe-info/model';
 
 export class RollpeAccessError extends Error {
   constructor(public readonly reason: 'join' | 'password' | 'unavailable', message: string) {
     super(message); this.name = 'RollpeAccessError';
+  }
+}
+
+export class RollpeActionError extends Error {
+  constructor(public readonly reason: 'missing' | 'reload', message: string) {
+    super(message); this.name = 'RollpeActionError';
   }
 }
 function record(value: unknown): value is Record<string, unknown> {
@@ -65,4 +71,35 @@ export async function enterRollpe(code: string, password?: string, signal?: Abor
     response.status === 472 ? t('info.wrongPassword') : t('create.passwordRequired'));
   if ([403, 404, 410].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   throw new Error(typeof payload?.message === 'string' ? payload.message : t('info.joinFailed'));
+}
+
+async function mutateRollpe(code: string, action: RollpeAction, signal?: AbortSignal): Promise<void> {
+  const normalized = normalizeRollpeCode(code);
+  if (!normalized) throw new RollpeActionError('missing', t('info.invalidCode'));
+  const uncertain = t(action === 'delete' ? 'info.deleteUncertain' : 'info.sendUncertain');
+  let result: Awaited<ReturnType<typeof authenticatedDelete>>;
+  try {
+    result = action === 'delete' ? await authenticatedDelete('/api/paper/user', { pcode: normalized }, signal)
+      : await authenticatedPost('/api/paper/send', { pcode: normalized }, signal);
+  } catch (cause) {
+    if (signal?.aborted || cause instanceof AuthenticationRequiredError) throw cause;
+    throw new RollpeActionError('reload', uncertain);
+  }
+  if (action === 'delete' && result.response.status === 204) return;
+  if (action === 'send' && result.response.status === 200 && record(result.payload?.data)
+    && normalizeRollpeCode(result.payload.data.code) === normalized && result.payload.data.receivingStat === 1) return;
+  if (result.response.status === 404) throw new RollpeActionError('missing', t('info.deleteMissing'));
+  if ([403, 470, 471].includes(result.response.status)) throw new RollpeActionError('reload', t(action === 'delete' ? 'info.deleteForbidden' : 'info.sendForbidden'));
+  if (result.response.status === 483) throw new RollpeActionError('reload', t(action === 'delete' ? 'info.deleteClosed' : 'info.sendClosed'));
+  if (action === 'send' && result.response.status === 400) throw new RollpeActionError('reload', t('info.sendRecipientRequired'));
+  // A failed response may arrive after the write committed. Reload before another attempt.
+  throw new RollpeActionError('reload', uncertain);
+}
+
+export function deleteRollpe(code: string, signal?: AbortSignal): Promise<void> {
+  return mutateRollpe(code, 'delete', signal);
+}
+
+export function sendRollpe(code: string, signal?: AbortSignal): Promise<void> {
+  return mutateRollpe(code, 'send', signal);
 }

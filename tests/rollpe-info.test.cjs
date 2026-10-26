@@ -11,6 +11,7 @@ const paper = () => ({ id: 9, code, title: '생일 축하해요', host: user(), 
   viewStat: false, ratio: '가로', theme: '화이트', size: 'A4', maxHeartLength: 12, hearts: { count: 1, data: [message] } });
 function setup(reply = () => ({ response: { status: 200, ok: true }, payload: { data: paper() } })) {
   const cache = new Map(), calls = [];
+  class AuthenticationRequiredError extends Error {}
   function load(name) {
     if (cache.has(name)) return cache.get(name);
     const filename = path.resolve(__dirname, '../src', name === 'link' ? 'utils/rollpe-link.ts' : `features/rollpe-info/${name}.ts`);
@@ -22,12 +23,14 @@ function setup(reply = () => ({ response: { status: 200, ok: true }, payload: { 
       if (name === '@/utils/rollpe-link') return load('link');
       if (name === '@/features/rollpe-info/model') return load('model');
       assert.equal(name, '@/lib/authenticated-api');
-      return { authenticatedGet: async (url, signal) => { const call = { method: 'GET', url, signal }; calls.push(call); return reply(call); },
-        authenticatedPost: async (url, body, signal) => { const call = { method: 'POST', url, body, signal }; calls.push(call); return reply(call); } };
+      return { AuthenticationRequiredError,
+        authenticatedGet: async (url, signal) => { const call = { method: 'GET', url, signal }; calls.push(call); return reply(call); },
+        authenticatedPost: async (url, body, signal) => { const call = { method: 'POST', url, body, signal }; calls.push(call); return reply(call); },
+        authenticatedDelete: async (url, body, signal) => { const call = { method: 'DELETE', url, body, signal }; calls.push(call); return reply(call); } };
     } }, { filename });
     return exports;
   }
-  return { api: load('api'), model: load('model'), link: load('link'), calls };
+  return { api: load('api'), model: load('model'), link: load('link'), calls, AuthenticationRequiredError };
 }
 
 test('detail uses the original authenticated endpoint, normalizes UUIDs and memo colors, and forwards cancellation', async () => {
@@ -88,12 +91,95 @@ test('invalid codes and unsafe return destinations are rejected before any API c
     assert.equal(link.normalizeRollpeCode(value), null);
     await assert.rejects(api.fetchRollpeInfo(value));
     await assert.rejects(api.enterRollpe(value));
+    await assert.rejects(api.deleteRollpe(value));
+    await assert.rejects(api.sendRollpe(value));
   }
   assert.equal(calls.length, 0);
   assert.equal(link.rollpeDestination(`/rollpe/${code}`), `/rollpe/${code}`);
   for (const value of [`/rollpe/${code}?next=https://evil.example`, '/home', `https://example.com/rollpe/${code}`, [`/rollpe/${code}`]]) {
     assert.equal(link.rollpeDestination(value), null);
   }
+});
+
+test('only the host may open deletion before delivery, including the exact ten AM boundary', () => {
+  const { model } = setup();
+  const deadline = Date.parse('2026-10-25T01:00:00Z');
+  assert.equal(model.canDeleteRollpe(paper(), 1, deadline - 1), true);
+  assert.equal(model.canDeleteRollpe(paper(), 3, deadline - 1), false);
+  assert.equal(model.canDeleteRollpe(paper(), 2, deadline - 1), false);
+  assert.equal(model.canDeleteRollpe(paper(), 1, deadline), false);
+  assert.equal(model.canDeleteRollpe({ ...paper(), receive: { ...paper().receive, receivingStat: 1 } }, 1, deadline - 1), false);
+});
+
+test('paper deletion uses the existing DELETE JSON contract and forwards cancellation', async () => {
+  const env = setup(() => ({ response: { status: 204 }, payload: null }));
+  const signal = new AbortController().signal;
+  await env.api.deleteRollpe(code.replaceAll('-', '').toUpperCase(), signal);
+  assert.equal(env.calls[0].method, 'DELETE');
+  assert.equal(env.calls[0].url, '/api/paper/user');
+  assert.deepEqual(JSON.parse(JSON.stringify(env.calls[0].body)), { pcode: code });
+  assert.equal(env.calls[0].signal, signal);
+});
+
+test('denied, missing and uncertain deletion replies require confirmation and reload without retry', async () => {
+  for (const status of [404, 403, 470, 471, 483, 500, 200]) {
+    const env = setup(() => ({ response: { status }, payload: {} }));
+    await assert.rejects(env.api.deleteRollpe(code), error => error instanceof env.api.RollpeActionError
+      && error.reason === (status === 404 ? 'missing' : 'reload'));
+    assert.equal(env.calls.length, 1);
+  }
+  const env = setup(() => { throw new Error('network lost after deletion'); });
+  await assert.rejects(env.api.deleteRollpe(code), error => error.reason === 'reload');
+  assert.equal(env.calls.length, 1);
+  const auth = setup(() => { throw new auth.AuthenticationRequiredError(); });
+  await assert.rejects(auth.api.deleteRollpe(code), error => error instanceof auth.AuthenticationRequiredError);
+  const controller = new AbortController(); controller.abort();
+  const cause = new Error('cancelled');
+  await assert.rejects(setup(() => { throw cause; }).api.deleteRollpe(code, controller.signal), error => error === cause);
+});
+
+test('early delivery immediately changes roles and disables both host management actions', () => {
+  const { model } = setup();
+  const beforeDeadline = Date.parse('2026-10-25T00:00:00Z');
+  const delivered = { ...paper(), receive: { ...paper().receive, receivingStat: 1 } };
+  assert.equal(model.canSendRollpe(paper(), 1, beforeDeadline), true);
+  assert.equal(model.canSendRollpe(paper(), 3, beforeDeadline), false);
+  assert.equal(model.canSendRollpe({ ...paper(), receive: { ...paper().receive, receiver: null } }, 1, beforeDeadline), false);
+  assert.equal(model.isRollpeDelivered(delivered, beforeDeadline), true);
+  assert.equal(model.canDeleteRollpe(delivered, 1, beforeDeadline), false);
+  assert.equal(model.canSendRollpe(delivered, 1, beforeDeadline), false);
+  assert.equal(model.rollpeRole(delivered, 2, beforeDeadline), 'receiver');
+  assert.equal(model.rollpeRole(delivered, 1, beforeDeadline), 'unavailable');
+  assert.equal(model.rollpeRole(delivered, 3, beforeDeadline), 'unavailable');
+});
+
+test('send closes the specified paper through the authenticated endpoint with no receiver override', async () => {
+  const env = setup(() => ({ response: { status: 200 }, payload: { data: { code, receivingStat: 1 } } }));
+  const signal = new AbortController().signal;
+  await env.api.sendRollpe(code.replaceAll('-', '').toUpperCase(), signal);
+  assert.equal(env.calls[0].method, 'POST');
+  assert.equal(env.calls[0].url, '/api/paper/send');
+  assert.deepEqual(JSON.parse(JSON.stringify(env.calls[0].body)), { pcode: code });
+  assert.equal(env.calls[0].signal, signal);
+  assert.equal(env.calls.length, 1);
+});
+
+test('failed or malformed delivery never claims completion or repeats the mutation', async () => {
+  for (const status of [400, 403, 404, 470, 471, 483, 500]) {
+    const env = setup(() => ({ response: { status }, payload: null }));
+    await assert.rejects(env.api.sendRollpe(code), error => error instanceof env.api.RollpeActionError);
+    assert.equal(env.calls.length, 1);
+  }
+  for (const data of [null, { code, receivingStat: 0 }, { code: message.code, receivingStat: 1 }]) {
+    const env = setup(() => ({ response: { status: 200 }, payload: { data } }));
+    await assert.rejects(env.api.sendRollpe(code), error => error.reason === 'reload');
+    assert.equal(env.calls.length, 1);
+  }
+  const env = setup(() => { throw new Error('reply lost after sending'); });
+  await assert.rejects(env.api.sendRollpe(code), error => error.reason === 'reload');
+  assert.equal(env.calls.length, 1);
+  const auth = setup(() => { throw new auth.AuthenticationRequiredError(); });
+  await assert.rejects(auth.api.sendRollpe(code), error => error instanceof auth.AuthenticationRequiredError);
 });
 
 test('the deadline is exactly ten AM Korea time and only the receiver retains the completed paper view', () => {
