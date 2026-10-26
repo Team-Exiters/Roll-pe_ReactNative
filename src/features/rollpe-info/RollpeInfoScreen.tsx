@@ -18,6 +18,7 @@ import { HeartHistoryModal } from '@/features/rollpe-content/components/HeartHis
 import { canDeleteRollpe, canSendRollpe, isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, type RollpeAction, type RollpeInfo } from '@/features/rollpe-info/model';
 import { saveRollpeImage } from '@/features/rollpe-info/save-image';
 import { getTokenState, type TokenState } from '@/features/sign-in/token-state';
+import { InvitationError, respondToInvitation } from '@/features/invitations/api';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
@@ -114,11 +115,13 @@ function RollpeInfoContent({ code }: { code: string }) {
     const controller = new AbortController();
     request.current = controller;
     try {
-      await enterRollpe(code, password, controller.signal);
+      if (entry?.invitationCode) await respondToInvitation(entry.invitationCode, 'accept', controller.signal);
+      else await enterRollpe(code, password, controller.signal);
       if (!controller.signal.aborted) { setEntry(null); setAttempt(value => value + 1); }
     } catch (cause) {
       if (controller.signal.aborted) return;
       if (cause instanceof AuthenticationRequiredError || (cause instanceof RollpeAccessError && cause.reason === 'unavailable')) handleFailure(cause);
+      else if (cause instanceof InvitationError) { setEntry(null); setError(cause.message); }
       else {
         if (cause instanceof RollpeAccessError && cause.reason === 'password') setEntry(value => value && { ...value, isPublic: false });
         setEntryError(cause instanceof Error ? cause.message : t('info.joinFailed'));
@@ -217,7 +220,7 @@ function RollpeInfoContent({ code }: { code: string }) {
           shadow={false} paperRef={exportPaper} onReadyChange={setReady} />
       </View>}
     </>}
-    {entry && <RollpeEntry title={entry.title} isPublic={entry.isPublic} error={entryError} busy={joining}
+    {entry && <RollpeEntry title={entry.title} isPublic={entry.isPublic} invited={Boolean(entry.invitationCode)} error={entryError} busy={joining}
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
     {members && <ParticipantModal code={code} onClose={() => { managing.current = false; setMembers(false); setAttempt(value => value + 1); }}
       onAuthenticationRequired={authenticate} />}

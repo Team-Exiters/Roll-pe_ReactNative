@@ -24,7 +24,7 @@ function normalizedCode(code: string) {
 function failure(status: number, reason?: unknown) {
   const messages: Record<string, TranslationKey> = {
     blocked: 'participants.blocked', protected: 'participants.protected', hostCannotLeave: 'participants.hostCannotLeave',
-    hostOnly: 'participants.hostOnly', userMissing: 'participants.userMissing',
+    hostOnly: 'participants.hostOnly', userMissing: 'participants.userMissing', alreadyMember: 'participants.alreadyMember',
   };
   return new ParticipantError(t(status === 483 ? 'info.closed' : status === 404 ? 'participants.userMissing'
     : typeof reason === 'string' && messages[reason] ? messages[reason] : 'participants.failed'), [403, 404, 483].includes(status));

@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
@@ -63,10 +63,6 @@ export default function HomeScreen() {
   }, [attempt, router, t]));
 
   function retry() { setError(false); setResult(null); setAttempt(value => value + 1); }
-  function unavailable() {
-    if (Platform.OS === 'web') window.alert(t('common.comingSoon'));
-    else Alert.alert(t('common.notice'), t('common.comingSoon'));
-  }
   function failure(message: string) {
     return <View style={styles.failure}>
       <Text accessibilityRole="alert" style={[styles.error, { color: colors.rollpe_secondary }]}>{message}</Text>
@@ -87,7 +83,7 @@ export default function HomeScreen() {
         <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>{t('home.hostCount', { count: result.status?.host ?? '—' })}</Text>
         <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{t('home.heartCount', { count: result.status?.heart ?? '—' })}</Text>
         {result.statusError && failure(result.statusError)}
-        <PrimaryButton title={t('home.invited')} onPress={unavailable} style={styles.invited} />
+        <PrimaryButton title={t('home.invited')} onPress={() => router.push('/invitations')} style={styles.invited} />
         <Pressable accessibilityRole="button" onPress={() => router.push('/create-rollpe')}
           style={[styles.create, { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary }]}>
           <Text style={[styles.createText, { color: colors.rollpe_main }]}>{t('common.createRollpe')}</Text>

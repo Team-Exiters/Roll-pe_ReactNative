@@ -2,7 +2,7 @@ import { t } from '@/i18n';
 import { AuthenticationRequiredError, authenticatedDelete, authenticatedGet, authenticatedPost } from '@/lib/authenticated-api';
 import { normalizeRollpeCode, validReceivingDate, type RollpeAction, type RollpeHeart, type RollpeInfo, type RollpeUser } from '@/features/rollpe-info/model';
 
-export type RollpeEntryInfo = { title: string; isPublic: boolean };
+export type RollpeEntryInfo = { title: string; isPublic: boolean; invitationCode?: string };
 
 export class RollpeAccessError extends Error {
   constructor(public readonly reason: 'join' | 'password' | 'unavailable', message: string,
@@ -40,11 +40,13 @@ export async function fetchRollpeInfo(code: string, signal?: AbortSignal): Promi
   const data = payload?.data;
   if (response.status === 471) {
     if (!record(data) || normalizeRollpeCode(data.code) !== normalized || typeof data.viewStat !== 'boolean'
-      || typeof data.title !== 'string' || (data.viewStat && !data.title.trim()) || typeof data.canEnter !== 'boolean') {
+      || typeof data.title !== 'string' || (data.viewStat && !data.title.trim()) || typeof data.canEnter !== 'boolean'
+      || (data.invitationCode !== undefined && (!normalizeRollpeCode(data.invitationCode) || !data.title.trim()))) {
       throw new Error(t('info.entryLoadFailed'));
     }
     if (!data.canEnter) throw new RollpeAccessError('unavailable', t('info.unavailable'));
-    throw new RollpeAccessError('join', t('info.joinRequired'), { title: data.viewStat ? data.title : '', isPublic: data.viewStat });
+    throw new RollpeAccessError('join', t('info.joinRequired'), { title: data.viewStat || data.invitationCode ? data.title : '', isPublic: data.viewStat,
+      ...(data.invitationCode ? { invitationCode: normalizeRollpeCode(data.invitationCode)! } : {}) });
   }
   if ([400, 403, 404, 410, 483].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   if (!response.ok || !record(data) || !positive(data.id) || normalizeRollpeCode(data.code) !== normalized
