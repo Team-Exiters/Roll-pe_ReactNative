@@ -2,8 +2,11 @@ import { t } from '@/i18n';
 import { AuthenticationRequiredError, authenticatedDelete, authenticatedGet, authenticatedPost } from '@/lib/authenticated-api';
 import { normalizeRollpeCode, validReceivingDate, type RollpeAction, type RollpeHeart, type RollpeInfo, type RollpeUser } from '@/features/rollpe-info/model';
 
+export type RollpeEntryInfo = { title: string; isPublic: boolean };
+
 export class RollpeAccessError extends Error {
-  constructor(public readonly reason: 'join' | 'password' | 'unavailable', message: string) {
+  constructor(public readonly reason: 'join' | 'password' | 'unavailable', message: string,
+    public readonly entry?: RollpeEntryInfo) {
     super(message); this.name = 'RollpeAccessError';
   }
 }
@@ -26,16 +29,24 @@ function heart(value: unknown): value is RollpeHeart {
   return record(value) && positive(value.id) && Boolean(normalizeRollpeCode(value.code))
     && Number.isInteger(value.index) && (value.index as number) >= 0 && (value.index as number) < 12
     && user(value.author) && typeof value.content === 'string'
-    && typeof value.color === 'string' && /^#?[0-9a-f]{6}$/i.test(value.color);
+    && typeof value.color === 'string' && /^#?[0-9a-f]{6}$/i.test(value.color)
+    && (value.revisionCount === undefined || (Number.isSafeInteger(value.revisionCount) && (value.revisionCount as number) >= 0));
 }
 
 export async function fetchRollpeInfo(code: string, signal?: AbortSignal): Promise<RollpeInfo> {
   const normalized = normalizeRollpeCode(code);
   if (!normalized) throw new RollpeAccessError('unavailable', t('info.invalidCode'));
   const { response, payload } = await authenticatedGet(`/api/paper?${new URLSearchParams({ pcode: normalized })}`, signal);
-  if (response.status === 471) throw new RollpeAccessError('join', t('info.joinRequired'));
-  if ([400, 403, 404, 410].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   const data = payload?.data;
+  if (response.status === 471) {
+    if (!record(data) || normalizeRollpeCode(data.code) !== normalized || typeof data.viewStat !== 'boolean'
+      || typeof data.title !== 'string' || (data.viewStat && !data.title.trim()) || typeof data.canEnter !== 'boolean') {
+      throw new Error(t('info.entryLoadFailed'));
+    }
+    if (!data.canEnter) throw new RollpeAccessError('unavailable', t('info.unavailable'));
+    throw new RollpeAccessError('join', t('info.joinRequired'), { title: data.viewStat ? data.title : '', isPublic: data.viewStat });
+  }
+  if ([400, 403, 404, 410, 483].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   if (!response.ok || !record(data) || !positive(data.id) || normalizeRollpeCode(data.code) !== normalized
     || typeof data.title !== 'string' || !user(data.host) || !record(data.receive)
     || !(data.receive.receiver === null || user(data.receive.receiver)) || !validReceivingDate(data.receive.receivingDate)
@@ -69,7 +80,7 @@ export async function enterRollpe(code: string, password?: string, signal?: Abor
   if (response.ok || response.status === 473) return;
   if ([400, 472].includes(response.status)) throw new RollpeAccessError('password',
     response.status === 472 ? t('info.wrongPassword') : t('create.passwordRequired'));
-  if ([403, 404, 410].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
+  if ([403, 404, 410, 483].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));
   throw new Error(typeof payload?.message === 'string' ? payload.message : t('info.joinFailed'));
 }
 

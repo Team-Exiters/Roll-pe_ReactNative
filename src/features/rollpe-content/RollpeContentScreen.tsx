@@ -6,7 +6,7 @@ import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from 're
 import { LoadingView } from '@/components/ui/LoadingView';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { useRollpeColors } from '@/constants/theme';
-import { HeartDialog } from '@/features/rollpe-content/components/HeartDialog';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { HeartModal } from '@/features/rollpe-content/components/HeartModal';
 import { PaperCanvas } from '@/features/rollpe-content/components/PaperCanvas';
 import { fetchRollpeInfo, RollpeAccessError } from '@/features/rollpe-info/api';
@@ -88,7 +88,7 @@ function RollpeContent({ code }: { code: string }) {
     {result && selected !== null && <HeartModal key={selected} paper={result.paper} user={result.user} index={selected}
       heart={result.paper.hearts.data.find(heart => heart.index === selected)} onClose={() => setSelected(null)}
       onChanged={() => { if (active.current) { setSelected(null); setVersion(value => value + 1); } }} onAuthenticationRequired={authenticate} />}
-    {notice && <HeartDialog message={notice} onConfirm={() => setNotice(null)} />}
+    {notice && <AppDialog message={notice} onConfirm={() => setNotice(null)} />}
     {loading && <LoadingView accessibilityLabel={t('info.loading')} />}
   </View>;
 }

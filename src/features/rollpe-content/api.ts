@@ -33,12 +33,12 @@ async function mutate(action: () => ReturnType<typeof authenticatedPost>, expect
   const { response, payload } = result;
   if (response.status !== expected) {
     const messages: Record<number, TranslationKey> = {
-      470: 'heart.noDeletePermission', 471: 'info.joinRequired', 481: 'heart.noEditPermission',
+      403: 'info.unavailable', 470: 'heart.noDeletePermission', 471: 'info.joinRequired', 481: 'heart.noEditPermission',
       482: 'heart.alreadyWritten', 483: 'info.closed', 485: 'heart.slotTaken', 404: 'heart.notFound',
     };
     const message = messages[response.status];
     throw new HeartMutationError(message ? t(message) : typeof payload?.message === 'string' ? payload.message : t('heart.failed'),
-      [404, 470, 471, 481, 482, 483, 485].includes(response.status));
+      [403, 404, 470, 471, 481, 482, 483, 485].includes(response.status));
   }
   if (expected !== 204 && (!record(payload?.data) || !positive(payload.data.id as number)
     || !normalizeRollpeCode(payload.data.code))) throw new HeartMutationError(t('heart.uncertainResult'), true);
