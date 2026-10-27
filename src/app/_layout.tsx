@@ -59,7 +59,7 @@ export default function RootLayout() {
         <Stack.Screen name="my-page" options={{ title: t('home.myPage'), gestureEnabled: false }} />
         <Stack.Screen name="change-password" options={{ title: t('account.changePassword'), gestureEnabled: true }} />
         <Stack.Screen name="my-page/rollpes/[kind]" options={{ title: t('home.myPage'), gestureEnabled: true }} />
-        <Stack.Screen name="invitations" options={{ title: t('home.invited'), gestureEnabled: true }} />
+        <Stack.Screen name="invitations" options={{ title: t('invitations.title'), gestureEnabled: true }} />
         <Stack.Screen name="create-rollpe" options={{ title: t('common.createRollpe'), gestureEnabled: true }} />
         <Stack.Screen name="rollpe/[code]" options={{ title: t('info.title'), gestureEnabled: true }} />
         <Stack.Screen name="rollpe/[code]/content" options={{ title: t('heart.title'), gestureEnabled: false }} />
