@@ -353,5 +353,22 @@
   "account.socialPassword": "소셜 로그인 계정은 별도의 롤페 비밀번호를 사용하지 않습니다.",
   "account.missingIdentity": "계정 정보를 확인할 수 없습니다. 다시 로그인해주세요.",
   "account.uncertain": "계정 처리 결과를 확인하지 못했습니다. 연결 상태를 확인하거나 다시 로그인해주세요.",
-  "account.cleanupFailed": "{{message}}\n기기의 로그인 정보 삭제를 완료하지 못했습니다. 앱을 다시 실행해 로그인 상태를 확인해주세요."
+  "account.cleanupFailed": "{{message}}\n기기의 로그인 정보 삭제를 완료하지 못했습니다. 앱을 다시 실행해 로그인 상태를 확인해주세요.",
+  "settings.open": "관리하기",
+  "settings.title": "롤페 관리",
+  "settings.close": "롤페 관리 닫기",
+  "settings.privacy": "공개 설정",
+  "settings.delivery": "전달일",
+  "settings.save": "변경사항 저장",
+  "settings.sendEarly": "조기 전달하기",
+  "settings.saved": "롤페 설정을 변경하였습니다.",
+  "settings.reload": "다시 불러오기",
+  "settings.keepPassword": "새 비밀번호 (변경 시 입력)",
+  "settings.passwordHelp": "비워두면 기존 비밀번호를 유지합니다.",
+  "settings.invalidDate": "전달일은 내일부터 30일 이내로 선택해주세요.",
+  "settings.forbidden": "방장만 롤페 설정을 수정할 수 있습니다.",
+  "settings.closed": "전달이 완료된 롤페는 수정할 수 없습니다.",
+  "settings.unchanged": "변경할 설정이 없습니다.",
+  "settings.invalid": "공개 설정, 비밀번호와 전달일을 확인해주세요.",
+  "settings.uncertain": "변경 결과를 확인하지 못했습니다. 롤페를 다시 불러와 확인해주세요."
 }
