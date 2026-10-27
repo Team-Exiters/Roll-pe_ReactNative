@@ -89,7 +89,7 @@ export default function InvitationsScreen() {
       contentContainerStyle={[styles.contents, { paddingBottom: safeArea('bottom', 40) }]} showsVerticalScrollIndicator={false}
       contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
       ListHeaderComponent={<View>
-        <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('home.invited')}</Text>
+        <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('invitations.title')}</Text>
         <Text accessibilityLiveRegion="polite" style={[styles.count, { color: colors.rollpe_secondary }]}>{result ? t('invitations.count', { count: result.count }) : ''}</Text>
       </View>}
       renderItem={({ item }) => <View style={styles.item}>
@@ -116,7 +116,7 @@ export default function InvitationsScreen() {
         <PrimaryButton title={t(moreError ? 'common.retry' : 'search.more')} textStyle={styles.buttonText} disabled={loadingMore || busy} onPress={() => { void more(); }} />
         {loadingMore && <ActivityIndicator accessibilityLabel={t('invitations.loading')} color={colors.rollpe_main} />}
       </View> : undefined} />
-    {decision && <AppDialog title={t('home.invited')} busy={busy}
+    {decision && <AppDialog title={t('invitations.title')} busy={busy}
       message={t(decision.action === 'accept' ? 'invitations.confirmAccept' : 'invitations.confirmDeny', { title: decision.invitation.title })}
       confirmLabel={t(decision.action === 'accept' ? 'invitations.accept' : 'invitations.deny')}
       onCancel={() => setDecision(null)} onConfirm={() => { void respond(); }} />}

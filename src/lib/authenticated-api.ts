@@ -97,7 +97,7 @@ export async function restoreTokenState(signal?: AbortSignal): Promise<TokenStat
   }
 }
 
-async function authenticatedRequest(path: string, signal?: AbortSignal, body?: object,
+async function authenticatedRequest(path: string, signal?: AbortSignal, body?: object | ((snapshot: TokenSnapshot) => object),
   method: ApiMethod = body === undefined ? 'GET' : 'POST') {
   // Reject encoded path separators, dot traversal, protocol-relative and absolute URLs.
   const pathname = path.split('?')[0];
@@ -108,7 +108,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
   if (signal?.aborted) throw cancelled();
   let snapshot = await getTokenSnapshot();
   if (!snapshot) throw new AuthenticationRequiredError();
-  let response = await request(path, snapshot, signal, body, method);
+  let response = await request(path, snapshot, signal, typeof body === 'function' ? body(snapshot) : body, method);
   if (!isCurrentTokenState(snapshot)) {
     const latest = await getTokenSnapshot();
     // Only a concurrent refresh for the same account may supply the retry token.
@@ -123,7 +123,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
       if (!snapshot) throw await authenticationFailure();
     }
     if (signal?.aborted) throw cancelled();
-    response = await request(path, snapshot, signal, body, method);
+    response = await request(path, snapshot, signal, typeof body === 'function' ? body(snapshot) : body, method);
     if (response.status === 401) {
       await clearTokenStateIfCurrent(snapshot);
       throw await authenticationFailure();
@@ -149,4 +149,11 @@ export function authenticatedPatch(path: string, body: object, signal?: AbortSig
 
 export function authenticatedDelete(path: string, body?: object, signal?: AbortSignal) {
   return authenticatedRequest(path, signal, body, 'DELETE');
+}
+
+// Account actions must submit the refresh token paired with the current access token,
+// including when an initial 401 rotates both before retrying the request.
+export function authenticatedTokenMutation(path: string, method: 'POST' | 'PATCH' | 'DELETE',
+  body: (snapshot: TokenSnapshot) => object, signal?: AbortSignal) {
+  return authenticatedRequest(path, signal, body, method);
 }
