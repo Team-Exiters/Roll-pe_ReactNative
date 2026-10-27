@@ -14,8 +14,9 @@ import { RollpeEntry } from '@/features/rollpe-info/components/RollpeEntry';
 import { RollpeActionDialog } from '@/features/rollpe-info/components/RollpeActionDialog';
 import { ParticipantModal } from '@/features/rollpe-info/components/ParticipantModal';
 import { ShareRollpeModal } from '@/features/rollpe-info/components/ShareRollpeModal';
+import { RollpeManagementModal } from '@/features/rollpe-info/components/RollpeManagementModal';
 import { HeartHistoryModal } from '@/features/rollpe-content/components/HeartHistoryModal';
-import { canDeleteRollpe, canSendRollpe, isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, type RollpeAction, type RollpeInfo } from '@/features/rollpe-info/model';
+import { isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, type RollpeInfo } from '@/features/rollpe-info/model';
 import { saveRollpeImage } from '@/features/rollpe-info/save-image';
 import { getTokenState, type TokenState } from '@/features/sign-in/token-state';
 import { InvitationError, respondToInvitation } from '@/features/invitations/api';
@@ -44,9 +45,10 @@ function RollpeInfoContent({ code }: { code: string }) {
   const [joining, setJoining] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [action, setAction] = useState<RollpeAction | 'leave' | null>(null);
+  const [action, setAction] = useState<'leave' | null>(null);
   const [members, setMembers] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [management, setManagement] = useState(false);
   const [history, setHistory] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -69,7 +71,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   }, [code, router, t]);
 
   const authenticate = useCallback(() => {
-    managing.current = false; setMembers(false); setSharing(false); setHistory(null); setAction(null);
+    managing.current = false; setMembers(false); setSharing(false); setManagement(false); setHistory(null); setAction(null);
     handleFailure(new AuthenticationRequiredError());
   }, [handleFailure]);
 
@@ -103,7 +105,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   }, [code, attempt, handleFailure]));
 
   function goBack() { if (router.canGoBack()) router.back(); else router.replace('/home'); }
-  function toggleAction(value: RollpeAction | 'leave' | null) { managing.current = value !== null; setAction(value); }
+  function toggleAction(value: 'leave' | null) { managing.current = value !== null; setAction(value); }
   function showMessage(message: string, failure = false) {
     if (Platform.OS === 'web') window.alert(message);
     else Alert.alert(t(failure ? 'common.error' : 'common.notice'), message, [{ text: t('common.confirm') }]);
@@ -147,7 +149,7 @@ function RollpeInfoContent({ code }: { code: string }) {
     }
   }
   const role = result ? rollpeRole(result.rollpe, result.user.id, now) : null;
-  if (role === 'unavailable' && !action && !members && !sharing && !history) return <Redirect href="/rollpe-error" />;
+  if (role === 'unavailable') return <Redirect href="/rollpe-error" />;
   const rollpe = result?.rollpe;
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') }]}>
     <View style={styles.navigation}>
@@ -188,32 +190,34 @@ function RollpeInfoContent({ code }: { code: string }) {
           <Image source={require('@/assets/icons/chevron-right.svg')} tintColor={colors.rollpe_secondary} style={styles.chevron} accessible={false} />
         </Pressable>}
       </ScrollView>
-      <View style={[styles.buttons, { marginBottom: safeArea('bottom') }]}>
+      <View style={[styles.buttons, { marginBottom: safeArea('bottom', 0, 20) }]}>
         {role === 'receiver' ? <PrimaryButton title={t('info.saveImage')} disabled={busy || !ready}
           onPress={() => { void runAction(() => saveRollpeImage(exportPaper.current, `rollpe-${code}`), t('info.saved')); }} />
-          : <><View style={styles.row}>
+          : role === 'host' ? <View style={styles.row}>
+            <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin}
+              accessibilityState={{ disabled: loading || busy || needsJoin }} onPress={() => { managing.current = true; setManagement(true); }}
+              style={({ pressed }) => [styles.outlinedButton, { borderColor: colors.rollpe_main,
+                opacity: loading || busy || needsJoin ? 0.5 : pressed ? 0.7 : 1 }]}>
+              <Text style={[styles.outlinedLabel, { color: colors.rollpe_main }]}>{t('settings.open')}</Text>
+            </Pressable>
             <PrimaryButton title={t('info.share')} disabled={loading || busy || needsJoin} style={styles.flexButton}
               onPress={() => { managing.current = true; setSharing(true); }} />
-            {role === 'participant' && <Pressable accessibilityRole="button" accessibilityLabel={t('info.report')} disabled={busy}
+          </View> : role === 'participant' ? <View style={styles.row}>
+            <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin}
+              accessibilityState={{ disabled: loading || busy || needsJoin }} onPress={() => toggleAction('leave')}
+              style={({ pressed }) => [styles.outlinedButton, { borderColor: colors.rollpe_main,
+                opacity: loading || busy || needsJoin ? 0.5 : pressed ? 0.7 : 1 }]}>
+              <Text style={[styles.outlinedLabel, { color: colors.rollpe_main }]}>{t('participants.leave')}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('info.report')} disabled={loading || busy || needsJoin}
+              accessibilityState={{ disabled: loading || busy || needsJoin }}
               onPress={() => { void runAction(async () => {
                 await Linking.openURL(reportRollpeUrl(code, result?.user.identifyCode ?? ''));
-              }); }} style={[styles.report, { borderColor: colors.rollpe_main }]}>
+              }); }} style={({ pressed }) => [styles.report, { borderColor: colors.rollpe_main,
+                opacity: loading || busy || needsJoin ? 0.5 : pressed ? 0.7 : 1 }]}>
               <Image source={require('@/assets/icons/icon_siren.svg')} accessible={false} contentFit="contain" style={styles.reportIcon} />
-            </Pressable>}
-          </View>
-          {result && canDeleteRollpe(rollpe, result.user.id, now) && <View style={styles.row}>
-            <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin}
-              accessibilityState={{ disabled: loading || busy || needsJoin }} onPress={() => toggleAction('delete')}
-              style={[styles.deleteButton, { borderColor: colors.rollpe_main, opacity: loading || busy || needsJoin ? 0.5 : 1 }]}>
-              <Text style={[styles.deleteLabel, { color: colors.rollpe_main }]}>{t('info.deleteAction')}</Text>
             </Pressable>
-            <PrimaryButton title={t('info.sendAction')} style={styles.flexButton} disabled={loading || busy || needsJoin || !canSendRollpe(rollpe, result.user.id, now)}
-              accessibilityHint={!rollpe.receive.receiver ? t('info.sendRecipientRequired') : undefined} onPress={() => toggleAction('send')} />
-          </View>}
-          {role === 'participant' && <Pressable accessibilityRole="button" disabled={loading || busy || needsJoin}
-            onPress={() => toggleAction('leave')} style={[styles.deleteButton, { flex: 0, borderColor: colors.rollpe_main }]}>
-            <Text style={[styles.deleteLabel, { color: colors.rollpe_main }]}>{t('participants.leave')}</Text>
-          </Pressable>}</>}
+          </View> : null}
       </View>
       {role === 'receiver' && <View pointerEvents="none" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.export}>
         <RollpePaper {...rollpe} messages={rollpe.hearts.data} width={rollpe.ratio === '세로' ? 595 : 842}
@@ -224,8 +228,13 @@ function RollpeInfoContent({ code }: { code: string }) {
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
     {members && <ParticipantModal code={code} onClose={() => { managing.current = false; setMembers(false); setAttempt(value => value + 1); }}
       onAuthenticationRequired={authenticate} />}
-    {sharing && result && <ShareRollpeModal paper={result.rollpe} userId={result.user.id}
+    {sharing && result && role === 'host' && <ShareRollpeModal paper={result.rollpe} userId={result.user.id}
       onClose={() => { managing.current = false; setSharing(false); setAttempt(value => value + 1); }} onAuthenticationRequired={authenticate} />}
+    {management && result && <RollpeManagementModal paper={result.rollpe} userId={result.user.id}
+      onClose={() => { managing.current = false; setManagement(false); }}
+      onReload={() => { managing.current = false; setManagement(false); setAttempt(value => value + 1); }}
+      onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
+      onAuthenticationRequired={authenticate} />}
     {history && <HeartHistoryModal code={history} onClose={() => { managing.current = false; setHistory(null); }} onAuthenticationRequired={authenticate} />}
     {action && result && <RollpeActionDialog key={action} action={action} paper={result.rollpe} userId={result.user.id} onClose={() => toggleAction(null)}
       onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
@@ -247,8 +256,8 @@ const styles = StyleSheet.create({
   edited: { fontFamily: RollpeFonts.display, fontSize: 16 },
   participants: { marginTop: 40, flexDirection: 'row', alignItems: 'center', gap: 4 }, chevron: { width: 20, height: 20 },
   row: { flexDirection: 'row', gap: 8 }, flexButton: { flex: 1 },
-  deleteButton: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 14, alignItems: 'center', justifyContent: 'center' },
-  deleteLabel: { fontFamily: RollpeFonts.semibold, fontSize: 16, textAlign: 'center' },
+  outlinedButton: { flex: 1, borderWidth: 2, borderRadius: 8, padding: 14, alignItems: 'center', justifyContent: 'center' },
+  outlinedLabel: { fontFamily: RollpeFonts.semibold, fontSize: 16, textAlign: 'center' },
   report: { width: 52, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   reportIcon: { width: 20, height: 20 }, failure: { flex: 1, justifyContent: 'center', padding: 20, gap: 20 },
   description: { fontFamily: RollpeFonts.regular, fontSize: 16, textAlign: 'center' },
