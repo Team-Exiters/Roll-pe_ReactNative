@@ -56,6 +56,9 @@ export default function RootLayout() {
         />
         <Stack.Screen name="home" options={{ title: t('common.home'), gestureEnabled: false }} />
         <Stack.Screen name="search" options={{ title: t('home.search'), gestureEnabled: false }} />
+        <Stack.Screen name="my-page" options={{ title: t('home.myPage'), gestureEnabled: false }} />
+        <Stack.Screen name="change-password" options={{ title: t('account.changePassword'), gestureEnabled: true }} />
+        <Stack.Screen name="my-page/rollpes/[kind]" options={{ title: t('home.myPage'), gestureEnabled: true }} />
         <Stack.Screen name="invitations" options={{ title: t('home.invited'), gestureEnabled: true }} />
         <Stack.Screen name="create-rollpe" options={{ title: t('common.createRollpe'), gestureEnabled: true }} />
         <Stack.Screen name="rollpe/[code]" options={{ title: t('info.title'), gestureEnabled: true }} />

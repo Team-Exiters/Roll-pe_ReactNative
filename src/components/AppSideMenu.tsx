@@ -9,7 +9,7 @@ import { WEB_MAX_WIDTH } from '@/components/WebViewport';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppDialog } from '@/components/ui/AppDialog';
 
-export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 'search'; onClose: () => void }) {
+export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 'search' | 'myPage'; onClose: () => void }) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
@@ -21,7 +21,7 @@ export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 
   const [offset] = useState(() => new Animated.Value(menuWidth));
   const [opacity] = useState(() => new Animated.Value(0));
   const driver = Platform.OS !== 'web';
-  function close(destination?: '/home' | '/search') {
+  function close(destination?: '/home' | '/search' | '/my-page') {
     if (closing) return;
     setClosing(true);
     Animated.parallel([
@@ -60,8 +60,8 @@ export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 
           onPress={() => {
             if (item === current) close();
             else if (item === 'home' || item === 'search') close(item === 'home' ? '/home' : '/search');
+            else if (item === 'myPage') close('/my-page');
             else if (item === 'contact') void Linking.openURL('https://forms.gle/WGC7ibNBgTnomRgZ7').catch(() => setNotice(true));
-            else setNotice(true);
           }}>
           <Text style={[styles.label, { color: item === current ? colors.rollpe_main : colors.rollpe_secondary }]}>{t(item === 'home' ? 'common.home' : `home.${item}`)}</Text>
         </Pressable>)}

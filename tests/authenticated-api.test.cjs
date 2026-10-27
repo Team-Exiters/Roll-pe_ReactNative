@@ -69,6 +69,16 @@ function setup(reply, platform = 'ios', fastTimeout = false) {
 const ok = body => ({ status: 200, body });
 const unauthorized = { status: 401, body: { detail: 'expired' } };
 
+test('account mutation pairs the rotated refresh token with the retried access token', async () => {
+  const env = setup(({ url, headers }) => url.endsWith('/token/refresh') ? ok({ access: 'new-access', refresh: 'rotated-refresh' })
+    : headers.authorization === 'Bearer old-access' ? unauthorized : ok({ message: 'done' }));
+  await env.tokenState.saveTokenState(original);
+  await env.api.authenticatedTokenMutation('/api/user/logout', 'POST', snapshot => ({ refresh: snapshot.tokenState.refresh }));
+  assert.equal(JSON.parse(env.calls[0].body).refresh, 'old-refresh');
+  assert.equal(JSON.parse(env.calls[2].body).refresh, 'rotated-refresh');
+  assert.equal(env.calls[2].headers.authorization, 'Bearer new-access');
+});
+
 test('401 refreshes once, checks rotation and retries with bearer while preserving nonretention', async () => {
   const env = setup(({url, headers}) => url.endsWith('/token/refresh') ? ok({ access: 'new-access', refresh: 'rotated' })
     : headers.authorization === 'Bearer old-access' ? unauthorized : ok({ value: 1 }));
