@@ -8,7 +8,9 @@ export type RollpeInvitation = {
 };
 export type InvitationPage = { count: number; items: RollpeInvitation[]; nextPage: number | null };
 export class InvitationError extends Error {
-  constructor(message: string) { super(message); this.name = 'InvitationError'; }
+  constructor(message: string, public readonly reason: 'full' | 'unavailable' | 'uncertain' = 'uncertain') {
+    super(message); this.name = 'InvitationError';
+  }
 }
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 function invitation(value: unknown): RollpeInvitation {
@@ -50,5 +52,9 @@ export async function respondToInvitation(code: string, action: 'accept' | 'deny
     throw new InvitationError(t('invitations.uncertain'));
   }
   if (result.response.status === 204) return;
-  throw new InvitationError(t([403, 404, 409, 483].includes(result.response.status) ? 'invitations.unavailable' : 'invitations.uncertain'));
+  if (result.response.status === 409 && record(result.payload?.data) && result.payload.data.reason === 'full') {
+    throw new InvitationError(t('info.full'), 'full');
+  }
+  const unavailable = [403, 404, 409, 483].includes(result.response.status);
+  throw new InvitationError(t(unavailable ? 'invitations.unavailable' : 'invitations.uncertain'), unavailable ? 'unavailable' : 'uncertain');
 }

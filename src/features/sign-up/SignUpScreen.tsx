@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type TextInput } from 'react-native';
 
@@ -12,6 +12,8 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { signUp } from '@/features/sign-up/api';
 import { AgreementRow } from '@/features/sign-up/components/AgreementRow';
 import { canSignUp, type SignUpValues } from '@/features/sign-up/validation';
+import { rememberRollpeDestination } from '@/features/sign-in/pending-rollpe';
+import { rollpeDestination } from '@/utils/rollpe-link';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 const initialValues: SignUpValues = {
@@ -24,6 +26,8 @@ export default function SignUpScreen() {
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const destination = rollpeDestination(returnTo);
   const nameInput = useRef<ComponentRef<typeof TextInput>>(null);
   const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
   const confirmationInput = useRef<ComponentRef<typeof TextInput>>(null);
@@ -42,7 +46,7 @@ export default function SignUpScreen() {
 
   function goBack() {
     if (router.canGoBack()) router.back();
-    else router.replace('/sign-in');
+    else router.replace({ pathname: '/sign-in', params: destination ? { returnTo: destination } : {} });
   }
 
   function showMessage(title: string, message: string, onConfirm?: () => void) {
@@ -59,6 +63,7 @@ export default function SignUpScreen() {
     pending.current = true;
     setLoading(true);
     try {
+      if (destination) await rememberRollpeDestination(destination);
       const message = await signUp(values);
       if (active.current) {
         setValues(initialValues);
@@ -82,6 +87,7 @@ export default function SignUpScreen() {
           <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
             accessibilityLabel={t('common.brand')} accessible style={styles.logo} />
           <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.signUp')}</Text>
+          {destination && <Text style={[styles.returnNotice, { color: colors.rollpe_secondary }]}>{t('signup.returnToRollpe')}</Text>}
           <View style={styles.form}>
             <RoundedBorderTextField accessibilityLabel={t('common.email')} placeholder={t('common.email')} value={values.email}
               onChangeText={(value) => change('email', value)} editable={!loading} keyboardType="email-address"
@@ -119,6 +125,7 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
+  returnNotice: { marginTop: 16, fontFamily: RollpeFonts.display, fontSize: 16, textAlign: 'center' },
   screen: { flex: 1 },
   content: { alignItems: 'center', paddingHorizontal: 20 },
   logo: { width: '37.7884615%', aspectRatio: 2 },

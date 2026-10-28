@@ -94,6 +94,13 @@ test('conflicts, expiration and permissions require a refresh without claiming s
   await assert.rejects(setup(() => ({ response: { status: 480 }, payload: { message: '검증 오류' } })).api.saveHeart(3, 2, draft), /검증 오류/);
 });
 
+test('a legacy direct write refused at capacity shows the full notice and refreshes without retry', async () => {
+  const state = setup(() => ({ response: { status: 409 }, payload: { data: { reason: 'full' } } }));
+  await assert.rejects(state.api.saveHeart(3, 2, draft), error => error instanceof state.api.HeartMutationError && error.reload
+    && error.message === '참여 정원이 가득 찼습니다.\n자리가 생긴 후 다시 시도해주세요.');
+  assert.equal(state.calls.length, 1);
+});
+
 test('uncertain mutation results are never retried and malformed success never claims completion', async () => {
   for (const reply of [() => { throw new Error('offline'); }, () => ({ response: { status: 201 }, payload: null })]) {
     const env = setup(reply);

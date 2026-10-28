@@ -85,6 +85,18 @@ test('conflicting, expired, blocked and ambiguous decisions never claim success 
   assert.equal(state.calls.length, 1);
 });
 
+test('capacity refusals keep the invitation retryable without reporting an expired invitation', async () => {
+  const state = setup(({ body }) => body ? { response: { status: 409 }, payload: { data: { reason: 'full' } } } : page());
+  await assert.rejects(state.respondToInvitation(invitationCode, 'accept'), error => error instanceof state.InvitationError
+    && error.reason === 'full' && error.message === '참여 정원이 가득 찼습니다.\n자리가 생긴 후 다시 시도해주세요.');
+  assert.equal(state.calls.length, 1);
+  assert.equal((await state.fetchInvitations()).items[0].invitationCode, invitationCode);
+  for (const data of [null, {}, { reason: 'other' }]) {
+    await assert.rejects(setup(() => ({ response: { status: 409 }, payload: { data } })).respondToInvitation(invitationCode, 'accept'),
+      error => error.reason === 'unavailable');
+  }
+});
+
 test('invalid input never makes a request and authentication and cancellation remain distinguishable', async () => {
   const state = setup();
   await assert.rejects(state.respondToInvitation('bad', 'accept'));

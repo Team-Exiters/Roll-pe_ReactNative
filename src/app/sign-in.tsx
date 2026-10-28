@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
@@ -10,6 +11,7 @@ import { SignInForm } from '@/features/sign-in/components/SignInForm';
 import { SocialSignInButton } from '@/features/sign-in/components/SocialSignInButton';
 import { useSignIn } from '@/features/sign-in/useSignIn';
 import { rollpeDestination } from '@/utils/rollpe-link';
+import { clearPendingRollpeDestination, rememberRollpeDestination, resolveRollpeDestination } from '@/features/sign-in/pending-rollpe';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 export default function SignInScreen() {
@@ -19,6 +21,19 @@ export default function SignInScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const safeArea = useSafeAreaSpacing();
   const signIn = useSignIn();
+  const focused = useRef(false), epoch = useRef(0);
+  const [destination, setDestination] = useState(rollpeDestination(returnTo));
+  useFocusEffect(useCallback(() => {
+    focused.current = true;
+    const attempt = epoch.current;
+    void resolveRollpeDestination(returnTo).then(value => {
+      if (focused.current && attempt === epoch.current) {
+        setDestination(value);
+        if (value) void rememberRollpeDestination(value);
+      }
+    });
+    return () => { focused.current = false; ++epoch.current; };
+  }, [returnTo]));
 
   function showSignInMessage(message: string) {
     if (Platform.OS === 'web') {
@@ -29,18 +44,22 @@ export default function SignInScreen() {
   }
 
   async function submitSignIn(action: () => ReturnType<typeof signIn.emailSignIn>) {
+    const attempt = epoch.current;
     try {
       const tokenState = await action();
-      if (tokenState) {
+      if (tokenState && focused.current && attempt === epoch.current) {
+        const next = await resolveRollpeDestination(returnTo);
+        if (!focused.current || attempt !== epoch.current) return;
         router.dismissAll();
-        router.replace(rollpeDestination(returnTo) ?? '/home');
+        router.replace(next ?? '/home');
       }
     } catch (error) {
-      showSignInMessage(error instanceof Error ? error.message : t('auth.failed'));
+      if (focused.current && attempt === epoch.current) showSignInMessage(error instanceof Error ? error.message : t('auth.failed'));
     }
   }
 
   function goBack() {
+    if (destination) void clearPendingRollpeDestination(destination);
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -77,6 +96,7 @@ export default function SignInScreen() {
           <Text numberOfLines={2} style={[styles.title, { color: colors.rollpe_secondary }]}>
             {t('welcome.tagline')}
           </Text>
+          {destination && <Text style={[styles.returnNotice, { color: colors.rollpe_secondary }]}>{t('auth.returnToRollpe')}</Text>}
           <SignInForm
             disabled={signIn.isLoading}
             onSubmit={signIn.canSignIn
@@ -93,7 +113,7 @@ export default function SignInScreen() {
               accessibilityRole="link"
               disabled={signIn.isLoading}
               hitSlop={12}
-              onPress={() => router.push('/sign-up')}>
+              onPress={() => router.push({ pathname: '/sign-up', params: destination ? { returnTo: destination } : {} })}>
               <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>{t('common.signUp')}</Text>
             </Pressable>
           </View>
@@ -158,6 +178,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 20,
   },
+  returnNotice: { marginTop: 20, fontFamily: RollpeFonts.display, fontSize: 16, textAlign: 'center' },
   menuText: {
     fontFamily: RollpeFonts.display,
     fontSize: 14,

@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import WelcomeScreen from '@/features/welcome/WelcomeScreen';
 import { restoreTokenState } from '@/lib/authenticated-api';
+import { getPendingRollpeDestination } from '@/features/sign-in/pending-rollpe';
 
 export default function StartupGate() {
   const { t } = useTranslation();
@@ -20,9 +21,12 @@ export default function StartupGate() {
     const controller = new AbortController();
     let active = true;
     setStatus('checking');
-    void restoreTokenState(controller.signal).then(tokenState => {
+    void restoreTokenState(controller.signal).then(async tokenState => {
       if (!active) return;
-      if (tokenState) router.replace('/home');
+      const destination = await getPendingRollpeDestination();
+      if (!active) return;
+      if (destination) router.replace(destination);
+      else if (tokenState) router.replace('/home');
       else setStatus('welcome');
     }).catch(() => {
       if (active) setStatus('error');
