@@ -93,6 +93,10 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
   const canEdit = heart?.author.id === user.id;
   const canDelete = canEdit || paper.host.id === user.id;
   const canReport = Boolean(heart && !canEdit);
+  const edited = (heart?.revisionCount ?? 0) > 0;
+  const authorLine = <Text style={styles.memoText}>{'- '}{heart?.author.name}
+    {edited && <Text style={[styles.editedText, canDelete && styles.historyLink]}>{t('history.edited')}</Text>}
+  </Text>;
   return <AppModal visible avoidKeyboard={!history} onClose={() => { if (history) setHistory(false); else if (dialog) dialog.onCancel?.(); else if (!pending.current) onClose(); }} contentStyle={styles.frame}>
     {history && heart ? <View style={styles.historyFrame}><HeartHistoryContent code={heart.code} onClose={() => setHistory(false)} onAuthenticationRequired={onAuthenticationRequired} /></View>
       : <View style={styles.screen} onLayout={({ nativeEvent: { layout } }) => setSize({ width: layout.width, height: layout.height })}>
@@ -103,17 +107,14 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
               placeholder={t('heart.placeholder')} placeholderTextColor="#181818" value={content} editable={!busy}
               onChangeText={value => setContent(cleanHeartContent(value))} multiline autoCorrect={false} spellCheck={false} underlineColorAndroid="transparent"
               autoCapitalize="none" textAlignVertical="center" onContentSizeChange={event => setTextHeight(event.nativeEvent.contentSize.height)}
-              style={[styles.memoText, styles.input, { height: Math.min(Math.max(60, textHeight), width * 8 / 7 - 32) }]} />
+              style={[styles.memoText, styles.input, { height: Math.min(Math.max(112, textHeight), width * 8 / 7 - 32) }]} />
             </View> : <>
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.readContents}
-                style={[styles.read, (heart?.revisionCount ?? 0) > 0 && { marginBottom: 80 }]}>
-                <Text style={styles.memoText}>{heart?.content}{'\n- '}{heart?.author.name}</Text>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.readContents} style={styles.read}>
+                <Text style={styles.memoText}>{heart?.content}</Text>
+                {edited && canDelete ? <Pressable accessibilityRole="button" accessibilityLabel={t('history.title')} onPress={() => setHistory(true)}>
+                  {authorLine}
+                </Pressable> : authorLine}
               </ScrollView>
-              {(heart?.revisionCount ?? 0) > 0 && <View style={styles.edited}>
-                {canDelete ? <Pressable accessibilityRole="button" accessibilityLabel={t('history.title')} onPress={() => setHistory(true)}>
-                  <Text style={[styles.editedText, styles.historyLink]}>{t('history.edited')}</Text></Pressable>
-                  : <Text style={styles.editedText}>{t('history.edited')}</Text>}
-              </View>}
               <View style={[styles.actions, !canDelete && { justifyContent: 'center' }]}>
                 {canEdit && <Pressable accessibilityRole="button" disabled={busy} onPress={() => setEditing(true)}><Text style={styles.actionText}>{t('heart.edit')}</Text></Pressable>}
                 {canReport && <Pressable accessibilityRole="button" disabled={busy} onPress={() => {
@@ -132,7 +133,7 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
             {colorsError ? <Pressable accessibilityRole="button" onPress={() => { setColorsError(false); setAttempt(value => value + 1); }}>
               <Text style={styles.whiteText}>{t('heart.colorsFailed')} {t('common.retry')}</Text>
             </Pressable> : !colors.length ? <ActivityIndicator color="#FFFFFF" accessibilityLabel={t('heart.colorsLoading')} />
-              : <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
+              : <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
                 {colors.map(value => <Pressable key={value.id} accessibilityRole="radio" accessibilityLabel={t('heart.colorLabel', { color: value.value })}
                   aria-checked={color === value.value} accessibilityState={{ checked: color === value.value, disabled: busy }} disabled={busy}
                   onPress={() => setColor(value.value)} style={[styles.swatch, { backgroundColor: value.value }]} />)}
@@ -163,7 +164,6 @@ const styles = StyleSheet.create({
   input: { padding: 0, width: '100%' }, read: { flex: 1, marginBottom: 48 }, readContents: { flexGrow: 1, padding: 16, justifyContent: 'center' },
   actions: { position: 'absolute', left: 20, right: 20, bottom: 20, flexDirection: 'row', justifyContent: 'space-between' },
   actionText: { fontFamily: RollpeFonts.display, fontSize: 20, color: '#181818' }, danger: { color: '#EF3C3C' },
-  edited: { position: 'absolute', left: 20, right: 20, bottom: 56, alignItems: 'center' },
   editedText: { fontFamily: RollpeFonts.display, fontSize: 16, color: '#181818' }, historyLink: { textDecorationLine: 'underline' },
   palette: { marginTop: 40, height: 40, maxWidth: '100%', paddingHorizontal: 20 },
   swatches: { gap: 12, alignItems: 'center' }, swatch: { width: 40, height: 40, borderRadius: 20 },
