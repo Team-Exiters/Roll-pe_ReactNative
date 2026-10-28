@@ -20,6 +20,7 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
     'expo-web-browser': {
       openAuthSessionAsync: async (...args) => {
         calls.open.push(args);
+        if (state.browserGate) await state.browserGate;
         if (state.browserError) throw state.browserError;
         return state.callback;
       },
@@ -101,6 +102,7 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
     } },
     fetch: async (...args) => {
       calls.fetch.push(args);
+      if (state.responseGate) await state.responseGate;
       if (state.networkError) throw state.networkError;
       const reply = state.responses?.shift();
       if (reply?.error) throw reply.error;

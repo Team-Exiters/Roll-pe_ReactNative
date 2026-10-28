@@ -99,15 +99,23 @@ test('a Kakao return that launches a closed app opens sign-in without carrying a
   }
 });
 
-test('ordinary links and other providers keep their own routing and callback handling', () => {
+test('native browser-auth callbacks leave the pending login in control and strip codes on cold launch', () => {
+  for (const scheme of ['rollpe', 'reactnativerollpe']) for (const provider of ['apple', 'google', 'kakao']) {
+    for (const suffix of ['?state=test-state&code=exchange-code', '?state=test-state&error=cancelled', '']) {
+      for (const path of [`${scheme}://auth/${provider}${suffix}`, `${scheme}:///auth/${provider}${suffix}`]) {
+        assert.equal(redirectSystemPath({ path, initial: false }), null);
+        assert.equal(redirectSystemPath({ path, initial: true }), '/sign-in');
+      }
+    }
+  }
+});
+
+test('ordinary links, web callbacks and other providers keep their own routing', () => {
   for (const path of [
     '/sign-in', '/paper/example?code=invitation',
-    'rollpe://auth/apple?state=state&code=exchange-code',
-    'rollpe://auth/google?state=state&code=exchange-code',
-    'rollpe://auth/kakao?state=state&code=exchange-code',
-    'reactnativerollpe://auth/apple?state=state&code=exchange-code',
-    'reactnativerollpe://auth/google?state=state&code=exchange-code',
-    'reactnativerollpe://auth/kakao?state=state&code=exchange-code',
+    'https://web.example/auth/apple?state=state&code=exchange-code',
+    'otherapp://auth/apple?state=state&code=exchange-code',
+    'rollpe://auth/unrelated?code=exchange-code',
     'com.googleusercontent.apps.test:/oauthredirect?code=google-code',
     'https://example.com/oauth?code=web-code',
     'kakaoanotherapp://oauth?code=other-app-code',

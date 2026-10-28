@@ -63,7 +63,10 @@ export function RecipientPickerContent({ onSelect, onClose, onError, title, acti
       <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{title ?? t('create.send')}</Text>
       <View style={styles.search}>
         <RoundedBorderTextField accessibilityLabel={searchLabel ?? t('create.recipientSearch')} placeholder={t('create.searchPlaceholder')} value={keyword}
-          editable={!busy} onChangeText={value => { setKeyword(value); setSelected(null); }} returnKeyType="search" onSubmitEditing={() => { void search(); }} style={styles.input} />
+          editable={!busy} onChangeText={value => {
+            request.current?.abort();
+            setKeyword(value); setSelected(null); setUsers([]); setLoading(false);
+          }} returnKeyType="search" onSubmitEditing={() => { void search(); }} style={styles.input} />
         <Pressable accessibilityRole="button" accessibilityLabel={t('create.searchUsers')} disabled={busy} onPress={() => { void search(); }} hitSlop={12} style={styles.searchButton}>
           <Image source={require('@/assets/images/create-rollpe/search.svg')} tintColor={colors.rollpe_secondary}
             contentFit="contain" accessible={false} style={styles.searchIcon} />

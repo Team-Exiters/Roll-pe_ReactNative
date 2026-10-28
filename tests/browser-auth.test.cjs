@@ -23,6 +23,25 @@ test('disabled deployment does not prepare a login', async () => {
   assert.equal(calls.open.length, 0);
 });
 
+test('a browser callback arriving after leaving sign-in is not exchanged or saved', async () => {
+  for (const platform of ['web', 'android']) {
+    const { service, state, calls } = loadService({ platform });
+    const request = await service.prepareBrowserRequest('apple');
+    let release;
+    state.browserGate = new Promise(resolve => { release = resolve; });
+    state.callback = callback(request, { code: 'c'.repeat(43) });
+    state.payload = { data: tokenState };
+    const controller = new AbortController();
+    const pending = service.completeBrowserSignIn(request, controller.signal);
+    controller.abort(); release();
+    assert.equal(await pending, null);
+    assert.equal(calls.fetch.length, 0);
+    assert.equal(calls.saved.length, 0);
+    assert.equal(await service.completeBrowserSignIn(request, controller.signal), null);
+    assert.equal(calls.open.length, 1);
+  }
+});
+
 test('prepares an independent state and S256 proof for each attempt', async () => {
   const { service } = loadService();
   const first = await service.prepareBrowserRequest('apple');

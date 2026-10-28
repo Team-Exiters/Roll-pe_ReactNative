@@ -32,6 +32,11 @@ export function redirectSystemPath({ path, initial }: { path: string; initial: b
     const isAppScheme = url.protocol === 'rollpe:' || url.protocol === 'reactnativerollpe:';
     const isKakaoScheme = Boolean(kakaoKey) && url.protocol === `kakao${kakaoKey}:`;
     const callbackPath = `${url.host}${url.pathname}`.replace(/^\/+|\/+$/g, '');
+    if (isAppScheme && /^auth\/(apple|google|kakao)$/.test(callbackPath)) {
+      // WebBrowser receives the original Linking event and validates state/PKCE.
+      // Routing the same return would blur sign-in before it can finish the exchange.
+      return initial ? '/sign-in' : null;
+    }
     if ((isAppScheme || isKakaoScheme) && callbackPath === 'oauth'
       && (url.searchParams.has('code') || url.searchParams.has('error'))) {
       // The Kakao SDK handles this response. Keep the current screen and pending login intact.

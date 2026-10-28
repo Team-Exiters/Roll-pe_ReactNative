@@ -20,6 +20,37 @@ test('email accepts the original 201 response with a null provider and preserves
   assert.equal(calls.saved[0].options.keychainAccessible, 'device-only');
 });
 
+test('leaving sign-in cancels pending email and social replies before they can replace a newer login', async () => {
+  for (const provider of [null, 'kakao']) {
+    const { load, calls, state } = loadServices({ platform: 'ios' });
+    let release;
+    state.responseGate = new Promise(resolve => { release = resolve; });
+    state.payload = { data: tokenState(provider) };
+    const controller = new AbortController();
+    const pending = provider
+      ? load('api').signInWithSocial(provider, { accessToken: 'test-provider-token' }, controller.signal)
+      : load('api').signInWithEmail({ email: 'test@example.com', password: 'test-password', keepSignIn: true }, controller.signal);
+    const rejected = assert.rejects(pending);
+    await new Promise(setImmediate);
+    controller.abort();
+    const newer = { ...tokenState(), access: 'newer-login-access' };
+    await load('token-state').saveTokenState(newer);
+    release();
+    await rejected;
+    assert.equal((await load('token-state').getTokenState()).access, newer.access);
+    assert.equal(calls.saved.length, 1);
+    assert.equal(calls.fetch.length, 1);
+  }
+});
+
+test('an already cancelled sign-in sends no request and saves no credentials', async () => {
+  const { load, calls } = loadServices();
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(load('api').signInWithEmail({ email: 'test@example.com', password: 'test-password', keepSignIn: true }, controller.signal));
+  assert.equal(calls.fetch.length, 0);
+  assert.equal(calls.saved.length, 0);
+});
+
 test('rejected credentials, malformed replies, and network errors never save a token state', async () => {
   for (const variant of ['rejected', 'malformed', 'network', 'json']) {
     const { load, calls, state } = loadServices({ platform: 'ios' });

@@ -94,7 +94,7 @@ export default function HomeScreen() {
         <View style={styles.grid} onLayout={event => setGridWidth(event.nativeEvent.layout.width)}>
           {result.rollpesError ? failure(result.rollpesError) : result.rollpes?.map(rollpe => <View key={rollpe.id} style={{ width: Math.max(0, (gridWidth - 12) / 2) }}>
             <RollpeCard rollpe={rollpe} onPress={() => router.push({ pathname: '/rollpe/[code]', params: {
-              code: rollpe.code, title: rollpe.title, ...(typeof rollpe.viewStat === 'boolean' ? { public: rollpe.viewStat ? '1' : '0' } : {}),
+              code: rollpe.code,
             } })} />
           </View>)}
         </View>
