@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 
 import { t } from '@/i18n';
-import { apiClient, apiUrl } from '@/lib/api';
+import { apiUrl, jsonResult, requestApi } from '@/lib/api';
 import {
   clearTokenStateIfCurrent, getTokenSnapshot, isCurrentTokenState, replaceTokens,
   type TokenSnapshot, type TokenState,
@@ -24,25 +24,17 @@ type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
 async function request(path: string, snapshot?: TokenSnapshot, signal?: AbortSignal, body?: object,
   method: ApiMethod = body === undefined ? 'GET' : 'POST') {
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  if (signal?.aborted) abort();
-  else signal?.addEventListener('abort', abort, { once: true });
-  const timer = setTimeout(abort, 20_000);
   try {
-    return await apiClient.request<unknown>({
+    return await requestApi({
       url: path, method,
       headers: snapshot ? { Authorization: `Bearer ${snapshot.tokenState.access}` } : undefined,
-      data: body, signal: controller.signal,
-    });
+      data: body,
+    }, signal);
   } catch (error) {
     // Authentication status remains authoritative when its error body is not valid JSON.
     if (isAxiosError<unknown>(error) && error.response
       && (error.response.status === 400 || error.response.status === 401)) return error.response;
     throw error;
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener('abort', abort);
   }
 }
 
@@ -130,9 +122,7 @@ async function authenticatedRequest(path: string, signal?: AbortSignal, body?: o
     }
   }
   if (!isCurrentTokenState(snapshot)) throw new Error(t('auth.changed'));
-  const payload = response.data && typeof response.data === 'object' && !Array.isArray(response.data)
-    ? response.data as Record<string, unknown> : null;
-  return { response: { status: response.status, ok: response.status >= 200 && response.status < 300 }, payload };
+  return jsonResult(response);
 }
 
 export function authenticatedGet(path: string, signal?: AbortSignal) {

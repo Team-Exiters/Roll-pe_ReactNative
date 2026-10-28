@@ -50,7 +50,8 @@ export async function prepareBrowserRequest(provider: SocialProvider): Promise<B
   };
 }
 
-export async function completeBrowserSignIn(request: BrowserRequest): Promise<TokenState | null> {
+export async function completeBrowserSignIn(request: BrowserRequest, signal?: AbortSignal): Promise<TokenState | null> {
+  if (signal?.aborted) return null;
   // Called before any await in the tap handler, so browsers allow the popup.
   let result: WebBrowser.WebBrowserAuthSessionResult;
   try {
@@ -61,7 +62,7 @@ export async function completeBrowserSignIn(request: BrowserRequest): Promise<To
     }
     throw error;
   }
-  if (result.type !== 'success') return null;
+  if (signal?.aborted || result.type !== 'success') return null;
   const returned = new URL(result.url);
   const destination = new URL(request.returnUrl);
   const params = returned.searchParams;
@@ -84,5 +85,5 @@ export async function completeBrowserSignIn(request: BrowserRequest): Promise<To
   if (!code || !/^[A-Za-z0-9_-]{43}$/.test(code)) {
     throw new Error(t('auth.responseInvalid'));
   }
-  return requestSignIn(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider);
+  return requestSignIn(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider, signal);
 }

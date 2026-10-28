@@ -9,11 +9,12 @@ export type EmailCredentials = { email: string; password: string; keepSignIn: bo
 class EmailVerificationRequiredError extends Error {}
 
 export async function requestSignIn(
-  url: string, body: object, keepSignIn = true, provider?: SocialProvider,
+  url: string, body: object, keepSignIn = true, provider?: SocialProvider, signal?: AbortSignal,
 ): Promise<TokenState> {
-  const { response, payload } = await requestJson(url, body).catch(() => {
+  const { response, payload } = await requestJson(url, body, 'POST', signal).catch(() => {
     throw new Error(t('auth.networkError'));
   });
+  if (signal?.aborted) throw new Error(t('auth.cancelled'));
   if (!provider && url === `${apiUrl}/api/user/signin` && response.status === 403
     && payload?.status_code === 403 && payload.code === 'FORBIDDEN' && payload.link === '/login'
     && payload.message === '이메일 인증을 진행해주세요.' && payload.data === null) {
@@ -27,28 +28,28 @@ export async function requestSignIn(
   return payload.data;
 }
 
-export async function signInWithEmail({ email, password, keepSignIn }: EmailCredentials) {
+export async function signInWithEmail({ email, password, keepSignIn }: EmailCredentials, signal?: AbortSignal) {
   if (!apiUrl) throw new Error(t('auth.serverMissing'));
   const normalizedEmail = email.trim();
   try {
-    return await requestSignIn(`${apiUrl}/api/user/signin`, { email: normalizedEmail, password }, keepSignIn);
+    return await requestSignIn(`${apiUrl}/api/user/signin`, { email: normalizedEmail, password }, keepSignIn, undefined, signal);
   } catch (error) {
     if (!(error instanceof EmailVerificationRequiredError)) throw error;
     // Keep this within the existing sign-in busy guard, including the resend request.
-    await resendVerificationEmail(normalizedEmail);
+    await resendVerificationEmail(normalizedEmail, signal);
     throw new Error(t('auth.verificationSent'));
   }
 }
 
-async function resendVerificationEmail(email: string) {
+async function resendVerificationEmail(email: string, signal?: AbortSignal) {
   const failureMessage = t('auth.verificationFailed');
   const { response, payload } = await requestJson(`${apiUrl}/api/user/verify-email`, {
     email, pathCode: 'email',
-  }, 'PATCH').catch(() => { throw new Error(failureMessage); });
+  }, 'PATCH', signal).catch(() => { throw new Error(failureMessage); });
   if (!response.ok || typeof payload?.message !== 'string') throw new Error(failureMessage);
 }
 
-export function signInWithSocial(provider: SocialProvider, credential: SocialCredential) {
+export function signInWithSocial(provider: SocialProvider, credential: SocialCredential, signal?: AbortSignal) {
   if (!apiUrl) throw new Error(t('auth.serverMissing'));
-  return requestSignIn(`${apiUrl}/api/user/social/login/${provider}`, credential, true, provider);
+  return requestSignIn(`${apiUrl}/api/user/social/login/${provider}`, credential, true, provider, signal);
 }

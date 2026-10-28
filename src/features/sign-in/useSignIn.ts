@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { t } from '@/i18n';
 import { apiUrl } from '@/lib/api';
@@ -12,7 +13,13 @@ export function useSignIn() {
   const [providers, setProviders] = useState<SocialProvider[]>([]);
   const [browserRequests, setBrowserRequests] = useState<Partial<Record<SocialProvider, BrowserRequest | null>>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const busy = useRef(false);
+  const operation = useRef<AbortController | null>(null);
+
+  useFocusEffect(useCallback(() => () => {
+    operation.current?.abort();
+    operation.current = null;
+    setIsLoading(false);
+  }, []));
 
   useEffect(() => {
     let active = true;
@@ -30,25 +37,26 @@ export function useSignIn() {
     return () => { active = false; };
   }, []);
 
-  async function run(action: () => Promise<TokenState | null>) {
-    if (busy.current) return null;
-    busy.current = true;
+  async function run(action: (signal: AbortSignal) => Promise<TokenState | null>) {
+    if (operation.current) return null;
+    const controller = new AbortController();
+    operation.current = controller;
     setIsLoading(true);
     try {
-      return await action();
+      const result = await action(controller.signal);
+      return controller.signal.aborted ? null : result;
     } finally {
-      busy.current = false;
-      setIsLoading(false);
+      if (operation.current === controller) { operation.current = null; setIsLoading(false); }
     }
   }
 
   function socialSignIn(provider: SocialProvider) {
-    return run(async () => {
+    return run(async signal => {
       const request = browserRequests[provider];
       if (request) {
         setBrowserRequests((current) => ({ ...current, [provider]: null }));
         try {
-          return await completeBrowserSignIn(request);
+          return await completeBrowserSignIn(request, signal);
         } finally {
           const next = await prepareBrowserRequest(provider).catch(() => null);
           setBrowserRequests((current) => ({ ...current, [provider]: next }));
@@ -56,7 +64,7 @@ export function useSignIn() {
       }
       if (!providers.includes(provider)) throw new Error(t('auth.notReady'));
       const credential = await authorizeNative(provider);
-      return credential ? signInWithSocial(provider, credential) : null;
+      return credential && !signal.aborted ? signInWithSocial(provider, credential, signal) : null;
     });
   }
 
@@ -65,7 +73,7 @@ export function useSignIn() {
     canSignIn: Boolean(apiUrl),
     canUseProvider: (provider: SocialProvider) => Boolean(apiUrl)
       && (providers.includes(provider) || Boolean(browserRequests[provider])),
-    emailSignIn: (credentials: EmailCredentials) => run(() => signInWithEmail(credentials)),
+    emailSignIn: (credentials: EmailCredentials) => run(signal => signInWithEmail(credentials, signal)),
     socialSignIn,
   };
 }

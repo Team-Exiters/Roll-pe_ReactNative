@@ -65,30 +65,31 @@ function RollpeInfoContent({ code }: { code: string }) {
   const exportPaper = useRef<ComponentRef<typeof View>>(null);
 
   const handleFailure = useCallback((cause: unknown) => {
+    setResult(null);
+    managing.current = false; setMembers(false); setSharing(false); setManagement(false); setHistory(null); setAction(null);
     if ((cause instanceof RollpeAccessError || cause instanceof InvitationError) && cause.reason === 'full') {
       void clearPendingRollpeDestination(`/rollpe/${code}`);
-      setResult(null); setEntry(null); setSignInRequired(false); setError(undefined); setFull(true);
+      setEntry(null); setSignInRequired(false); setError(undefined); setFull(true);
     } else if (cause instanceof AuthenticationRequiredError) {
       void rememberRollpeDestination(`/rollpe/${code}`);
-      setResult(null); setEntry(null); setSignInRequired(true);
+      setEntry(null); setSignInRequired(true);
     } else if (cause instanceof RollpeAccessError && cause.reason === 'unavailable') {
       void clearPendingRollpeDestination(`/rollpe/${code}`);
       router.replace('/rollpe-error');
     } else if (cause instanceof RollpeAccessError && cause.reason === 'join' && cause.entry) {
       void rememberRollpeDestination(`/rollpe/${code}`);
-      setResult(null); setEntry(cause.entry);
+      setEntry(cause.entry);
     } else setError(cause instanceof Error ? cause.message : t('info.loadFailed'));
   }, [code, router, t]);
 
   const authenticate = useCallback(() => {
-    managing.current = false; setMembers(false); setSharing(false); setManagement(false); setHistory(null); setAction(null);
     handleFailure(new AuthenticationRequiredError());
   }, [handleFailure]);
 
   useFocusEffect(useCallback(() => {
     focused.current = true;
     if (attempt > 0) setEntryError(undefined);
-    setBusy(false); setJoining(false); setSignInRequired(false); setFull(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
+    setResult(null); setBusy(false); setJoining(false); setSignInRequired(false); setFull(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
     const controller = new AbortController();
     request.current = controller;
     void (async () => {

@@ -48,6 +48,8 @@ function RollpeContent({ code }: { code: string }) {
         if (!controller.signal.aborted) { setResult({ paper, user: tokenState.user }); setError(''); }
       } catch (cause) {
         if (controller.signal.aborted) return;
+        // Failed revalidation must also remove open hearts, not only hide the canvas.
+        setResult(null); setSelected(null); setNotice(null);
         if (cause instanceof AuthenticationRequiredError) authenticate();
         else if (cause instanceof RollpeAccessError) {
           router.replace(cause.reason === 'unavailable' ? '/rollpe-error' : `/rollpe/${code}`);
