@@ -223,6 +223,8 @@
   "info.unsupported": "지원하지 않는 롤페 형식입니다.",
   "info.wrongPassword": "롤페의 비밀번호가 틀립니다.",
   "info.joinFailed": "롤페에 입장하지 못했습니다. 다시 시도해주세요.",
+  "info.fullTitle": "참여 정원 초과",
+  "info.full": "참여 정원이 가득 찼습니다.\n자리가 생긴 후 다시 시도해주세요.",
   "info.joinTitle": "롤페 입장하기",
   "info.enterPassword": "비밀번호를 입력하세요",
   "info.confirmJoin": "{{title}} 롤페에 입장하시겠습니까?",

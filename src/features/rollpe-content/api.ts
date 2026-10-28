@@ -32,6 +32,9 @@ async function mutate(action: () => ReturnType<typeof authenticatedPost>, expect
   }
   const { response, payload } = result;
   if (response.status !== expected) {
+    if (response.status === 409 && record(payload?.data) && payload.data.reason === 'full') {
+      throw new HeartMutationError(t('info.full'), true);
+    }
     const messages: Record<number, TranslationKey> = {
       403: 'info.unavailable', 470: 'heart.noDeletePermission', 471: 'info.joinRequired', 481: 'heart.noEditPermission',
       482: 'heart.alreadyWritten', 483: 'info.closed', 485: 'heart.slotTaken', 404: 'heart.notFound',

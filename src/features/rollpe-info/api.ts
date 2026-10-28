@@ -5,7 +5,7 @@ import { normalizeRollpeCode, validReceivingDate, type RollpeAction, type Rollpe
 export type RollpeEntryInfo = { title: string; isPublic: boolean; invitationCode?: string };
 
 export class RollpeAccessError extends Error {
-  constructor(public readonly reason: 'join' | 'password' | 'unavailable', message: string,
+  constructor(public readonly reason: 'join' | 'password' | 'unavailable' | 'full', message: string,
     public readonly entry?: RollpeEntryInfo) {
     super(message); this.name = 'RollpeAccessError';
   }
@@ -38,6 +38,7 @@ export async function fetchRollpeInfo(code: string, signal?: AbortSignal): Promi
   if (!normalized) throw new RollpeAccessError('unavailable', t('info.invalidCode'));
   const { response, payload } = await authenticatedGet(`/api/paper?${new URLSearchParams({ pcode: normalized })}`, signal);
   const data = payload?.data;
+  if (response.status === 409 && record(data) && data.reason === 'full') throw new RollpeAccessError('full', t('info.full'));
   if (response.status === 471) {
     if (!record(data) || normalizeRollpeCode(data.code) !== normalized || typeof data.viewStat !== 'boolean'
       || typeof data.title !== 'string' || (data.viewStat && !data.title.trim()) || typeof data.canEnter !== 'boolean'
@@ -80,6 +81,7 @@ export async function enterRollpe(code: string, password?: string, signal?: Abor
   }, signal);
   // Another request may already have joined. Reload from the authoritative GET.
   if (response.ok || response.status === 473) return;
+  if (response.status === 409 && record(payload?.data) && payload.data.reason === 'full') throw new RollpeAccessError('full', t('info.full'));
   if ([400, 472].includes(response.status)) throw new RollpeAccessError('password',
     response.status === 472 ? t('info.wrongPassword') : t('create.passwordRequired'));
   if ([403, 404, 410, 483].includes(response.status)) throw new RollpeAccessError('unavailable', t('info.unavailable'));

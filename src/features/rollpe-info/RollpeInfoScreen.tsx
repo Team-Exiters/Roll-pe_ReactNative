@@ -46,6 +46,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [signInRequired, setSignInRequired] = useState(false);
+  const [full, setFull] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [action, setAction] = useState<'leave' | null>(null);
@@ -64,7 +65,10 @@ function RollpeInfoContent({ code }: { code: string }) {
   const exportPaper = useRef<ComponentRef<typeof View>>(null);
 
   const handleFailure = useCallback((cause: unknown) => {
-    if (cause instanceof AuthenticationRequiredError) {
+    if ((cause instanceof RollpeAccessError || cause instanceof InvitationError) && cause.reason === 'full') {
+      void clearPendingRollpeDestination(`/rollpe/${code}`);
+      setResult(null); setEntry(null); setSignInRequired(false); setError(undefined); setFull(true);
+    } else if (cause instanceof AuthenticationRequiredError) {
       void rememberRollpeDestination(`/rollpe/${code}`);
       setResult(null); setEntry(null); setSignInRequired(true);
     } else if (cause instanceof RollpeAccessError && cause.reason === 'unavailable') {
@@ -84,7 +88,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   useFocusEffect(useCallback(() => {
     focused.current = true;
     if (attempt > 0) setEntryError(undefined);
-    setBusy(false); setJoining(false); setSignInRequired(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
+    setBusy(false); setJoining(false); setSignInRequired(false); setFull(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
     const controller = new AbortController();
     request.current = controller;
     void (async () => {
@@ -144,7 +148,8 @@ function RollpeInfoContent({ code }: { code: string }) {
       if (!controller.signal.aborted) { setEntry(null); setAttempt(value => value + 1); }
     } catch (cause) {
       if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError || (cause instanceof RollpeAccessError && cause.reason === 'unavailable')) handleFailure(cause);
+      if (cause instanceof AuthenticationRequiredError || (cause instanceof RollpeAccessError && ['unavailable', 'full'].includes(cause.reason))
+        || (cause instanceof InvitationError && cause.reason === 'full')) handleFailure(cause);
       else if (cause instanceof InvitationError) { setEntry(null); setError(cause.message); }
       else {
         if (cause instanceof RollpeAccessError && cause.reason === 'password') setEntry(value => value && { ...value, isPublic: false });
@@ -251,6 +256,7 @@ function RollpeInfoContent({ code }: { code: string }) {
     </>}
     {signInRequired && <AppDialog title={t('common.notice')} message={t('info.signInRequired')} confirmLabel={t('common.signIn')}
       busy={joining} onCancel={goBack} onConfirm={() => { void signIn(); }} />}
+    {full && <AppDialog title={t('info.fullTitle')} message={t('info.full')} onConfirm={goBack} onClose={goBack} />}
     {entry && <RollpeEntry title={entry.title} isPublic={entry.isPublic} invited={Boolean(entry.invitationCode)} error={entryError} busy={joining}
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
     {members && <ParticipantModal code={code} onClose={() => { managing.current = false; setMembers(false); setAttempt(value => value + 1); }}

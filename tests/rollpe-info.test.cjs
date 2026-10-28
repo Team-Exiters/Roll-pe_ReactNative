@@ -123,6 +123,21 @@ test('join sends only code and the supplied password; concurrent membership is h
   for (const status of [400, 472]) await assert.rejects(setup(() => ({ response: { status }, payload: null })).api.enterRollpe(code), error => error.reason === 'password');
 });
 
+test('full links and a place taken during entry produce the same explicit capacity error', async () => {
+  const { api, calls } = setup(() => ({ response: { status: 409 }, payload: { data: { reason: 'full' } } }));
+  for (const action of [() => api.fetchRollpeInfo(code), () => api.enterRollpe(code)]) {
+    await assert.rejects(action(), error => error instanceof api.RollpeAccessError && error.reason === 'full'
+      && error.message === '참여 정원이 가득 찼습니다.\n자리가 생긴 후 다시 시도해주세요.');
+  }
+  assert.deepEqual(calls.map(call => call.method), ['GET', 'POST']);
+  // Unrelated or malformed conflicts cannot be mistaken for capacity refusals.
+  for (const data of [null, {}, { reason: 'other' }]) {
+    const state = setup(() => ({ response: { status: 409 }, payload: { data } }));
+    await assert.rejects(state.api.fetchRollpeInfo(code), error => error.reason !== 'full');
+    await assert.rejects(state.api.enterRollpe(code), error => error.reason !== 'full');
+  }
+});
+
 test('invalid codes and unsafe return destinations are rejected before any API call', async () => {
   const { api, link, calls } = setup();
   for (const value of ['', undefined, [code], code + '?admin=true', '../paper', 'https://example.com']) {
