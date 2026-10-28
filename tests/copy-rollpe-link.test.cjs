@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const code = '12345678-1234-4234-8234-123456789abc';
 
-function setup(write = async () => true) {
+function setup(write = async () => true, apiUrl) {
   const calls = [], cache = new Map();
   function load(file) {
     if (cache.has(file)) return cache.get(file);
@@ -14,7 +14,8 @@ function setup(write = async () => true) {
     const filename = path.resolve(__dirname, '../src', `${file}.ts`);
     vm.runInNewContext(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: {
       module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
-    } }).outputText, { exports, Date, Error, URL, Set, require: name => {
+    } }).outputText, { exports, Date, Error, URL, Set,
+      process: { env: { EXPO_PUBLIC_API_URL: apiUrl } }, require: name => {
       if (name === 'expo-clipboard') return { setStringAsync: async value => { calls.push(value); return write(value); } };
       if (name === '@/i18n') return require('./helpers/i18n.cjs');
       return load(name.slice(2));
@@ -30,11 +31,19 @@ test('copying a share link writes only the normalized paper URL to the platform 
   assert.deepEqual(calls, [`https://web.example/rollpe/${code}`]);
 });
 
-test('without a public web deployment copying uses the app scheme, never an API or unsafe URL', async () => {
+test('without a public HTTPS deployment copying preserves the registered app scheme', async () => {
   for (const website of [undefined, 'http://localhost:8083', 'https://user:password@web.example', 'https://web.example?token=secret']) {
     const { copyRollpeLink, calls } = setup();
     await copyRollpeLink(code, website);
     assert.deepEqual(calls, [`rollpe://rollpe/${code}`]);
+  }
+});
+
+test('a configured API provides a browsable HTTPS invitation when no web deployment exists', async () => {
+  for (const website of [undefined, 'http://localhost:8083']) {
+    const { copyRollpeLink, calls } = setup(undefined, 'https://api.example');
+    await copyRollpeLink(code, website);
+    assert.deepEqual(calls, [`https://api.example/rollpe/${code}`]);
   }
 });
 

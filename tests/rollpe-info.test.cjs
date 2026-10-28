@@ -248,13 +248,22 @@ test('the deadline is exactly ten AM Korea time and only the receiver retains th
   assert.equal(model.remainingTime('2026-10-25', deadline), '이미 종료된 롤페입니다.');
 });
 
-test('shared links use an explicit website or the app scheme and reporting encodes user-supplied identifiers', () => {
+test('shared links prefer a deployed website, fall back to the API HTTPS page, then the app scheme', () => {
   const { model } = setup();
   assert.equal(model.rollpeShareUrl(code), `rollpe://rollpe/${code}`);
   assert.equal(model.rollpeShareUrl(code, 'https://web.example'), `https://web.example/rollpe/${code}`);
-  for (const website of ['http://web.example', 'https://user:password@web.example', 'https://web.example/other', 'https://localhost', 'https://web.example?x=1']) {
+  assert.equal(model.rollpeShareUrl(code, undefined, 'https://api.example'), `https://api.example/rollpe/${code}`);
+  assert.equal(model.rollpeShareUrl(code, 'https://web.example/', 'https://api.example'), `https://web.example/rollpe/${code}`);
+  for (const website of ['http://web.example', 'https://user:password@web.example', 'https://web.example/other',
+    'https://localhost', 'https://web.example?x=1', 'https://web.example#fragment', 'https://web.example:8443', ' https://web.example']) {
     assert.equal(model.rollpeShareUrl(code, website), `rollpe://rollpe/${code}`);
+    assert.equal(model.rollpeShareUrl(code, website, 'https://api.example/'), `https://api.example/rollpe/${code}`);
+    assert.equal(model.rollpeShareUrl(code, undefined, website), `rollpe://rollpe/${code}`);
   }
+});
+
+test('reporting encodes user-supplied identifiers', () => {
+  const { model } = setup();
   const url = new URL(model.reportRollpeUrl(code, 'User&code=7'));
   assert.equal(url.searchParams.get('entry.2107714088'), 'User&code=7');
   assert.equal(url.searchParams.get('entry.1553361014'), code);

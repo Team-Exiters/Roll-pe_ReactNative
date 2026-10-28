@@ -204,7 +204,7 @@ function RollpeInfoContent({ code }: { code: string }) {
           }}>
           <RollpePaper key={`${rollpe.code}:${rollpe.theme}:${rollpe.ratio}`} {...rollpe} messages={rollpe.hearts.data} />
         </Pressable>
-        <Text style={[styles.explanation, { color: colors.rollpe_secondary }]}>{t('info.explanation')}</Text>
+        <Text style={[styles.explanation, { color: colors.rollpe_secondary }]}>{t(role === 'receiver' ? 'info.receivedExplanation' : 'info.explanation')}</Text>
         <Text style={[styles.writers, { color: colors.rollpe_secondary }]}>{t('info.writers', { count: rollpe.hearts.count, max: rollpe.maxHeartLength })}</Text>
         <View style={styles.writerList}>{rollpe.hearts.data.map(heart => <View key={heart.id} style={styles.writerRow}>
           <Text numberOfLines={1} style={[styles.writer, { color: colors.rollpe_secondary }]}>{heart.author.name}({heart.author.identifyCode})</Text>
