@@ -7,6 +7,7 @@ import { RollpePaper } from '@/components/rollpe/RollpePaper';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { MarqueeText } from '@/components/ui/MarqueeText';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { enterRollpe, fetchRollpeInfo, RollpeAccessError, type RollpeEntryInfo } from '@/features/rollpe-info/api';
@@ -19,6 +20,7 @@ import { HeartHistoryModal } from '@/features/rollpe-content/components/HeartHis
 import { isRollpeDelivered, normalizeRollpeCode, remainingTime, reportRollpeUrl, rollpeRole, type RollpeInfo } from '@/features/rollpe-info/model';
 import { saveRollpeImage } from '@/features/rollpe-info/save-image';
 import { getTokenState, type TokenState } from '@/features/sign-in/token-state';
+import { clearPendingRollpeDestination, rememberRollpeDestination } from '@/features/sign-in/pending-rollpe';
 import { InvitationError, respondToInvitation } from '@/features/invitations/api';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
@@ -43,6 +45,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   const needsJoin = entry !== null;
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [signInRequired, setSignInRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [action, setAction] = useState<'leave' | null>(null);
@@ -62,10 +65,13 @@ function RollpeInfoContent({ code }: { code: string }) {
 
   const handleFailure = useCallback((cause: unknown) => {
     if (cause instanceof AuthenticationRequiredError) {
-      router.replace({ pathname: '/sign-in', params: { returnTo: `/rollpe/${code}` } });
+      void rememberRollpeDestination(`/rollpe/${code}`);
+      setResult(null); setEntry(null); setSignInRequired(true);
     } else if (cause instanceof RollpeAccessError && cause.reason === 'unavailable') {
+      void clearPendingRollpeDestination(`/rollpe/${code}`);
       router.replace('/rollpe-error');
     } else if (cause instanceof RollpeAccessError && cause.reason === 'join' && cause.entry) {
+      void rememberRollpeDestination(`/rollpe/${code}`);
       setResult(null); setEntry(cause.entry);
     } else setError(cause instanceof Error ? cause.message : t('info.loadFailed'));
   }, [code, router, t]);
@@ -78,7 +84,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   useFocusEffect(useCallback(() => {
     focused.current = true;
     if (attempt > 0) setEntryError(undefined);
-    setBusy(false); setJoining(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
+    setBusy(false); setJoining(false); setSignInRequired(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
     const controller = new AbortController();
     request.current = controller;
     void (async () => {
@@ -87,7 +93,10 @@ function RollpeInfoContent({ code }: { code: string }) {
         if (!tokenState) throw new AuthenticationRequiredError();
         if (controller.signal.aborted) return;
         const rollpe = await fetchRollpeInfo(code, controller.signal);
-        if (!controller.signal.aborted) { setResult({ rollpe, user: tokenState.user }); setEntry(null); }
+        if (!controller.signal.aborted) {
+          setResult({ rollpe, user: tokenState.user }); setEntry(null);
+          void clearPendingRollpeDestination(`/rollpe/${code}`);
+        }
       } catch (cause) { if (!controller.signal.aborted) handleFailure(cause); }
       finally { if (!controller.signal.aborted) setLoading(false); }
     })();
@@ -104,7 +113,20 @@ function RollpeInfoContent({ code }: { code: string }) {
     };
   }, [code, attempt, handleFailure]));
 
-  function goBack() { if (router.canGoBack()) router.back(); else router.replace('/home'); }
+  function goBack() {
+    void clearPendingRollpeDestination(`/rollpe/${code}`);
+    if (signInRequired) { router.dismissAll(); router.replace('/'); }
+    else if (router.canGoBack()) router.back();
+    else router.replace('/home');
+  }
+  async function signIn() {
+    if (joinPending.current) return;
+    joinPending.current = true; setJoining(true);
+    const epoch = actionEpoch.current;
+    await rememberRollpeDestination(`/rollpe/${code}`);
+    if (focused.current && epoch === actionEpoch.current) router.replace({ pathname: '/sign-in', params: { returnTo: `/rollpe/${code}` } });
+    if (epoch === actionEpoch.current) { joinPending.current = false; if (focused.current) setJoining(false); }
+  }
   function toggleAction(value: 'leave' | null) { managing.current = value !== null; setAction(value); }
   function showMessage(message: string, failure = false) {
     if (Platform.OS === 'web') window.alert(message);
@@ -154,7 +176,10 @@ function RollpeInfoContent({ code }: { code: string }) {
   return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') }]}>
     <View style={styles.navigation}>
       <BackButton onPress={goBack} style={styles.back} />
-      <Pressable accessibilityRole="button" accessibilityLabel={t('common.goHome')} onPress={() => router.dismissTo('/home')}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('common.goHome')} onPress={() => {
+        void clearPendingRollpeDestination(`/rollpe/${code}`);
+        if (signInRequired) { router.dismissAll(); router.replace('/'); } else router.dismissTo('/home');
+      }}>
         <Image source={require('@/assets/images/welcome/logo.png')} accessible={false} contentFit="contain" style={styles.logo} />
       </Pressable>
     </View>
@@ -224,6 +249,8 @@ function RollpeInfoContent({ code }: { code: string }) {
           shadow={false} paperRef={exportPaper} onReadyChange={setReady} />
       </View>}
     </>}
+    {signInRequired && <AppDialog title={t('common.notice')} message={t('info.signInRequired')} confirmLabel={t('common.signIn')}
+      busy={joining} onCancel={goBack} onConfirm={() => { void signIn(); }} />}
     {entry && <RollpeEntry title={entry.title} isPublic={entry.isPublic} invited={Boolean(entry.invitationCode)} error={entryError} busy={joining}
       onSubmit={password => { void join(password); }} onCancel={goBack} />}
     {members && <ParticipantModal code={code} onClose={() => { managing.current = false; setMembers(false); setAttempt(value => value + 1); }}
