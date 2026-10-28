@@ -67,7 +67,7 @@ export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 
         </Pressable>)}
       </View>
     </Animated.View>
-    {notice && <AppDialog message={t('common.comingSoon')} onConfirm={() => setNotice(false)} />}
+    {notice && <AppDialog message={t('common.openLinkFailed')} onConfirm={() => setNotice(false)} />}
   </AppModal>;
 }
 

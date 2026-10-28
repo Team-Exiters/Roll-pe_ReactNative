@@ -10,6 +10,12 @@ export function redirectSystemPath({ path, initial }: { path: string; initial: b
       if (destination) return destination;
     }
     const apiOrigin = resetLinkOrigin(process.env.EXPO_PUBLIC_API_URL);
+    const webOrigin = resetLinkOrigin(process.env.EXPO_PUBLIC_WEB_URL);
+    if (url.protocol === 'https:' && [apiOrigin, webOrigin].includes(url.origin)
+      && url.pathname.startsWith('/rollpe/')) {
+      if (url.username || url.password || url.search || url.hash) return '/rollpe-error';
+      return rollpeDestination(url.pathname) ?? '/rollpe-error';
+    }
     // Email reset links use a verified HTTPS app link. Never accept the token in a query.
     if (apiOrigin && url.protocol === 'https:' && url.hostname === new URL(apiOrigin).hostname
       && url.pathname.startsWith('/api/user/password-reset/')) {

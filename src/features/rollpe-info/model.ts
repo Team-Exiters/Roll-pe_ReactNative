@@ -55,16 +55,19 @@ export function canSendRollpe(rollpe: RollpeInfo, userId: number, now = Date.now
 
 export type RollpeAction = 'delete' | 'send';
 
-export function rollpeShareUrl(code: string, website?: string): string {
+export function rollpeShareUrl(code: string, website?: string, apiUrl?: string): string {
   const normalized = normalizeRollpeCode(code);
   if (!normalized) throw new Error(t('info.invalidCode'));
-  try {
-    const url = new URL(website ?? '');
-    if (url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash
-      && url.pathname === '/' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
-      return `${url.origin}/rollpe/${normalized}`;
-    }
-  } catch { /* With no web deployment, share the registered application scheme. */ }
+  for (const value of [website, apiUrl]) {
+    try {
+      const url = new URL(value ?? '');
+      if (value === value?.trim() && url.protocol === 'https:' && !url.username && !url.password
+        && !url.port && !url.search && !url.hash && url.pathname === '/'
+        && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+        return `${url.origin}/rollpe/${normalized}`;
+      }
+    } catch { /* Try the API origin when a web deployment is not configured. */ }
+  }
   return `rollpe://rollpe/${normalized}`;
 }
 

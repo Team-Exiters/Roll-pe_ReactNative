@@ -13,16 +13,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const googleScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
   const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;
 
-  let appLinkHost: string | undefined;
-  try {
-    const value = process.env.EXPO_PUBLIC_API_URL;
-    const url = new URL(value ?? '');
-    if (value === value?.trim() && url.protocol === 'https:' && !url.username && !url.password
-      && !url.port && url.pathname === '/' && !url.search && !url.hash) {
-      appLinkHost = url.hostname;
+  const appLinkPaths = new Map<string, Set<string>>();
+  for (const [value, paths] of [
+    [process.env.EXPO_PUBLIC_API_URL, ['/api/user/password-reset/', '/rollpe/']],
+    [process.env.EXPO_PUBLIC_WEB_URL, ['/rollpe/']],
+  ] as const) {
+    try {
+      const url = new URL(value ?? '');
+      if (value !== value?.trim() || url.protocol !== 'https:' || url.username || url.password
+        || url.port || url.pathname !== '/' || url.search || url.hash
+        || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) continue;
+      const existing = appLinkPaths.get(url.hostname) ?? new Set<string>();
+      paths.forEach(path => existing.add(path));
+      appLinkPaths.set(url.hostname, existing);
+    } catch {
+      // Missing or invalid configuration disables that domain; never assume a server address.
     }
-  } catch {
-    // Missing or invalid API configuration disables app links; never assume a server domain.
   }
 
   if (googleScheme) {
@@ -46,19 +52,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       usesAppleSignIn: true,
-      ...(appLinkHost ? {
-        associatedDomains: [...(config.ios?.associatedDomains ?? []), `applinks:${appLinkHost}`],
+      ...(appLinkPaths.size ? {
+        associatedDomains: [...new Set([...(config.ios?.associatedDomains ?? []),
+          ...[...appLinkPaths.keys()].map(host => `applinks:${host}`)])],
       } : {}),
     },
     android: {
       ...config.android,
-      ...(appLinkHost ? {
-        intentFilters: [...(config.android?.intentFilters ?? []), {
+      ...(appLinkPaths.size ? {
+        intentFilters: [...(config.android?.intentFilters ?? []), ...[...appLinkPaths].map(([host, paths]) => ({
           action: 'VIEW',
           autoVerify: true,
-          data: [{ scheme: 'https', host: appLinkHost, pathPrefix: '/api/user/password-reset/' }],
+          data: [...paths].map(pathPrefix => ({ scheme: 'https', host, pathPrefix })),
           category: ['BROWSABLE', 'DEFAULT'],
-        }],
+        }))],
       } : {}),
     },
     plugins,
