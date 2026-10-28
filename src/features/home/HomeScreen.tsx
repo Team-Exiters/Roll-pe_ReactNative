@@ -31,7 +31,6 @@ export default function HomeScreen() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [gridWidth, setGridWidth] = useState(0);
   useFocusEffect(useCallback(() => {
     if (attempt > 0) { setError(false); setResult(null); }
     const controller = new AbortController();
@@ -91,13 +90,13 @@ export default function HomeScreen() {
       </View>
       <View style={[styles.hot, { backgroundColor: colors.rollpe_section_background }]}>
         <Text accessibilityRole="header" style={[styles.hotTitle, { color: colors.rollpe_secondary }]}>{t('home.hot')}</Text>
-        <View style={styles.grid} onLayout={event => setGridWidth(event.nativeEvent.layout.width)}>
-          {result.rollpesError ? failure(result.rollpesError) : result.rollpes?.map(rollpe => <View key={rollpe.id} style={{ width: Math.max(0, (gridWidth - 12) / 2) }}>
+        {result.rollpesError ? failure(result.rollpesError) : <View style={styles.grid}>
+          {result.rollpes?.map(rollpe => <View key={rollpe.id} style={styles.gridItem}>
             <RollpeCard rollpe={rollpe} onPress={() => router.push({ pathname: '/rollpe/[code]', params: {
               code: rollpe.code,
             } })} />
           </View>)}
-        </View>
+        </View>}
       </View>
       <AppFooter />
     </ScrollView>
@@ -123,7 +122,8 @@ const styles = StyleSheet.create({
   createText: { fontFamily: RollpeFonts.semibold, fontSize: 16 },
   hot: { paddingTop: 44, paddingHorizontal: 20, paddingBottom: 44, flexGrow: 1 },
   hotTitle: { fontFamily: RollpeFonts.display, fontSize: 24 },
-  grid: { marginTop: 40, flexDirection: 'row', flexWrap: 'wrap', gap: 12, rowGap: 16 },
+  grid: { marginTop: 40, marginHorizontal: -6, flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
+  gridItem: { width: '50%', paddingHorizontal: 6 },
   menuButton: { position: 'absolute', right: 20, width: 28, height: 28, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   menuIcon: { width: 16, height: 14 },
   failure: { alignItems: 'center', gap: 12, paddingVertical: 16 },
