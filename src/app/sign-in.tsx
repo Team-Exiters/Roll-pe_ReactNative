@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { SignInForm } from '@/features/sign-in/components/SignInForm';
@@ -23,6 +24,7 @@ export default function SignInScreen() {
   const signIn = useSignIn();
   const focused = useRef(false), epoch = useRef(0);
   const [destination, setDestination] = useState(rollpeDestination(returnTo));
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   useFocusEffect(useCallback(() => {
     focused.current = true;
     const attempt = epoch.current;
@@ -35,14 +37,6 @@ export default function SignInScreen() {
     return () => { focused.current = false; ++epoch.current; };
   }, [returnTo]));
 
-  function showSignInMessage(message: string) {
-    if (Platform.OS === 'web') {
-      window.alert(message);
-    } else {
-      Alert.alert(t('common.error'), message, [{ text: t('common.confirm') }]);
-    }
-  }
-
   async function submitSignIn(action: () => ReturnType<typeof signIn.emailSignIn>) {
     const attempt = epoch.current;
     try {
@@ -50,11 +44,11 @@ export default function SignInScreen() {
       if (tokenState && focused.current && attempt === epoch.current) {
         const next = await resolveRollpeDestination(returnTo);
         if (!focused.current || attempt !== epoch.current) return;
-        router.dismissAll();
+        if (router.canDismiss()) router.dismissAll();
         router.replace(next ?? '/home');
       }
     } catch (error) {
-      if (focused.current && attempt === epoch.current) showSignInMessage(error instanceof Error ? error.message : t('auth.failed'));
+      if (focused.current && attempt === epoch.current) setErrorMessage(error instanceof Error ? error.message : t('auth.failed'));
     }
   }
 
@@ -148,6 +142,8 @@ export default function SignInScreen() {
       </KeyboardAvoidingView>
       <BackButton onPress={goBack} style={[styles.back, { top: safeArea('top', 20) }]} />
       {signIn.isLoading && <LoadingView />}
+      {errorMessage && <AppDialog title={t('common.signIn')} message={errorMessage}
+        onConfirm={() => setErrorMessage(null)} onClose={() => setErrorMessage(null)} />}
     </View>
   );
 }

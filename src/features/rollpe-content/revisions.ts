@@ -14,10 +14,15 @@ export async function fetchHeartRevisions(code: string, signal?: AbortSignal): P
   const data = payload?.data;
   if (!response.ok || !record(data) || normalizeRollpeCode(data.heartCode) !== normalized
     || !Array.isArray(data.revisions) || !data.revisions.length) throw new Error(t('history.failed'));
-  return data.revisions.map((value, index) => {
-    if (!record(value) || value.number !== index || typeof value.content !== 'string'
+  // Accept the previous order while deployed servers are being updated.
+  const count = data.revisions.length;
+  const ascending = record(data.revisions[0]) && data.revisions[0].number === 0;
+  const revisions = data.revisions.map((value, index) => {
+    const number = ascending ? index : count - 1 - index;
+    if (!record(value) || value.number !== number || typeof value.content !== 'string'
       || !normalizeHeartColor(value.color) || typeof value.recordedAt !== 'string' || !Number.isFinite(Date.parse(value.recordedAt))
       || typeof value.baseline !== 'boolean') throw new Error(t('history.failed'));
-    return { number: index, content: value.content, color: normalizeHeartColor(value.color)!, recordedAt: value.recordedAt, baseline: value.baseline };
+    return { number, content: value.content, color: normalizeHeartColor(value.color)!, recordedAt: value.recordedAt, baseline: value.baseline };
   });
+  return ascending ? revisions.reverse() : revisions;
 }

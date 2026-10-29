@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Linking, PanResponder, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
-import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { OVERLAY_OPACITY, RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { WEB_MAX_WIDTH } from '@/components/WebViewport';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppDialog } from '@/components/ui/AppDialog';
@@ -41,7 +41,7 @@ export function AppSideMenu({ current = 'home', onClose }: { current?: 'home' | 
   useEffect(() => {
     const animation = Animated.parallel([
       Animated.timing(offset, { toValue: 0, duration: 250, easing: Easing.inOut(Easing.ease), useNativeDriver: driver }),
-      Animated.timing(opacity, { toValue: 0.25, duration: 250, useNativeDriver: driver }),
+      Animated.timing(opacity, { toValue: OVERLAY_OPACITY, duration: 250, useNativeDriver: driver }),
     ]);
     animation.start();
     return () => { animation.stop(); offset.stopAnimation(); opacity.stopAnimation(); };

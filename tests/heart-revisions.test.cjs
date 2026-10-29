@@ -28,16 +28,21 @@ function setup(reply) {
   }
   return { history: load('features/rollpe-content/revisions'), calls, AuthenticationRequiredError };
 }
-test('revision lists preserve original and nth snapshots, colors and recording timestamps', async () => {
-  const revisions = [0, 1, 2].map(number => ({ number, content: `수정 ${number}`, color: 'FFB9B9', baseline: false, recordedAt: '2026-10-26T10:00:00+09:00' }));
-  const { history, calls } = setup(() => ({ response: { ok: true }, payload: { data: { heartCode: code, revisions } } }));
-  const signal = new AbortController().signal;
-  const data = await history.fetchHeartRevisions(code, signal);
-  assert.deepEqual(Array.from(data, item => item.number), [0, 1, 2]);
-  assert.equal(data[2].color, '#FFB9B9');
-  assert.equal(data[2].recordedAt, revisions[2].recordedAt);
-  assert.equal(calls[0].url, `/api/heart/revisions?hcode=${code}`);
-  assert.equal(calls[0].signal, signal);
+test('revision lists show newest first while preserving original numbers, content and timestamps', async () => {
+  const revisions = [0, 1, 2].map(number => ({ number, content: `수정 ${number}`, color: 'FFB9B9', baseline: false, recordedAt: `2026-10-26T10:0${number}:00+09:00` }));
+  for (const responseOrder of [[...revisions].reverse(), revisions]) {
+    const { history, calls } = setup(() => ({ response: { ok: true }, payload: { data: { heartCode: code, revisions: responseOrder } } }));
+    const signal = new AbortController().signal;
+    const data = await history.fetchHeartRevisions(code, signal);
+    assert.deepEqual(Array.from(data, item => item.number), [2, 1, 0]);
+    assert.equal(data[0].content, revisions[2].content);
+    assert.equal(data[0].color, '#FFB9B9');
+    assert.equal(data[0].recordedAt, revisions[2].recordedAt);
+    assert.equal(data[2].recordedAt, revisions[0].recordedAt);
+    assert.equal(calls[0].url, `/api/heart/revisions?hcode=${code}`);
+    assert.equal(calls[0].signal, signal);
+  }
+  assert.equal(revisions[0].number, 0);
 });
 test('unauthorized, mismatched, out of order and malformed history never renders as a valid list', async () => {
   const original = { number: 0, content: '원본', color: 'F2EB28', recordedAt: '2026-10-26T00:00:00Z', baseline: true };

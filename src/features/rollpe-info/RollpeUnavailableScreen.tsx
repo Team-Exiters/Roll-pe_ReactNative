@@ -15,7 +15,7 @@ export default function RollpeUnavailableScreen() {
       <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
         accessibilityLabel={t('common.brand')} style={styles.logo} />
       <Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_secondary }]}>{t('info.unavailable')}</Text>
-      <PrimaryButton title={t('info.goBack')} onPress={() => { router.dismissAll(); router.replace('/home'); }} />
+      <PrimaryButton title={t('info.goBack')} onPress={() => { if (router.canDismiss()) router.dismissAll(); router.replace('/home'); }} />
     </View>
   </View>;
 }

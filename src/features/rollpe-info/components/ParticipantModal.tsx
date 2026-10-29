@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppModal } from '@/components/ui/AppModal';
 import { AppDialog } from '@/components/ui/AppDialog';
@@ -82,7 +82,7 @@ export function ParticipantModal({ code, onClose, onAuthenticationRequired }: {
         {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
       </View>
     }
-    {dialog && <AppDialog {...dialog} />}
+    {dialog && <AppDialog {...dialog} inline={Platform.OS === 'ios'} />}
   </AppModal>;
 }
 const styles = StyleSheet.create({

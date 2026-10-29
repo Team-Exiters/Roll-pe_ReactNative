@@ -45,7 +45,7 @@ export default function MyPageScreen() {
     return () => { controller.abort(); operation.current?.abort(); pending.current = false; };
   }, [attempt, router, t]));
 
-  function signIn() { router.dismissAll(); router.replace('/sign-in'); }
+  function signIn() { if (router.canDismiss()) router.dismissAll(); router.replace('/sign-in'); }
   async function confirmAction() {
     if (!action || pending.current) return;
     pending.current = true; setBusy(true);
@@ -80,7 +80,7 @@ export default function MyPageScreen() {
         <Text style={[styles.identify, { color: colors.rollpe_secondary }]}>{result.user.identifyCode ?? ''}</Text>
         <Text style={[styles.count, { color: colors.rollpe_secondary }]}>{t('home.hostCount', { count: result.status?.host ?? '—' })}</Text>
         <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{t('home.heartCount', { count: result.status?.heart ?? '—' })}</Text>
-        {error && failure}
+        {error ? failure : null}
       </View>
       <View style={styles.menus}>
         {!result.user.provider && <Pressable accessibilityRole="button" onPress={() => router.push('/change-password')}

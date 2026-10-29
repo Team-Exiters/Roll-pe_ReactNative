@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppModal } from '@/components/ui/AppModal';
@@ -51,17 +51,14 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
 
   function notice(message: string, after?: () => void) {
     if (!active.current) return;
-    if (Platform.OS === 'web') setDialog({ message, onConfirm: () => { setDialog(null); after?.(); } });
-    else Alert.alert(t('common.notice'), message, [{ text: t('common.confirm'), onPress: after }], { cancelable: false });
+    Keyboard.dismiss();
+    setDialog({ message, onConfirm: () => { setDialog(null); after?.(); } });
   }
   function confirm(message: string): Promise<boolean> {
-    if (Platform.OS === 'web') return new Promise(resolve => setDialog({ message,
+    Keyboard.dismiss();
+    return new Promise(resolve => setDialog({ message,
       onConfirm: () => { setDialog(null); resolve(true); }, onCancel: () => { setDialog(null); resolve(false); },
     }));
-    return new Promise(resolve => Alert.alert(t('common.notice'), message, [
-      { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
-      { text: t('common.confirm'), onPress: () => resolve(true) },
-    ], { cancelable: true, onDismiss: () => resolve(false) }));
   }
   async function run(action: (signal: AbortSignal) => Promise<string>, confirmation: string) {
     if (pending.current) return;
@@ -72,11 +69,11 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
       setBusy(true);
       const controller = new AbortController(); mutation.current = controller;
       const message = await action(controller.signal);
-      if (active.current) { handingOff = true; notice(message, onChanged); }
+      if (active.current) { handingOff = true; setBusy(false); notice(message, onChanged); }
     } catch (cause) {
       if (!active.current) return;
       if (cause instanceof AuthenticationRequiredError) onAuthenticationRequired();
-      else if (cause instanceof HeartMutationError && cause.reload) { handingOff = true; notice(cause.message, onChanged); }
+      else if (cause instanceof HeartMutationError && cause.reload) { handingOff = true; setBusy(false); notice(cause.message, onChanged); }
       else notice(cause instanceof Error ? cause.message : t('heart.failed'));
     } finally {
       if (!handingOff) { pending.current = false; if (active.current) setBusy(false); }
@@ -134,9 +131,9 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
               <Text style={styles.whiteText}>{t('heart.colorsFailed')} {t('common.retry')}</Text>
             </Pressable> : !colors.length ? <ActivityIndicator color="#FFFFFF" accessibilityLabel={t('heart.colorsLoading')} />
               : <ScrollView horizontal keyboardShouldPersistTaps="handled" showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
-                {colors.map(value => <Pressable key={value.id} accessibilityRole="radio" accessibilityLabel={t('heart.colorLabel', { color: value.value })}
-                  aria-checked={color === value.value} accessibilityState={{ checked: color === value.value, disabled: busy }} disabled={busy}
-                  onPress={() => setColor(value.value)} style={[styles.swatch, { backgroundColor: value.value }]} />)}
+                {colors.map(({ id, value: hex }) => <Pressable key={id} accessibilityRole="radio" accessibilityLabel={t('heart.colorLabel', { color: hex })}
+                  aria-checked={color === hex} accessibilityState={{ checked: color === hex, disabled: busy }} disabled={busy}
+                  onPress={() => setColor(hex)} style={[styles.swatch, { backgroundColor: hex }]} />)}
               </ScrollView>}
           </View>}
         </> : fontError ? <Text style={styles.whiteText}>{t('create.fontFailed')}</Text> : <ActivityIndicator color="#FFFFFF" />}
@@ -150,7 +147,7 @@ export function HeartModal({ paper, user, index, heart, onClose, onChanged, onAu
         </Pressable>}
       </View>
       {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
-      {dialog && <AppDialog {...dialog} />}
+      {dialog && <AppDialog {...dialog} inline={Platform.OS === 'ios'} />}
     </View>}
   </AppModal>;
 }

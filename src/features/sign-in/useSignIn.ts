@@ -28,7 +28,7 @@ export function useSignIn() {
         if (active) setProviders(value);
       }).catch(() => { /* A development build with the native SDKs is required. */ });
     }
-    // Prepare proofs before the tap; awaiting crypto during a tap can block web popups.
+    // Prepare an independent state and PKCE proof for each provider before sign-in.
     for (const provider of ['google', 'kakao', 'apple'] as const) {
       prepareBrowserRequest(provider).then((value) => {
         if (active) setBrowserRequests((current) => ({ ...current, [provider]: value }));

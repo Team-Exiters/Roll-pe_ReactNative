@@ -22,7 +22,7 @@ export function RollpeEntry({ title, isPublic, invited = false, error, busy, onS
       {needsPassword && <RoundedBorderTextField accessibilityLabel={t('create.password')} placeholder={t('common.password')}
         secureTextEntry autoFocus maxLength={50} value={password} onChangeText={setPassword} editable={!busy}
         returnKeyType="go" onSubmitEditing={() => { if (!busy) onSubmit(password); }} style={styles.input} />}
-      {error && <Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_main }]}>{error}</Text>}
+      {Boolean(error) && <Text accessibilityRole="alert" style={[styles.description, { color: colors.rollpe_main }]}>{error}</Text>}
     </View>}
   </AppDialog>;
 }

@@ -8,7 +8,7 @@ const { attachAxiosTransport } = require('./axios-transport.cjs');
 
 // Exercise actual services with only SDK, network, and storage boundaries replaced.
 function loadServices({ platform = 'web', enabled = true, storage = new Map(), env = {} } = {}) {
-  const calls = { open: [], fetch: [], saved: [], deleted: [], google: [], playServices: [], kakao: [], apple: [] };
+  const calls = { open: [], navigate: [], history: [], fetch: [], saved: [], deleted: [], google: [], playServices: [], kakao: [], apple: [] };
   const state = { callback: null, payload: null, ok: true };
   const mocks = {
     'expo-crypto': {
@@ -82,10 +82,23 @@ function loadServices({ platform = 'web', enabled = true, storage = new Map(), e
   const globals = {
     URL, URLSearchParams, AbortController, setTimeout, clearTimeout, Error,
     window: {
-      location: { origin: 'http://localhost:8081' },
+      document: { title: '' },
+      location: {
+        origin: 'http://localhost:8081',
+        get href() { return state.callback?.url ?? 'http://localhost:8081/sign-in'; },
+        get pathname() { return new URL(this.href).pathname; },
+        assign: (url) => {
+          if (state.navigationError) throw state.navigationError;
+          calls.navigate.push(url);
+        },
+      },
+      history: { replaceState: (...args) => calls.history.push(args) },
       sessionStorage: {
         getItem: (key) => storage.get(key) ?? null,
-        setItem: (key, value) => { storage.set(key, value); calls.saved.push({ value: JSON.parse(value) }); },
+        setItem: (key, value) => {
+          if (state.storageWriteError) throw state.storageWriteError;
+          storage.set(key, value); calls.saved.push({ key, value: JSON.parse(value) });
+        },
         removeItem: (key) => {
           calls.deleted.push(key);
           if (state.storageDeleteError) throw state.storageDeleteError;

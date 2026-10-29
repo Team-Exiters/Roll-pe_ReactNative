@@ -81,7 +81,7 @@ export default function HomeScreen() {
         <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>{t('home.greeting', { name: result.userName })}</Text>
         <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>{t('home.hostCount', { count: result.status?.host ?? '—' })}</Text>
         <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{t('home.heartCount', { count: result.status?.heart ?? '—' })}</Text>
-        {result.statusError && failure(result.statusError)}
+        {result.statusError ? failure(result.statusError) : null}
         <PrimaryButton title={t('home.invited')} onPress={() => router.push('/invitations')} style={styles.invited} />
         <Pressable accessibilityRole="button" onPress={() => router.push('/create-rollpe')}
           style={[styles.create, { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary }]}>

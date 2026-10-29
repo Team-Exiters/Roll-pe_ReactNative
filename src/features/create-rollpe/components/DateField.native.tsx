@@ -4,7 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/i18n';
-import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { OVERLAY_COLOR, RollpeFonts, useRollpeColors } from '@/constants/theme';
 import type { DateFieldProps } from '@/features/create-rollpe/components/DateField';
 import { dateLabel, PickerField } from '@/features/create-rollpe/components/PickerField';
 import { dateString } from '@/features/create-rollpe/validation';
@@ -44,7 +44,7 @@ export function DateField({ value, minimum, maximum, disabled, onChange }: DateF
 
 const styles = StyleSheet.create({
   sheet: { justifyContent: 'flex-end', padding: 0 },
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.5)' },
+  backdrop: { backgroundColor: OVERLAY_COLOR },
   done: { alignSelf: 'flex-end', padding: 16 },
   doneText: { fontFamily: RollpeFonts.semibold, fontSize: 16 },
 });
