@@ -66,7 +66,7 @@ export function ShareRollpeModal({ paper, userId, onClose, onAuthenticationRequi
           onPress={() => { if (selected) invite(selected); }} />
         {copyButton}
       </View>} />
-    {dialog && <AppDialog {...dialog} />}
+    {dialog && <AppDialog {...dialog} inline={Platform.OS === 'ios'} />}
   </AppModal>;
 }
 const styles = StyleSheet.create({

@@ -108,11 +108,11 @@ export default function InvitationsScreen() {
       ListEmptyComponent={<View style={styles.empty}>
         {loading ? <ActivityIndicator color={colors.rollpe_main} accessibilityLabel={t('invitations.loading')} /> : <>
           <Text accessibilityRole={error ? 'alert' : undefined} style={[styles.message, { color: colors.rollpe_secondary }]}>{error || t('invitations.empty')}</Text>
-          {error && <PrimaryButton title={t('common.retry')} onPress={() => setAttempt(value => value + 1)} />}
+          {Boolean(error) && <PrimaryButton title={t('common.retry')} onPress={() => setAttempt(value => value + 1)} />}
         </>}
       </View>}
       ListFooterComponent={result?.nextPage ? <View style={styles.footer}>
-        {moreError && <Text accessibilityRole="alert" style={[styles.message, { color: colors.rollpe_main }]}>{moreError}</Text>}
+        {Boolean(moreError) && <Text accessibilityRole="alert" style={[styles.message, { color: colors.rollpe_main }]}>{moreError}</Text>}
         <PrimaryButton title={t(moreError ? 'common.retry' : 'search.more')} textStyle={styles.buttonText} disabled={loadingMore || busy} onPress={() => { void more(); }} />
         {loadingMore && <ActivityIndicator accessibilityLabel={t('invitations.loading')} color={colors.rollpe_main} />}
       </View> : undefined} />
@@ -120,7 +120,7 @@ export default function InvitationsScreen() {
       message={t(decision.action === 'accept' ? 'invitations.confirmAccept' : 'invitations.confirmDeny', { title: decision.invitation.title })}
       confirmLabel={t(decision.action === 'accept' ? 'invitations.accept' : 'invitations.deny')}
       onCancel={() => setDecision(null)} onConfirm={() => { void respond(); }} />}
-    {notice && <AppDialog message={notice} onConfirm={() => { setNotice(''); setAttempt(value => value + 1); }} />}
+    {Boolean(notice) && <AppDialog message={notice} onConfirm={() => { setNotice(''); setAttempt(value => value + 1); }} />}
   </View>;
 }
 const styles = StyleSheet.create({

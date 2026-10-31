@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
+import { AppDialog } from '@/components/ui/AppDialog';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -33,6 +34,7 @@ export default function CreateRollpeScreen() {
   const [attempt, setAttempt] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState<{ title: string; message: string; onConfirm?: () => void } | null>(null);
   const active = useRef(true);
   const pending = useRef(false);
   const creationRequest = useRef<AbortController | null>(null);
@@ -62,8 +64,8 @@ export default function CreateRollpeScreen() {
     else router.replace('/home');
   }
   function showMessage(title: string, message: string, onConfirm?: () => void) {
-    if (Platform.OS === 'web') { window.alert(message); onConfirm?.(); }
-    else Alert.alert(title, message, [{ text: t('common.confirm'), onPress: onConfirm }]);
+    Keyboard.dismiss();
+    setDialog({ title, message, onConfirm });
   }
   function failure(error: unknown) {
     if (!active.current) return;
@@ -166,6 +168,9 @@ export default function CreateRollpeScreen() {
     {searchOpen && <RecipientPicker onClose={() => setSearchOpen(false)} onError={failure}
       onSelect={recipient => { change('recipient', recipient); setSearchOpen(false); }} />}
     {(loading || (!options && !optionsError)) && <LoadingView accessibilityLabel={loading ? t('create.creating') : t('create.optionsLoading')} />}
+    {dialog && <AppDialog title={dialog.title} message={dialog.message} onConfirm={() => {
+      setDialog(null); dialog.onConfirm?.();
+    }} />}
   </View>;
 }
 

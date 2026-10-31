@@ -100,11 +100,11 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
       ListEmptyComponent={<View style={styles.empty}>
         {loading ? <ActivityIndicator accessibilityLabel={t('myPage.loading')} color={colors.rollpe_main} /> : <>
           <Text accessibilityRole={error ? 'alert' : undefined} style={[styles.message, { color: colors.rollpe_secondary }]}>{error || t(`myPage.empty.${kind}`)}</Text>
-          {error && <PrimaryButton title={t('common.retry')} onPress={() => setAttempt(value => value + 1)} />}
+          {Boolean(error) && <PrimaryButton title={t('common.retry')} onPress={() => setAttempt(value => value + 1)} />}
         </>}
       </View>}
       ListFooterComponent={result?.page.nextPage ? <View style={styles.footer}>
-        {moreError && <Text accessibilityRole="alert" style={[styles.message, { color: colors.rollpe_main }]}>{moreError}</Text>}
+        {Boolean(moreError) && <Text accessibilityRole="alert" style={[styles.message, { color: colors.rollpe_main }]}>{moreError}</Text>}
         <Pressable accessibilityRole="button" disabled={loadingMore} accessibilityState={{ disabled: loadingMore }} onPress={() => { void more(); }}
           style={({ pressed }) => [styles.more, { borderColor: colors.rollpe_secondary, opacity: pressed ? 0.7 : 1 }]}>
           {loadingMore ? <ActivityIndicator color={colors.rollpe_main} accessibilityLabel={t('myPage.loading')} />
@@ -112,7 +112,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
         </Pressable>
       </View> : undefined} />
     {menu && <AppSideMenu current="myPage" onClose={() => setMenu(false)} />}
-    {notice && <AppDialog message={notice} onConfirm={() => setNotice('')} />}
+    {Boolean(notice) && <AppDialog message={notice} onConfirm={() => setNotice('')} />}
   </View>;
 }
 const styles = StyleSheet.create({

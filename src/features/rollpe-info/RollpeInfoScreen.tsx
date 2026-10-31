@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { Alert, AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { RollpePaper } from '@/components/rollpe/RollpePaper';
 import { BackButton } from '@/components/ui/BackButton';
@@ -48,6 +48,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   const [signInRequired, setSignInRequired] = useState(false);
   const [full, setFull] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; failure: boolean } | null>(null);
   const [ready, setReady] = useState(false);
   const [action, setAction] = useState<'leave' | null>(null);
   const [members, setMembers] = useState(false);
@@ -89,7 +90,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   useFocusEffect(useCallback(() => {
     focused.current = true;
     if (attempt > 0) setEntryError(undefined);
-    setResult(null); setBusy(false); setJoining(false); setSignInRequired(false); setFull(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
+    setResult(null); setBusy(false); setNotice(null); setJoining(false); setSignInRequired(false); setFull(false); setEntry(null); setError(undefined); setLoading(true); setNow(Date.now());
     const controller = new AbortController();
     request.current = controller;
     void (async () => {
@@ -120,7 +121,7 @@ function RollpeInfoContent({ code }: { code: string }) {
 
   function goBack() {
     void clearPendingRollpeDestination(`/rollpe/${code}`);
-    if (signInRequired) { router.dismissAll(); router.replace('/'); }
+    if (signInRequired) { if (router.canDismiss()) router.dismissAll(); router.replace('/'); }
     else if (router.canGoBack()) router.back();
     else router.replace('/home');
   }
@@ -134,8 +135,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   }
   function toggleAction(value: 'leave' | null) { managing.current = value !== null; setAction(value); }
   function showMessage(message: string, failure = false) {
-    if (Platform.OS === 'web') window.alert(message);
-    else Alert.alert(t(failure ? 'common.error' : 'common.notice'), message, [{ text: t('common.confirm') }]);
+    setNotice({ message, failure });
   }
   async function join(password?: string) {
     if (joinPending.current) return;
@@ -184,7 +184,7 @@ function RollpeInfoContent({ code }: { code: string }) {
       <BackButton onPress={goBack} style={styles.back} />
       <Pressable accessibilityRole="button" accessibilityLabel={t('common.goHome')} onPress={() => {
         void clearPendingRollpeDestination(`/rollpe/${code}`);
-        if (signInRequired) { router.dismissAll(); router.replace('/'); } else router.dismissTo('/home');
+        if (signInRequired) { if (router.canDismiss()) router.dismissAll(); router.replace('/'); } else router.dismissTo('/home');
       }}>
         <Image source={require('@/assets/images/welcome/logo.png')} accessible={false} contentFit="contain" style={styles.logo} />
       </Pressable>
@@ -267,13 +267,15 @@ function RollpeInfoContent({ code }: { code: string }) {
     {management && result && <RollpeManagementModal paper={result.rollpe} userId={result.user.id}
       onClose={() => { managing.current = false; setManagement(false); }}
       onReload={() => { managing.current = false; setManagement(false); setAttempt(value => value + 1); }}
-      onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
+      onCompleted={() => { if (router.canDismiss()) router.dismissAll(); router.replace('/home'); }}
       onAuthenticationRequired={authenticate} />}
     {history && <HeartHistoryModal code={history} onClose={() => { managing.current = false; setHistory(null); }} onAuthenticationRequired={authenticate} />}
     {action && result && <RollpeActionDialog key={action} action={action} paper={result.rollpe} userId={result.user.id} onClose={() => toggleAction(null)}
-      onCompleted={() => { router.dismissAll(); router.replace('/home'); }}
+      onCompleted={() => { if (router.canDismiss()) router.dismissAll(); router.replace('/home'); }}
       onReload={() => { toggleAction(null); setAttempt(value => value + 1); }}
       onAuthenticationRequired={() => { toggleAction(null); handleFailure(new AuthenticationRequiredError()); }} />}
+    {notice && <AppDialog title={t(notice.failure ? 'common.error' : 'common.notice')} message={notice.message}
+      onConfirm={() => setNotice(null)} />}
     {(loading || busy) && <LoadingView accessibilityLabel={t(busy ? 'common.processing' : 'info.loading')} />}
   </View>;
 }

@@ -83,7 +83,7 @@ export function RecipientPickerContent({ onSelect, onClose, onError, title, acti
 }
 
 const styles = StyleSheet.create({
-  content: { borderRadius: 16, paddingHorizontal: 20, paddingBottom: 20 },
+  content: { flexShrink: 1, borderRadius: 16, paddingHorizontal: 20, paddingBottom: 20 },
   close: { position: 'absolute', top: 28, left: 20, width: 20, height: 20, zIndex: 1 },
   title: { marginTop: 24, fontFamily: RollpeFonts.display, fontSize: 28, textAlign: 'center' },
   search: { marginTop: 28 }, input: { paddingRight: 54 },

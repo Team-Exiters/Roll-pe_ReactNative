@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
+import { OVERLAY_COLOR } from '@/constants/theme';
 
 export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: string }) {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: strin
 
 const styles = StyleSheet.create({
   overlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: OVERLAY_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
   },

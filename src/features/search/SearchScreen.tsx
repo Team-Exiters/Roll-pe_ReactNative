@@ -98,7 +98,7 @@ export default function SearchScreen() {
             <Text style={[styles.message, { color: colors.rollpe_gray }]}>{t('search.empty')}</Text>
           </View> : undefined}
         ListFooterComponent={result?.nextPage ? <View style={styles.footer}>
-          {moreError && <Text accessibilityRole="alert" style={[styles.moreError, { color: colors.rollpe_main }]}>{moreError}</Text>}
+          {Boolean(moreError) && <Text accessibilityRole="alert" style={[styles.moreError, { color: colors.rollpe_main }]}>{moreError}</Text>}
           <Pressable accessibilityRole="button" accessibilityState={{ disabled: loadingMore }} disabled={loadingMore} onPress={() => { void more(); }}
             style={[styles.more, { borderColor: colors.rollpe_secondary }]}>
             {loadingMore ? <ActivityIndicator color={colors.rollpe_main} accessibilityLabel={t('search.loading')} />
@@ -111,7 +111,7 @@ export default function SearchScreen() {
       <Image source={require('@/assets/images/home/menu.svg')} accessible={false} contentFit="contain" style={styles.menuIcon} />
     </Pressable>
     {menu && <AppSideMenu current="search" onClose={() => setMenu(false)} />}
-    {notice && <AppDialog message={notice} onConfirm={() => setNotice('')} />}
+    {Boolean(notice) && <AppDialog message={notice} onConfirm={() => setNotice('')} />}
   </View>;
 }
 const styles = StyleSheet.create({

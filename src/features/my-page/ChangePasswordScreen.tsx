@@ -24,7 +24,7 @@ export default function ChangePasswordScreen() {
   const [notice, setNotice] = useState<{ message: string; destination?: 'signIn' | 'back' } | null>(null);
   const nextField = useRef<ComponentRef<typeof TextInput>>(null), pending = useRef(false), request = useRef<AbortController | null>(null);
 
-  function signIn() { router.dismissAll(); router.replace('/sign-in'); }
+  function signIn() { if (router.canDismiss()) router.dismissAll(); router.replace('/sign-in'); }
   function back() { if (router.canGoBack()) router.back(); else router.replace('/my-page'); }
   useFocusEffect(useCallback(() => {
     setBusy(false);
