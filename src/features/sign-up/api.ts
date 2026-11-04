@@ -9,8 +9,11 @@ function responseMessage(message: unknown): string | null {
   const fields = message as Record<string, unknown>;
   const messages = ['email', 'name', 'password', 'non_field_errors'].flatMap((field) => {
     const value = fields[field];
-    return typeof value === 'string' ? [value] : Array.isArray(value)
-      ? value.filter((message): message is string => typeof message === 'string') : [];
+    return typeof value === 'string'
+      ? [value]
+      : Array.isArray(value)
+        ? value.filter((message): message is string => typeof message === 'string')
+        : [];
   });
   return messages.length ? messages.join('\n') : null;
 }
@@ -20,7 +23,9 @@ export async function signUp(values: SignUpValues): Promise<string> {
   if (error) throw new Error(error);
   if (!apiUrl) throw new Error(t('signup.serverMissing'));
   const { response, payload } = await requestJson(`${apiUrl}/api/user/signup`, {
-    name: values.name, email: values.email, password: values.password,
+    name: values.name,
+    email: values.email,
+    password: values.password,
   }).catch(() => {
     throw new Error(t('signup.networkError'));
   });

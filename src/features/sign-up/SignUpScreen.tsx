@@ -1,7 +1,16 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, type TextInput } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type TextInput,
+} from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { BackButton } from '@/components/ui/BackButton';
@@ -17,8 +26,13 @@ import { rollpeDestination } from '@/utils/rollpe-link';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 
 const initialValues: SignUpValues = {
-  email: '', name: '', password: '', confirmPassword: '',
-  ageChecked: false, termsChecked: false, privacyChecked: false,
+  email: '',
+  name: '',
+  password: '',
+  confirmPassword: '',
+  ageChecked: false,
+  termsChecked: false,
+  privacyChecked: false,
 };
 
 export default function SignUpScreen() {
@@ -37,7 +51,9 @@ export default function SignUpScreen() {
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
-    return () => { active.current = false; };
+    return () => {
+      active.current = false;
+    };
   }, []);
 
   function change<K extends keyof SignUpValues>(key: K, value: SignUpValues[K]) {
@@ -46,7 +62,11 @@ export default function SignUpScreen() {
 
   function goBack() {
     if (router.canGoBack()) router.back();
-    else router.replace({ pathname: '/sign-in', params: destination ? { returnTo: destination } : {} });
+    else
+      router.replace({
+        pathname: '/sign-in',
+        params: destination ? { returnTo: destination } : {},
+      });
   }
 
   function showMessage(title: string, message: string, onConfirm?: () => void) {
@@ -67,10 +87,13 @@ export default function SignUpScreen() {
       const message = await signUp(values);
       if (active.current) {
         setValues(initialValues);
-        showMessage(t('common.notice'), message, () => { if (active.current) goBack(); });
+        showMessage(t('common.notice'), message, () => {
+          if (active.current) goBack();
+        });
       }
     } catch (error) {
-      if (active.current) showMessage(t('common.error'), error instanceof Error ? error.message : t('signup.failed'));
+      if (active.current)
+        showMessage(t('common.error'), error instanceof Error ? error.message : t('signup.failed'));
     } finally {
       pending.current = false;
       if (active.current) setLoading(false);
@@ -78,54 +101,154 @@ export default function SignUpScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') }]}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
-          showsVerticalScrollIndicator={false} bounces={false}
-          contentContainerStyle={[styles.content, { paddingTop: safeArea('top', 80) }]}>
-          <Image source={require('@/assets/images/welcome/logo.png')} contentFit="contain"
-            accessibilityLabel={t('common.brand')} accessible style={styles.logo} />
-          <Text accessibilityRole="header" style={[styles.title, { color: colors.rollpe_secondary }]}>{t('common.signUp')}</Text>
-          {destination && <Text style={[styles.returnNotice, { color: colors.rollpe_secondary }]}>{t('signup.returnToRollpe')}</Text>}
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') },
+      ]}
+    >
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={[styles.content, { paddingTop: safeArea('top', 80) }]}
+        >
+          <Image
+            source={require('@/assets/images/welcome/logo.png')}
+            contentFit="contain"
+            accessibilityLabel={t('common.brand')}
+            accessible
+            style={styles.logo}
+          />
+          <Text
+            accessibilityRole="header"
+            style={[styles.title, { color: colors.rollpe_secondary }]}
+          >
+            {t('common.signUp')}
+          </Text>
+          {destination && (
+            <Text style={[styles.returnNotice, { color: colors.rollpe_secondary }]}>
+              {t('signup.returnToRollpe')}
+            </Text>
+          )}
           <View style={styles.form}>
-            <RoundedBorderTextField accessibilityLabel={t('common.email')} placeholder={t('common.email')} value={values.email}
-              onChangeText={(value) => change('email', value)} editable={!loading} keyboardType="email-address"
-              autoComplete="email" textContentType="emailAddress" returnKeyType="next" submitBehavior="submit"
-              onSubmitEditing={() => nameInput.current?.focus()} />
-            <RoundedBorderTextField ref={nameInput} accessibilityLabel={t('signup.nickname')} placeholder={t('signup.nickname')}
-              value={values.name} onChangeText={(value) => change('name', value)} editable={!loading} maxLength={6}
-              autoComplete="nickname" textContentType="nickname" returnKeyType="next" submitBehavior="submit"
-              onSubmitEditing={() => passwordInput.current?.focus()} style={styles.nextField} />
-            <RoundedBorderTextField ref={passwordInput} accessibilityLabel={t('common.password')} placeholder={t('common.password')}
-              value={values.password} onChangeText={(value) => change('password', value)} editable={!loading}
-              secureTextEntry autoComplete="new-password" textContentType="newPassword" returnKeyType="next"
-              submitBehavior="submit" onSubmitEditing={() => confirmationInput.current?.focus()} style={styles.nextField} />
-            <RoundedBorderTextField ref={confirmationInput} accessibilityLabel={t('common.confirmPassword')} placeholder={t('common.confirmPassword')}
-              value={values.confirmPassword} onChangeText={(value) => change('confirmPassword', value)} editable={!loading}
-              secureTextEntry autoComplete="new-password" textContentType="newPassword" returnKeyType="done"
-              submitBehavior="blurAndSubmit" onSubmitEditing={() => { void submit(); }} style={styles.nextField} />
+            <RoundedBorderTextField
+              accessibilityLabel={t('common.email')}
+              placeholder={t('common.email')}
+              value={values.email}
+              onChangeText={(value) => change('email', value)}
+              editable={!loading}
+              keyboardType="email-address"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => nameInput.current?.focus()}
+            />
+            <RoundedBorderTextField
+              ref={nameInput}
+              accessibilityLabel={t('signup.nickname')}
+              placeholder={t('signup.nickname')}
+              value={values.name}
+              onChangeText={(value) => change('name', value)}
+              editable={!loading}
+              maxLength={6}
+              autoComplete="nickname"
+              textContentType="nickname"
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordInput.current?.focus()}
+              style={styles.nextField}
+            />
+            <RoundedBorderTextField
+              ref={passwordInput}
+              accessibilityLabel={t('common.password')}
+              placeholder={t('common.password')}
+              value={values.password}
+              onChangeText={(value) => change('password', value)}
+              editable={!loading}
+              secureTextEntry
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => confirmationInput.current?.focus()}
+              style={styles.nextField}
+            />
+            <RoundedBorderTextField
+              ref={confirmationInput}
+              accessibilityLabel={t('common.confirmPassword')}
+              placeholder={t('common.confirmPassword')}
+              value={values.confirmPassword}
+              onChangeText={(value) => change('confirmPassword', value)}
+              editable={!loading}
+              secureTextEntry
+              autoComplete="new-password"
+              textContentType="newPassword"
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+              onSubmitEditing={() => {
+                void submit();
+              }}
+              style={styles.nextField}
+            />
             <View style={styles.agreements}>
-              <AgreementRow label={t('signup.age')} checked={values.ageChecked}
-                onCheckedChange={(value) => change('ageChecked', value)} disabled={loading} />
-              <AgreementRow label={t('signup.terms')} checked={values.termsChecked} policy="terms"
-                onCheckedChange={(value) => change('termsChecked', value)} disabled={loading} />
-              <AgreementRow label={t('signup.privacy')} checked={values.privacyChecked} policy="privacy"
-                onCheckedChange={(value) => change('privacyChecked', value)} disabled={loading} />
+              <AgreementRow
+                label={t('signup.age')}
+                checked={values.ageChecked}
+                onCheckedChange={(value) => change('ageChecked', value)}
+                disabled={loading}
+              />
+              <AgreementRow
+                label={t('signup.terms')}
+                checked={values.termsChecked}
+                policy="terms"
+                onCheckedChange={(value) => change('termsChecked', value)}
+                disabled={loading}
+              />
+              <AgreementRow
+                label={t('signup.privacy')}
+                checked={values.privacyChecked}
+                policy="privacy"
+                onCheckedChange={(value) => change('privacyChecked', value)}
+                disabled={loading}
+              />
             </View>
-            <PrimaryButton title={t('signup.submit')} disabled={loading || !canSignUp(values)} style={styles.submit}
-              onPress={() => { void submit(); }} />
+            <PrimaryButton
+              title={t('signup.submit')}
+              disabled={loading || !canSignUp(values)}
+              style={styles.submit}
+              onPress={() => {
+                void submit();
+              }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <BackButton disabled={loading} style={[styles.back, { top: safeArea('top', 20) }]} onPress={goBack} />
+      <BackButton
+        disabled={loading}
+        style={[styles.back, { top: safeArea('top', 20) }]}
+        onPress={goBack}
+      />
       {loading && <LoadingView accessibilityLabel={t('signup.loading')} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  returnNotice: { marginTop: 16, fontFamily: RollpeFonts.display, fontSize: 16, textAlign: 'center' },
+  returnNotice: {
+    marginTop: 16,
+    fontFamily: RollpeFonts.display,
+    fontSize: 16,
+    textAlign: 'center',
+  },
   screen: { flex: 1 },
   content: { alignItems: 'center', paddingHorizontal: 20 },
   logo: { width: '37.7884615%', aspectRatio: 2 },

@@ -1,13 +1,21 @@
-
 import { t } from '@/i18n';
 export type RollpeChoice = {
-  id: number; name: string; type: 'RATIO' | 'THEME' | 'SIZE';
-  query: { max?: number }; is_vip: boolean;
+  id: number;
+  name: string;
+  type: 'RATIO' | 'THEME' | 'SIZE';
+  query: { max?: number };
+  is_vip: boolean;
 };
 export type Recipient = { id: number; name: string; identifyCode: string };
 export type CreateRollpeValues = {
-  title: string; ratio: RollpeChoice | null; theme: RollpeChoice | null; size: RollpeChoice | null;
-  isPrivate: boolean; password: string; receivingDate: string; recipient: Recipient | null;
+  title: string;
+  ratio: RollpeChoice | null;
+  theme: RollpeChoice | null;
+  size: RollpeChoice | null;
+  isPrivate: boolean;
+  password: string;
+  receivingDate: string;
+  recipient: Recipient | null;
 };
 
 export function dateString(date: Date) {
@@ -32,12 +40,31 @@ export function isReceivingDate(value: string, now = new Date()) {
 export function creationError(values: CreateRollpeValues, now = new Date()): string | null {
   if (!values.title.length) return t('create.enterTitle');
   if (values.title.length > 20) return t('create.titleTooLong');
-  if (!values.ratio || values.ratio.type !== 'RATIO' || !Number.isSafeInteger(values.ratio.id) || values.ratio.id <= 0) return t('create.ratioRequired');
-  if (!values.theme || values.theme.type !== 'THEME' || !Number.isSafeInteger(values.theme.id) || values.theme.id <= 0) return t('create.themeRequired');
-  if (!values.size || values.size.type !== 'SIZE' || !Number.isSafeInteger(values.size.id) || values.size.id <= 0) return t('create.sizeRequired');
+  if (
+    !values.ratio ||
+    values.ratio.type !== 'RATIO' ||
+    !Number.isSafeInteger(values.ratio.id) ||
+    values.ratio.id <= 0
+  )
+    return t('create.ratioRequired');
+  if (
+    !values.theme ||
+    values.theme.type !== 'THEME' ||
+    !Number.isSafeInteger(values.theme.id) ||
+    values.theme.id <= 0
+  )
+    return t('create.themeRequired');
+  if (
+    !values.size ||
+    values.size.type !== 'SIZE' ||
+    !Number.isSafeInteger(values.size.id) ||
+    values.size.id <= 0
+  )
+    return t('create.sizeRequired');
   if (values.isPrivate && !values.password.length) return t('create.passwordRequired');
   if (values.isPrivate && values.password.length > 50) return t('create.passwordTooLong');
   if (!isReceivingDate(values.receivingDate, now)) return t('create.dateRequired');
-  if (!values.recipient || !Number.isSafeInteger(values.recipient.id) || values.recipient.id <= 0) return t('create.recipientRequired');
+  if (!values.recipient || !Number.isSafeInteger(values.recipient.id) || values.recipient.id <= 0)
+    return t('create.recipientRequired');
   return null;
 }

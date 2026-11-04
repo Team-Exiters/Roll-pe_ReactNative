@@ -1,4 +1,3 @@
-
 import { t } from '@/i18n';
 export type SignUpValues = {
   email: string;
@@ -17,11 +16,15 @@ function inputError(values: SignUpValues): string | null {
   if (Array.from(values.name).length < 2 || Array.from(values.name).length > 6) {
     return t('validation.nickname');
   }
-  if (values.password.length > 50 || !/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,}$/.test(values.password)) {
+  if (
+    values.password.length > 50 ||
+    !/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,}$/.test(values.password)
+  ) {
     return t('validation.password');
   }
   if (values.password !== values.confirmPassword) return t('validation.passwordMismatch');
-  if (!values.ageChecked || !values.termsChecked || !values.privacyChecked) return t('validation.agreements');
+  if (!values.ageChecked || !values.termsChecked || !values.privacyChecked)
+    return t('validation.agreements');
   return null;
 }
 
@@ -30,6 +33,8 @@ export function canSignUp(values: SignUpValues) {
 }
 
 export function signUpError(values: SignUpValues): string | null {
-  return inputError(values) || (values.password !== values.password.trim()
-    ? t('validation.passwordWhitespace') : null);
+  return (
+    inputError(values) ||
+    (values.password !== values.password.trim() ? t('validation.passwordWhitespace') : null)
+  );
 }

@@ -16,6 +16,7 @@ function setup(reply = () => ({ response: { status: 201 }, payload: { data: { id
       target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS,
     } }).outputText, { exports, Error, URLSearchParams, Set, require: name => {
       if (name === '@/i18n') return require('./helpers/i18n.cjs');
+      if (name === '@/lib/api-response') return require('./helpers/api-response.cjs');
       if (name === '@/utils/rollpe-link') return load('link');
       if (name === '@/features/rollpe-content/model') return load('model');
       if (name === '@/lib/authenticated-api') {

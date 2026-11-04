@@ -20,17 +20,21 @@ export default function BrowserCallback() {
     if (Platform.OS === 'web') {
       // Defer consumption so React's development effect replay cannot exchange twice.
       Promise.resolve()
-        .then(() => active ? completeWebBrowserSignIn(controller.signal) : null)
+        .then(() => (active ? completeWebBrowserSignIn(controller.signal) : null))
         .then(async (result) => {
           if (!active) return;
           const next = result ? await resolveRollpeDestination() : '/sign-in';
           if (active) router.replace(next ?? '/home');
         })
         .catch((failure: unknown) => {
-          if (active) setError(failure instanceof Error ? failure.message : t('auth.callbackFailed'));
+          if (active)
+            setError(failure instanceof Error ? failure.message : t('auth.callbackFailed'));
         });
     }
-    return () => { active = false; controller.abort(); };
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [router, t]);
 
   if (Platform.OS !== 'web') return <Redirect href="/sign-in" />;
@@ -41,8 +45,14 @@ export default function BrowserCallback() {
       <Text style={[styles.message, { color: colors.rollpe_secondary }]}>
         {error ? t('auth.callbackFailed') : t('auth.callbackChecking')}
       </Text>
-      {error && <AppDialog title={t('common.signIn')} message={error}
-        onConfirm={() => router.replace('/sign-in')} onClose={() => router.replace('/sign-in')} />}
+      {error && (
+        <AppDialog
+          title={t('common.signIn')}
+          message={error}
+          onConfirm={() => router.replace('/sign-in')}
+          onClose={() => router.replace('/sign-in')}
+        />
+      )}
     </View>
   );
 }

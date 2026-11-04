@@ -4,5 +4,7 @@ export function isRecoveryEmail(email: string) {
 
 // Match the existing iOS policy; passwords are never trimmed.
 export function isRecoveryPassword(password: string) {
-  return password.length <= 128 && /^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,}$/.test(password);
+  return (
+    password.length <= 128 && /^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,}$/.test(password)
+  );
 }

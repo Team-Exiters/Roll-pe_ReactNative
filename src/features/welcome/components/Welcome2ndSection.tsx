@@ -14,7 +14,8 @@ export function Welcome2ndSection() {
         <Text
           accessibilityRole="header"
           numberOfLines={2}
-          style={[styles.title, { color: colors.rollpe_secondary }]}>
+          style={[styles.title, { color: colors.rollpe_secondary }]}
+        >
           {t('welcome.create')}
         </Text>
         <Image

@@ -1,6 +1,13 @@
 import { Image } from 'expo-image';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View, type DimensionValue } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type DimensionValue,
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -46,7 +53,8 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
           backgroundColor: colors.rollpe_primary,
           height: sectionHeight,
         },
-      ]}>
+      ]}
+    >
       <Image
         source={require('@/assets/images/welcome/background.jpg')}
         contentFit="cover"
@@ -64,11 +72,7 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
         <Text numberOfLines={2} style={[styles.tagline, { color: colors.rollpe_secondary }]}>
           {t('welcome.tagline')}
         </Text>
-        <PrimaryButton
-          title={t('welcome.start')}
-          onPress={onStart}
-          style={styles.startButton}
-        />
+        <PrimaryButton title={t('welcome.start')} onPress={onStart} style={styles.startButton} />
       </View>
       <View style={styles.scrollHint}>
         <Animated.View style={[styles.arrow, arrowAnimation]}>
@@ -80,7 +84,8 @@ export function Welcome1stSection({ onStart }: Welcome1stSectionProps) {
           />
         </Animated.View>
         <Text style={[styles.scrollHintText, { color: colors.rollpe_gray }]}>
-          {t('welcome.scroll')}</Text>
+          {t('welcome.scroll')}
+        </Text>
       </View>
     </View>
   );

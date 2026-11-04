@@ -16,7 +16,8 @@ export const apiClient = create({
 });
 
 export async function requestApi(
-  config: Pick<AxiosRequestConfig, 'url' | 'method' | 'data' | 'headers'>, signal?: AbortSignal,
+  config: Pick<AxiosRequestConfig, 'url' | 'method' | 'data' | 'headers'>,
+  signal?: AbortSignal,
 ) {
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -32,14 +33,22 @@ export async function requestApi(
 }
 
 export function jsonResult(result: { status: number; data: unknown }) {
-  const payload = result.data && typeof result.data === 'object' && !Array.isArray(result.data)
-    ? result.data as Record<string, unknown> : null;
+  const payload =
+    result.data && typeof result.data === 'object' && !Array.isArray(result.data)
+      ? (result.data as Record<string, unknown>)
+      : null;
   // HTTP failures still carry domain-specific errors for each feature to interpret.
-  return { response: { status: result.status, ok: result.status >= 200 && result.status < 300 }, payload };
+  return {
+    response: { status: result.status, ok: result.status >= 200 && result.status < 300 },
+    payload,
+  };
 }
 
 export async function requestJson(
-  url: string, body?: object, method: 'GET' | 'POST' | 'PATCH' = 'POST', signal?: AbortSignal,
+  url: string,
+  body?: object,
+  method: 'GET' | 'POST' | 'PATCH' = 'POST',
+  signal?: AbortSignal,
 ) {
   return jsonResult(await requestApi({ url, method, data: body }, signal));
 }

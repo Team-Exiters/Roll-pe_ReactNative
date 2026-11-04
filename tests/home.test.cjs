@@ -13,7 +13,8 @@ function homeService(respond) {
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
   } }).outputText, { exports, Date, Error, require: name => {
-        if (name === '@/i18n') return require('./helpers/i18n.cjs');
+    if (name === '@/i18n') return require('./helpers/i18n.cjs');
+    if (name === '@/lib/api-response') return require('./helpers/api-response.cjs');
     assert.equal(name, '@/lib/authenticated-api');
     return { authenticatedGet: respond };
   } });

@@ -20,6 +20,7 @@ function setup(reply = () => ({ response: { status: 200, ok: true }, payload: { 
     const source = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
     vm.runInNewContext(source, { exports, Date, Error, URL, URLSearchParams, Set, require: name => {
       if (name === '@/i18n') return require('./helpers/i18n.cjs');
+      if (name === '@/lib/api-response') return require('./helpers/api-response.cjs');
       if (name === '@/utils/rollpe-link') return load('link');
       if (name === '@/features/rollpe-info/model') return load('model');
       assert.equal(name, '@/lib/authenticated-api');

@@ -4,13 +4,26 @@ export { normalizeRollpeCode } from '@/utils/rollpe-link';
 
 export type RollpeUser = { id: number; name: string; identifyCode: string };
 export type RollpeHeart = {
-  id: number; code: string; index: number; author: RollpeUser; content: string; color: string; revisionCount?: number;
+  id: number;
+  code: string;
+  index: number;
+  author: RollpeUser;
+  content: string;
+  color: string;
+  revisionCount?: number;
 };
 export type RollpeInfo = {
-  id: number; code: string; title: string; host: RollpeUser;
+  id: number;
+  code: string;
+  title: string;
+  host: RollpeUser;
   receive: { receiver: RollpeUser | null; receivingDate: string; receivingStat: number };
-  viewStat: boolean; ratio: string; theme: string; size: string;
-  maxHeartLength: number; hearts: { count: number; data: RollpeHeart[] };
+  viewStat: boolean;
+  ratio: string;
+  theme: string;
+  size: string;
+  maxHeartLength: number;
+  hearts: { count: number; data: RollpeHeart[] };
 };
 
 export function validReceivingDate(value: unknown): value is string {
@@ -28,7 +41,11 @@ export function remainingTime(date: string, now = Date.now()): string {
   const remaining = rollpeDeadline(date) - now;
   if (!Number.isFinite(remaining) || remaining <= 0) return t('info.closed');
   const minutes = Math.floor(remaining / 60_000);
-  const values = { days: Math.floor(minutes / 1440), hours: Math.floor(minutes / 60) % 24, minutes: minutes % 60 };
+  const values = {
+    days: Math.floor(minutes / 1440),
+    hours: Math.floor(minutes / 60) % 24,
+    minutes: minutes % 60,
+  };
   const value = t(values.days ? 'info.days' : values.hours ? 'info.hours' : 'info.minutes', values);
   return t('info.remaining', { value });
 }
@@ -45,8 +62,11 @@ export function rollpeRole(rollpe: RollpeInfo, userId: number, now = Date.now())
 }
 
 export function canDeleteRollpe(rollpe: RollpeInfo, userId: number, now = Date.now()): boolean {
-  return rollpe.host.id === userId && rollpe.receive.receivingStat === 0
-    && now < rollpeDeadline(rollpe.receive.receivingDate);
+  return (
+    rollpe.host.id === userId &&
+    rollpe.receive.receivingStat === 0 &&
+    now < rollpeDeadline(rollpe.receive.receivingDate)
+  );
 }
 
 export function canSendRollpe(rollpe: RollpeInfo, userId: number, now = Date.now()): boolean {
@@ -61,12 +81,22 @@ export function rollpeShareUrl(code: string, website?: string, apiUrl?: string):
   for (const value of [website, apiUrl]) {
     try {
       const url = new URL(value ?? '');
-      if (value === value?.trim() && url.protocol === 'https:' && !url.username && !url.password
-        && !url.port && !url.search && !url.hash && url.pathname === '/'
-        && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      if (
+        value === value?.trim() &&
+        url.protocol === 'https:' &&
+        !url.username &&
+        !url.password &&
+        !url.port &&
+        !url.search &&
+        !url.hash &&
+        url.pathname === '/' &&
+        !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+      ) {
         return `${url.origin}/rollpe/${normalized}`;
       }
-    } catch { /* Try the API origin when a web deployment is not configured. */ }
+    } catch {
+      /* Try the API origin when a web deployment is not configured. */
+    }
   }
   return `rollpe://rollpe/${normalized}`;
 }
@@ -74,7 +104,12 @@ export function rollpeShareUrl(code: string, website?: string, apiUrl?: string):
 export function reportRollpeUrl(code: string, identifyCode: string): string {
   const normalized = normalizeRollpeCode(code);
   if (!normalized || !identifyCode) throw new Error(t('info.reportFailed'));
-  const params = new URLSearchParams({ usp: 'pp_url', 'entry.44205633': '부적절한 롤페',
-    'entry.2107714088': identifyCode, 'entry.1553361014': normalized, 'entry.1614951501': '해당 없음' });
+  const params = new URLSearchParams({
+    usp: 'pp_url',
+    'entry.44205633': '부적절한 롤페',
+    'entry.2107714088': identifyCode,
+    'entry.1553361014': normalized,
+    'entry.1614951501': '해당 없음',
+  });
   return `https://docs.google.com/forms/d/e/1FAIpQLSfBv17bitAz4mSeiPg0hgXU9FktXujQCEIYe3_m1L-y8bIWyQ/viewform?${params}`;
 }

@@ -8,7 +8,12 @@ import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 import { AppFooter } from '@/components/AppFooter';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
-import { fetchHomeStatus, fetchHotRollpes, type HomeStatus, type HotRollpe } from '@/features/home/api';
+import {
+  fetchHomeStatus,
+  fetchHotRollpes,
+  type HomeStatus,
+  type HotRollpe,
+} from '@/features/home/api';
 import { AppSideMenu } from '@/components/AppSideMenu';
 import { RollpeCard } from '@/features/home/components/RollpeCard';
 import { getTokenState } from '@/features/sign-in/token-state';
@@ -31,81 +36,177 @@ export default function HomeScreen() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  useFocusEffect(useCallback(() => {
-    if (attempt > 0) { setError(false); setResult(null); }
-    const controller = new AbortController();
-    let active = true;
-    void (async () => {
-      try {
-        const tokenState = await getTokenState();
-        if (!active) return;
-        if (!tokenState) { router.replace('/sign-in'); return; }
-        const [status, rollpes] = await Promise.allSettled([
-          fetchHomeStatus(controller.signal), fetchHotRollpes(controller.signal),
-        ]);
-        if (!active) return;
-        if ([status, rollpes].some(value => value.status === 'rejected' && value.reason instanceof AuthenticationRequiredError)) {
-          router.replace('/sign-in');
-          return;
-        }
-        setResult({ userName: tokenState.user.name,
-          status: status.status === 'fulfilled' ? status.value : undefined,
-          statusError: status.status === 'rejected' ? t('home.statusFailed') : undefined,
-          rollpes: rollpes.status === 'fulfilled' ? rollpes.value : undefined,
-          rollpesError: rollpes.status === 'rejected' ? t('home.rollpesFailed') : undefined,
-        });
-      } catch {
-        if (active) setError(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (attempt > 0) {
+        setError(false);
+        setResult(null);
       }
-    })();
-    return () => { active = false; controller.abort(); };
-  }, [attempt, router, t]));
+      const controller = new AbortController();
+      let active = true;
+      void (async () => {
+        try {
+          const tokenState = await getTokenState();
+          if (!active) return;
+          if (!tokenState) {
+            router.replace('/sign-in');
+            return;
+          }
+          const [status, rollpes] = await Promise.allSettled([
+            fetchHomeStatus(controller.signal),
+            fetchHotRollpes(controller.signal),
+          ]);
+          if (!active) return;
+          if (
+            [status, rollpes].some(
+              (value) =>
+                value.status === 'rejected' && value.reason instanceof AuthenticationRequiredError,
+            )
+          ) {
+            router.replace('/sign-in');
+            return;
+          }
+          setResult({
+            userName: tokenState.user.name,
+            status: status.status === 'fulfilled' ? status.value : undefined,
+            statusError: status.status === 'rejected' ? t('home.statusFailed') : undefined,
+            rollpes: rollpes.status === 'fulfilled' ? rollpes.value : undefined,
+            rollpesError: rollpes.status === 'rejected' ? t('home.rollpesFailed') : undefined,
+          });
+        } catch {
+          if (active) setError(true);
+        }
+      })();
+      return () => {
+        active = false;
+        controller.abort();
+      };
+    }, [attempt, router, t]),
+  );
 
-  function retry() { setError(false); setResult(null); setAttempt(value => value + 1); }
-  function failure(message: string) {
-    return <View style={styles.failure}>
-      <Text accessibilityRole="alert" style={[styles.error, { color: colors.rollpe_secondary }]}>{message}</Text>
-      <Pressable accessibilityRole="button" onPress={retry} hitSlop={12}>
-        <Text style={[styles.error, { color: colors.rollpe_main }]}>{t('common.retry')}</Text>
-      </Pressable>
-    </View>;
+  function retry() {
+    setError(false);
+    setResult(null);
+    setAttempt((value) => value + 1);
   }
-  if (!result) return <View style={[styles.loading, { backgroundColor: colors.rollpe_primary }]}>
-    {error ? failure(t('home.failed')) : <ActivityIndicator accessibilityLabel={t('home.loading')} color={colors.rollpe_main} />}
-  </View>;
-
-  return <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') }]}>
-    <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never"
-      automaticallyAdjustContentInsets={false} contentContainerStyle={styles.contents}>
-      <View style={[styles.top, { backgroundColor: colors.rollpe_primary }]}>
-        <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>{t('home.greeting', { name: result.userName })}</Text>
-        <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>{t('home.hostCount', { count: result.status?.host ?? '—' })}</Text>
-        <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>{t('home.heartCount', { count: result.status?.heart ?? '—' })}</Text>
-        {result.statusError ? failure(result.statusError) : null}
-        <PrimaryButton title={t('home.invited')} onPress={() => router.push('/invitations')} style={styles.invited} />
-        <Pressable accessibilityRole="button" onPress={() => router.push('/create-rollpe')}
-          style={[styles.create, { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary }]}>
-          <Text style={[styles.createText, { color: colors.rollpe_main }]}>{t('common.createRollpe')}</Text>
+  function failure(message: string) {
+    return (
+      <View style={styles.failure}>
+        <Text accessibilityRole="alert" style={[styles.error, { color: colors.rollpe_secondary }]}>
+          {message}
+        </Text>
+        <Pressable accessibilityRole="button" onPress={retry} hitSlop={12}>
+          <Text style={[styles.error, { color: colors.rollpe_main }]}>{t('common.retry')}</Text>
         </Pressable>
       </View>
-      <View style={[styles.hot, { backgroundColor: colors.rollpe_section_background }]}>
-        <Text accessibilityRole="header" style={[styles.hotTitle, { color: colors.rollpe_secondary }]}>{t('home.hot')}</Text>
-        {result.rollpesError ? failure(result.rollpesError) : <View style={styles.grid}>
-          {result.rollpes?.map(rollpe => <View key={rollpe.id} style={styles.gridItem}>
-            <RollpeCard rollpe={rollpe} onPress={() => router.push({ pathname: '/rollpe/[code]', params: {
-              code: rollpe.code,
-            } })} />
-          </View>)}
-        </View>}
+    );
+  }
+  if (!result)
+    return (
+      <View style={[styles.loading, { backgroundColor: colors.rollpe_primary }]}>
+        {error ? (
+          failure(t('home.failed'))
+        ) : (
+          <ActivityIndicator accessibilityLabel={t('home.loading')} color={colors.rollpe_main} />
+        )}
       </View>
-      <AppFooter />
-    </ScrollView>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('home.menuOpen')} accessibilityState={{ expanded: menuOpen }}
-      hitSlop={8} onPress={() => setMenuOpen(true)} style={[styles.menuButton, { top: safeArea('top', 20), backgroundColor: colors.rollpe_primary }]}>
-      <Image source={require('@/assets/images/home/menu.svg')} accessible={false} contentFit="contain" style={styles.menuIcon} />
-    </Pressable>
-    {menuOpen && <AppSideMenu onClose={() => setMenuOpen(false)} />}
-  </View>;
+    );
+
+  return (
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.rollpe_primary, paddingTop: safeArea('top') },
+      ]}
+    >
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentContainerStyle={styles.contents}
+      >
+        <View style={[styles.top, { backgroundColor: colors.rollpe_primary }]}>
+          <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>
+            {t('home.greeting', { name: result.userName })}
+          </Text>
+          <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>
+            {t('home.hostCount', { count: result.status?.host ?? '—' })}
+          </Text>
+          <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>
+            {t('home.heartCount', { count: result.status?.heart ?? '—' })}
+          </Text>
+          {result.statusError ? failure(result.statusError) : null}
+          <PrimaryButton
+            title={t('home.invited')}
+            onPress={() => router.push('/invitations')}
+            style={styles.invited}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/create-rollpe')}
+            style={[
+              styles.create,
+              { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary },
+            ]}
+          >
+            <Text style={[styles.createText, { color: colors.rollpe_main }]}>
+              {t('common.createRollpe')}
+            </Text>
+          </Pressable>
+        </View>
+        <View style={[styles.hot, { backgroundColor: colors.rollpe_section_background }]}>
+          <Text
+            accessibilityRole="header"
+            style={[styles.hotTitle, { color: colors.rollpe_secondary }]}
+          >
+            {t('home.hot')}
+          </Text>
+          {result.rollpesError ? (
+            failure(result.rollpesError)
+          ) : (
+            <View style={styles.grid}>
+              {result.rollpes?.map((rollpe) => (
+                <View key={rollpe.id} style={styles.gridItem}>
+                  <RollpeCard
+                    rollpe={rollpe}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/rollpe/[code]',
+                        params: {
+                          code: rollpe.code,
+                        },
+                      })
+                    }
+                  />
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+        <AppFooter />
+      </ScrollView>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('home.menuOpen')}
+        accessibilityState={{ expanded: menuOpen }}
+        hitSlop={8}
+        onPress={() => setMenuOpen(true)}
+        style={[
+          styles.menuButton,
+          { top: safeArea('top', 20), backgroundColor: colors.rollpe_primary },
+        ]}
+      >
+        <Image
+          source={require('@/assets/images/home/menu.svg')}
+          accessible={false}
+          contentFit="contain"
+          style={styles.menuIcon}
+        />
+      </Pressable>
+      {menuOpen && <AppSideMenu onClose={() => setMenuOpen(false)} />}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -118,13 +219,28 @@ const styles = StyleSheet.create({
   rollpeCount: { marginTop: 8 },
   heartCount: { marginTop: 4 },
   invited: { marginTop: 40 },
-  create: { marginTop: 8, borderWidth: 2, borderRadius: 8, padding: 14, alignItems: 'center', justifyContent: 'center' },
+  create: {
+    marginTop: 8,
+    borderWidth: 2,
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   createText: { fontFamily: RollpeFonts.semibold, fontSize: 16 },
   hot: { paddingTop: 44, paddingHorizontal: 20, paddingBottom: 44, flexGrow: 1 },
   hotTitle: { fontFamily: RollpeFonts.display, fontSize: 24 },
   grid: { marginTop: 40, marginHorizontal: -6, flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
   gridItem: { width: '50%', paddingHorizontal: 6 },
-  menuButton: { position: 'absolute', right: 20, width: 28, height: 28, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  menuButton: {
+    position: 'absolute',
+    right: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   menuIcon: { width: 16, height: 14 },
   failure: { alignItems: 'center', gap: 12, paddingVertical: 16 },
   error: { fontFamily: RollpeFonts.regular, fontSize: 14 },

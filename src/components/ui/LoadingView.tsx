@@ -10,7 +10,8 @@ export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: strin
     <View
       accessibilityRole="progressbar"
       accessibilityLabel={accessibilityLabel ?? t('auth.signingIn')}
-      style={[StyleSheet.absoluteFill, styles.overlay]}>
+      style={[StyleSheet.absoluteFill, styles.overlay]}
+    >
       <Image
         source={require('@/assets/images/loading.gif')}
         contentFit="contain"

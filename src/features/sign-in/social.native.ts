@@ -5,7 +5,9 @@ import { t } from '@/i18n';
 import type { SocialCredential, SocialProvider } from '@/features/sign-in/api';
 
 function randomSecret() {
-  return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join('');
+  return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join(
+    '',
+  );
 }
 
 function errorCode(error: unknown) {
@@ -14,9 +16,10 @@ function errorCode(error: unknown) {
 
 export async function availableNativeProviders(): Promise<SocialProvider[]> {
   const providers: SocialProvider[] = [];
-  const googleClientId = Platform.OS === 'ios'
-    ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
-    : process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const googleClientId =
+    Platform.OS === 'ios'
+      ? process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+      : process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (googleClientId) providers.push('google');
   if (process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY) providers.push('kakao');
   if (Platform.OS === 'ios' && process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED === 'true') {
@@ -34,9 +37,11 @@ export async function authorizeNative(provider: SocialProvider): Promise<SocialC
   try {
     switch (provider) {
       case 'google': {
-        const { GoogleSignin, isSuccessResponse } = await import('@react-native-google-signin/google-signin');
+        const { GoogleSignin, isSuccessResponse } =
+          await import('@react-native-google-signin/google-signin');
         if (Platform.OS === 'android') {
-          if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) throw new Error(t('auth.googleMissing'));
+          if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)
+            throw new Error(t('auth.googleMissing'));
           // Android uses the web client as the audience of tokens sent to our API.
           GoogleSignin.configure({ webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID });
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -63,8 +68,12 @@ export async function authorizeNative(provider: SocialProvider): Promise<SocialC
         const state = randomSecret();
         const nonce = randomSecret();
         const result = await Apple.signInAsync({
-          requestedScopes: [Apple.AppleAuthenticationScope.FULL_NAME, Apple.AppleAuthenticationScope.EMAIL],
-          state, nonce,
+          requestedScopes: [
+            Apple.AppleAuthenticationScope.FULL_NAME,
+            Apple.AppleAuthenticationScope.EMAIL,
+          ],
+          state,
+          nonce,
         });
         if (result.state !== state || !result.identityToken || !result.authorizationCode) {
           throw new Error(t('auth.appleResponseInvalid'));
@@ -79,12 +88,24 @@ export async function authorizeNative(provider: SocialProvider): Promise<SocialC
     }
   } catch (error) {
     const code = errorCode(error);
-    if (['ERR_REQUEST_CANCELED', 'SIGN_IN_CANCELLED', 'E_CANCELLED_OPERATION', 'userCancelled'].includes(code)) {
+    if (
+      [
+        'ERR_REQUEST_CANCELED',
+        'SIGN_IN_CANCELLED',
+        'E_CANCELLED_OPERATION',
+        'userCancelled',
+      ].includes(code)
+    ) {
       return null;
     }
     // Both SDKs report cancellation under the shared RNKakaoLogins code.
-    if (provider === 'kakao' && code === 'RNKakaoLogins' && error instanceof Error
-      && /ClientFailed\(Cancelled\)|AuthFailed\(AccessDenied\)|\b[Cc]ancelled\b/.test(error.message)) return null;
+    if (
+      provider === 'kakao' &&
+      code === 'RNKakaoLogins' &&
+      error instanceof Error &&
+      /ClientFailed\(Cancelled\)|AuthFailed\(AccessDenied\)|\b[Cc]ancelled\b/.test(error.message)
+    )
+      return null;
     if (code === 'IN_PROGRESS') throw new Error(t('auth.inProgress'));
     throw error;
   }

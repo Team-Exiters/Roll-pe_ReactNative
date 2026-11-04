@@ -40,10 +40,8 @@ export function PrimaryButton({ title, textStyle, disabled, style, ...props }: P
       accessibilityRole="button"
       accessibilityState={{ ...props.accessibilityState, disabled: Boolean(disabled) }}
       disabled={disabled}
-      style={(state) => [
-        styles.button,
-        typeof style === 'function' ? style(state) : style,
-      ]}>
+      style={(state) => [styles.button, typeof style === 'function' ? style(state) : style]}
+    >
       <Animated.View
         pointerEvents="none"
         style={[
