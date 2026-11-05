@@ -32,12 +32,14 @@ import {
 } from '@/features/create-rollpe/validation';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export default function CreateRollpeScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openWelcome, openMainScreen } = useAppNavigation();
   const [values, setValues] = useState<CreateRollpeValues>(() => ({
     title: '',
     ratio: null,
@@ -78,18 +80,18 @@ export default function CreateRollpeScreen() {
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
-        if (error instanceof AuthenticationRequiredError) router.replace('/sign-in');
+        if (error instanceof AuthenticationRequiredError) openWelcome();
         else setOptionsError(error instanceof Error ? error.message : t('create.optionsFailed'));
       });
     return () => controller.abort();
-  }, [attempt, router, t]);
+  }, [attempt, openWelcome, t]);
 
   function change<K extends keyof CreateRollpeValues>(key: K, value: CreateRollpeValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
   }
   function goBack() {
     if (router.canGoBack()) router.back();
-    else router.replace('/home');
+    else openMainScreen();
   }
   function showMessage(title: string, message: string, onConfirm?: () => void) {
     Keyboard.dismiss();
@@ -99,7 +101,7 @@ export default function CreateRollpeScreen() {
     if (!active.current) return;
     if (error instanceof AuthenticationRequiredError) {
       setSearchOpen(false);
-      router.replace('/sign-in');
+      openWelcome();
     } else
       showMessage(
         t('common.error'),
@@ -305,7 +307,7 @@ export default function CreateRollpeScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('common.goHome')}
           disabled={loading}
-          onPress={() => router.dismissTo('/home')}
+          onPress={() => openMainScreen()}
         >
           <Image
             source={require('@/assets/images/welcome/logo.png')}

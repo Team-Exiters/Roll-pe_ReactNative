@@ -41,6 +41,7 @@ import { InvitationError, respondToInvitation } from '@/features/invitations/api
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 type DetailModal =
   | { type: 'participants' | 'share' | 'management' | 'leave' }
@@ -58,6 +59,7 @@ function RollpeInfoContent({ code }: { code: string }) {
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openSignIn, openWelcome, openMainScreen } = useAppNavigation();
   const [result, setResult] = useState<{ rollpe: RollpeInfo; user: TokenState['user'] } | null>(
     null,
   );
@@ -173,10 +175,9 @@ function RollpeInfoContent({ code }: { code: string }) {
   function goBack() {
     void clearPendingRollpeDestination(`/rollpe/${code}`);
     if (signInRequired) {
-      if (router.canDismiss()) router.dismissAll();
-      router.replace('/');
+      openWelcome();
     } else if (router.canGoBack()) router.back();
-    else router.replace('/home');
+    else openMainScreen();
   }
   async function signIn() {
     if (joinPending.current) return;
@@ -184,8 +185,7 @@ function RollpeInfoContent({ code }: { code: string }) {
     setJoining(true);
     const epoch = actionEpoch.current;
     await rememberRollpeDestination(`/rollpe/${code}`);
-    if (focused.current && epoch === actionEpoch.current)
-      router.replace({ pathname: '/sign-in', params: { returnTo: `/rollpe/${code}` } });
+    if (focused.current && epoch === actionEpoch.current) openSignIn(`/rollpe/${code}`);
     if (epoch === actionEpoch.current) {
       joinPending.current = false;
       if (focused.current) setJoining(false);
@@ -201,8 +201,7 @@ function RollpeInfoContent({ code }: { code: string }) {
     if (reload) setAttempt((value) => value + 1);
   }
   function goHome() {
-    if (router.canDismiss()) router.dismissAll();
-    router.replace('/home');
+    openMainScreen();
   }
   function showMessage(message: string, failure = false) {
     setNotice({ message, failure });
@@ -286,9 +285,8 @@ function RollpeInfoContent({ code }: { code: string }) {
           onPress={() => {
             void clearPendingRollpeDestination(`/rollpe/${code}`);
             if (signInRequired) {
-              if (router.canDismiss()) router.dismissAll();
-              router.replace('/');
-            } else router.dismissTo('/home');
+              openWelcome();
+            } else openMainScreen();
           }}
         >
           <Image
@@ -341,7 +339,7 @@ function RollpeInfoContent({ code }: { code: string }) {
                 style={styles.paper}
                 onPress={() => {
                   if (role === 'receiver') showMessage(t('info.noMoreWriting'));
-                  else router.push({ pathname: '/rollpe/[code]/content', params: { code } });
+                  else router.navigate({ pathname: '/rollpe/[code]/content', params: { code } });
                 }}
               >
                 <RollpePaper

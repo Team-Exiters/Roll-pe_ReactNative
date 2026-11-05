@@ -26,11 +26,14 @@ import {
   resolveRollpeDestination,
 } from '@/features/sign-in/pending-rollpe';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { getTokenState } from '@/features/sign-in/token-state';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const router = useRouter();
+  const { openSignIn, finishSignIn, openWelcome } = useAppNavigation();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const safeArea = useSafeAreaSpacing();
   const signIn = useSignIn();
@@ -42,17 +45,27 @@ export default function SignInScreen() {
     useCallback(() => {
       focused.current = true;
       const attempt = epoch.current;
-      void resolveRollpeDestination(returnTo).then((value) => {
-        if (focused.current && attempt === epoch.current) {
-          setDestination(value);
-          if (value) void rememberRollpeDestination(value);
-        }
-      });
+      void Promise.all([resolveRollpeDestination(returnTo), getTokenState()])
+        .then(([value, token]) => {
+          if (focused.current && attempt === epoch.current) {
+            // Browser history and cold-start links can revisit this route independently of logout.
+            if (token) {
+              finishSignIn(value);
+              return;
+            }
+            setDestination(value);
+            if (value) void rememberRollpeDestination(value);
+            openSignIn(returnTo);
+          }
+        })
+        .catch(() => {
+          if (focused.current && attempt === epoch.current) setErrorMessage(t('auth.failed'));
+        });
       return () => {
         focused.current = false;
         ++epoch.current;
       };
-    }, [returnTo]),
+    }, [returnTo, openSignIn, finishSignIn, t]),
   );
 
   async function submitSignIn(action: () => ReturnType<typeof signIn.emailSignIn>) {
@@ -62,8 +75,7 @@ export default function SignInScreen() {
       if (tokenState && focused.current && attempt === epoch.current) {
         const next = await resolveRollpeDestination(returnTo);
         if (!focused.current || attempt !== epoch.current) return;
-        if (router.canDismiss()) router.dismissAll();
-        router.replace(next ?? '/home');
+        finishSignIn(next);
       }
     } catch (error) {
       if (focused.current && attempt === epoch.current)
@@ -76,7 +88,7 @@ export default function SignInScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/');
+      openWelcome();
     }
   }
 
@@ -137,7 +149,7 @@ export default function SignInScreen() {
               accessibilityLabel={t('common.forgotPassword')}
               disabled={signIn.isLoading}
               hitSlop={12}
-              onPress={() => router.push('/forgot-password')}
+              onPress={() => router.navigate('/forgot-password')}
             >
               <Text style={[styles.menuText, { color: colors.rollpe_gray }]}>
                 {t('common.forgotPassword')}
@@ -151,7 +163,7 @@ export default function SignInScreen() {
               disabled={signIn.isLoading}
               hitSlop={12}
               onPress={() =>
-                router.push({
+                router.navigate({
                   pathname: '/sign-up',
                   params: destination ? { returnTo: destination } : {},
                 })
@@ -182,7 +194,7 @@ export default function SignInScreen() {
             <Pressable
               accessibilityRole="link"
               disabled={signIn.isLoading}
-              onPress={() => router.push({ pathname: '/policy', params: { type: 'terms' } })}
+              onPress={() => router.navigate({ pathname: '/policy', params: { type: 'terms' } })}
             >
               <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>
                 {t('common.terms')}
@@ -192,7 +204,7 @@ export default function SignInScreen() {
             <Pressable
               accessibilityRole="link"
               disabled={signIn.isLoading}
-              onPress={() => router.push({ pathname: '/policy', params: { type: 'privacy' } })}
+              onPress={() => router.navigate({ pathname: '/policy', params: { type: 'privacy' } })}
             >
               <Text style={[styles.policyText, { color: colors.rollpe_gray }]}>
                 {t('common.privacy')}

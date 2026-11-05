@@ -1,15 +1,27 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { useTranslation } from '@/i18n';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { getTokenState } from '@/features/sign-in/token-state';
 
 export default function RollpeUnavailableScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const router = useRouter();
+  const { openMainScreen, openWelcome } = useAppNavigation();
+  const active = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      active.current = true;
+      return () => {
+        active.current = false;
+      };
+    }, []),
+  );
   return (
     <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
       <View style={styles.content}>
@@ -28,8 +40,15 @@ export default function RollpeUnavailableScreen() {
         <PrimaryButton
           title={t('info.goBack')}
           onPress={() => {
-            if (router.canDismiss()) router.dismissAll();
-            router.replace('/home');
+            void getTokenState()
+              .then((token) => {
+                if (!active.current) return;
+                if (token) openMainScreen();
+                else openWelcome();
+              })
+              .catch(() => {
+                if (active.current) openWelcome();
+              });
           }}
         />
       </View>

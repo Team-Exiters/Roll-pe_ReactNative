@@ -21,6 +21,7 @@ import { searchRollpes, type SearchPage, type SearchRollpe } from '@/features/se
 import { SearchRollpeItem } from '@/features/search/components/SearchRollpeItem';
 import { getTokenState } from '@/features/sign-in/token-state';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
@@ -29,6 +30,7 @@ export default function SearchScreen() {
     colors = useRollpeColors(),
     safeArea = useSafeAreaSpacing(),
     router = useRouter();
+  const { openWelcome } = useAppNavigation();
   const [keyword, setKeyword] = useState('');
   const [submitted, setSubmitted] = useState({ keyword: '', revision: 0 });
   const [result, setResult] = useState<SearchPage | null>(null);
@@ -60,7 +62,7 @@ export default function SearchScreen() {
           if (!controller.signal.aborted) setResult(page);
         } catch (cause) {
           if (controller.signal.aborted) return;
-          if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+          if (cause instanceof AuthenticationRequiredError) openWelcome();
           else setError(cause instanceof Error ? cause.message : t('search.failed'));
         } finally {
           if (!controller.signal.aborted) {
@@ -74,7 +76,7 @@ export default function SearchScreen() {
         request.current?.abort();
         pending.current = false;
       };
-    }, [submitted, router, t]),
+    }, [submitted, openWelcome, t]),
   );
 
   function submit() {
@@ -113,7 +115,7 @@ export default function SearchScreen() {
         });
     } catch (cause) {
       if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+      if (cause instanceof AuthenticationRequiredError) openWelcome();
       else setMoreError(t('search.moreFailed'));
     } finally {
       if (!controller.signal.aborted) {
@@ -201,7 +203,7 @@ export default function SearchScreen() {
             <SearchRollpeItem
               rollpe={item}
               onPress={() =>
-                router.push({ pathname: '/rollpe/[code]', params: { code: item.code } })
+                router.navigate({ pathname: '/rollpe/[code]', params: { code: item.code } })
               }
             />
           )}

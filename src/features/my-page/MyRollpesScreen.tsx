@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -22,16 +22,19 @@ import {
 } from '@/features/my-page/api';
 import { getTokenState } from '@/features/sign-in/token-state';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
 export default function MyRollpesScreen() {
   const { kind } = useLocalSearchParams<{ kind?: string | string[] }>();
-  return isMyRollpeKind(kind) ? (
-    <MyRollpesContent key={kind} kind={kind} />
-  ) : (
-    <Redirect href="/my-page" />
+  const { openMainScreen } = useAppNavigation();
+  useFocusEffect(
+    useCallback(() => {
+      if (!isMyRollpeKind(kind)) openMainScreen('my-page');
+    }, [kind, openMainScreen]),
   );
+  return isMyRollpeKind(kind) ? <MyRollpesContent key={kind} kind={kind} /> : null;
 }
 
 function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
@@ -39,6 +42,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
     colors = useRollpeColors(),
     safeArea = useSafeAreaSpacing(),
     router = useRouter();
+  const { openWelcome, openMainScreen } = useAppNavigation();
   const [result, setResult] = useState<{ page: MyRollpePage; userId: number } | null>(null);
   const [attempt, setAttempt] = useState(0),
     [loading, setLoading] = useState(true),
@@ -70,7 +74,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
           if (!controller.signal.aborted) setResult({ page, userId: token.user.id });
         } catch (cause) {
           if (controller.signal.aborted) return;
-          if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+          if (cause instanceof AuthenticationRequiredError) openWelcome();
           else setError(t('myPage.listFailed'));
         } finally {
           if (!controller.signal.aborted) {
@@ -84,7 +88,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
         request.current?.abort();
         pending.current = false;
       };
-    }, [kind, attempt, router, t]),
+    }, [kind, attempt, openWelcome, t]),
   );
 
   async function more() {
@@ -110,7 +114,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
         });
     } catch (cause) {
       if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+      if (cause instanceof AuthenticationRequiredError) openWelcome();
       else setMoreError(t('myPage.listFailed'));
     } finally {
       if (!controller.signal.aborted) {
@@ -125,7 +129,7 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
       setNotice(t('myPage.receiverOnly'));
       return;
     }
-    router.push({ pathname: '/rollpe/[code]', params: { code: paper.code } });
+    router.navigate({ pathname: '/rollpe/[code]', params: { code: paper.code } });
   }
   function description(paper: MyRollpe) {
     const date = new Date(paper.createdAt);
@@ -147,13 +151,13 @@ function MyRollpesContent({ kind }: { kind: MyRollpeKind }) {
           style={styles.back}
           onPress={() => {
             if (router.canGoBack()) router.back();
-            else router.replace('/my-page');
+            else openMainScreen('my-page');
           }}
         />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.goHome')}
-          onPress={() => router.dismissTo('/home')}
+          onPress={() => openMainScreen()}
         >
           <Image
             source={require('@/assets/images/welcome/logo.png')}

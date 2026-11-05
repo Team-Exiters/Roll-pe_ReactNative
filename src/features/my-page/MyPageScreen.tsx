@@ -13,6 +13,7 @@ import { myRollpeTitles, type MyRollpeKind } from '@/features/my-page/api';
 import { changeAccount } from '@/features/my-page/account-api';
 import { getTokenState, type TokenState } from '@/features/sign-in/token-state';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
@@ -21,6 +22,7 @@ export default function MyPageScreen() {
     colors = useRollpeColors(),
     safeArea = useSafeAreaSpacing(),
     router = useRouter();
+  const { openWelcome, openSignIn } = useAppNavigation();
   const [result, setResult] = useState<{ user: TokenState['user']; status?: HomeStatus } | null>(
     null,
   );
@@ -50,7 +52,7 @@ export default function MyPageScreen() {
           if (!controller.signal.aborted) setResult({ user: token.user, status });
         } catch (cause) {
           if (controller.signal.aborted) return;
-          if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+          if (cause instanceof AuthenticationRequiredError) openWelcome();
           else setError(t('myPage.statusFailed'));
         }
       })();
@@ -59,13 +61,9 @@ export default function MyPageScreen() {
         operation.current?.abort();
         pending.current = false;
       };
-    }, [attempt, router, t]),
+    }, [attempt, openWelcome, t]),
   );
 
-  function signIn() {
-    if (router.canDismiss()) router.dismissAll();
-    router.replace('/sign-in');
-  }
   async function confirmAction() {
     if (!action || pending.current) return;
     pending.current = true;
@@ -81,7 +79,7 @@ export default function MyPageScreen() {
     } catch (cause) {
       if (controller.signal.aborted) return;
       setAction(null);
-      if (cause instanceof AuthenticationRequiredError) signIn();
+      if (cause instanceof AuthenticationRequiredError) openSignIn();
       else setNotice({ message: cause instanceof Error ? cause.message : t('account.uncertain') });
     } finally {
       if (!controller.signal.aborted) {
@@ -148,7 +146,7 @@ export default function MyPageScreen() {
           {!result.user.provider && (
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/change-password')}
+              onPress={() => router.navigate('/change-password')}
               style={({ pressed }) => pressed && styles.pressed}
               hitSlop={8}
             >
@@ -159,7 +157,7 @@ export default function MyPageScreen() {
           )}
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push('/invitations')}
+            onPress={() => router.navigate('/invitations')}
             style={({ pressed }) => pressed && styles.pressed}
             hitSlop={8}
           >
@@ -172,7 +170,9 @@ export default function MyPageScreen() {
               key={kind}
               accessibilityRole="button"
               hitSlop={8}
-              onPress={() => router.push({ pathname: '/my-page/rollpes/[kind]', params: { kind } })}
+              onPress={() =>
+                router.navigate({ pathname: '/my-page/rollpes/[kind]', params: { kind } })
+              }
               style={({ pressed }) => pressed && styles.pressed}
             >
               <Text style={[styles.menuLabel, { color: colors.rollpe_secondary }]}>
@@ -240,7 +240,7 @@ export default function MyPageScreen() {
           onConfirm={() => {
             const exit = notice.exit;
             setNotice(null);
-            if (exit) signIn();
+            if (exit) openSignIn();
           }}
         />
       )}

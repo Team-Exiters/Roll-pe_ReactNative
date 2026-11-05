@@ -10,6 +10,7 @@ import { resetCredentials, type ResetCredentials } from '@/utils/reset-link';
 import { PasswordRecoveryError, resetPassword } from '@/features/password-recovery/api';
 import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/RecoveryScaffold';
 import { isRecoveryPassword } from '@/features/password-recovery/validation';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{
@@ -29,6 +30,7 @@ export default function ResetPasswordScreen() {
 function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | null }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const { openSignIn } = useAppNavigation();
   const colors = useRollpeColors();
   const confirmation = useRef<ComponentRef<typeof TextInput>>(null);
   const [password, setPassword] = useState('');
@@ -60,7 +62,7 @@ function ResetPasswordForm({ credentials }: { credentials: ResetCredentials | nu
         setPassword('');
         setConfirmPassword('');
         // Remove the used secret from navigation immediately, before presenting success.
-        router.replace('/sign-in');
+        openSignIn();
         recoveryMessage(t('common.notice'), message);
       }
     } catch (error) {

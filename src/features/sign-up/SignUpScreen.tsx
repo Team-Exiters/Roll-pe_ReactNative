@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   Alert,
@@ -24,6 +24,7 @@ import { canSignUp, type SignUpValues } from '@/features/sign-up/validation';
 import { rememberRollpeDestination } from '@/features/sign-in/pending-rollpe';
 import { rollpeDestination } from '@/utils/rollpe-link';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 const initialValues: SignUpValues = {
   email: '',
@@ -39,7 +40,7 @@ export default function SignUpScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
-  const router = useRouter();
+  const { openSignIn } = useAppNavigation();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const destination = rollpeDestination(returnTo);
   const nameInput = useRef<ComponentRef<typeof TextInput>>(null);
@@ -61,12 +62,7 @@ export default function SignUpScreen() {
   }
 
   function goBack() {
-    if (router.canGoBack()) router.back();
-    else
-      router.replace({
-        pathname: '/sign-in',
-        params: destination ? { returnTo: destination } : {},
-      });
+    openSignIn(destination);
   }
 
   function showMessage(title: string, message: string, onConfirm?: () => void) {

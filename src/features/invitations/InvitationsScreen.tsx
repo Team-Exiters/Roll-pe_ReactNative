@@ -16,6 +16,7 @@ import {
   type RollpeInvitation,
 } from '@/features/invitations/api';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
@@ -26,6 +27,7 @@ export default function InvitationsScreen() {
     colors = useRollpeColors(),
     safeArea = useSafeAreaSpacing(),
     router = useRouter();
+  const { openWelcome, openMainScreen } = useAppNavigation();
   const [result, setResult] = useState<InvitationPage | null>(null),
     [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true),
@@ -57,7 +59,7 @@ export default function InvitationsScreen() {
           if (!controller.signal.aborted) setResult(page);
         } catch (cause) {
           if (controller.signal.aborted) return;
-          if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+          if (cause instanceof AuthenticationRequiredError) openWelcome();
           else setError(t('invitations.loadFailed'));
         } finally {
           if (!controller.signal.aborted) {
@@ -71,7 +73,7 @@ export default function InvitationsScreen() {
         request.current?.abort();
         pending.current = false;
       };
-    }, [attempt, router, t]),
+    }, [attempt, openWelcome, t]),
   );
 
   async function more() {
@@ -97,7 +99,7 @@ export default function InvitationsScreen() {
         });
     } catch (cause) {
       if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+      if (cause instanceof AuthenticationRequiredError) openWelcome();
       else setMoreError(t('invitations.loadFailed'));
     } finally {
       if (!controller.signal.aborted) {
@@ -128,12 +130,12 @@ export default function InvitationsScreen() {
           },
       );
       if (action === 'accept')
-        router.push({ pathname: '/rollpe/[code]', params: { code: invitation.code } });
+        router.navigate({ pathname: '/rollpe/[code]', params: { code: invitation.code } });
       else setAttempt((value) => value + 1);
     } catch (cause) {
       if (controller.signal.aborted) return;
       setDecision(null);
-      if (cause instanceof AuthenticationRequiredError) router.replace('/sign-in');
+      if (cause instanceof AuthenticationRequiredError) openWelcome();
       else setNotice(cause instanceof Error ? cause.message : t('invitations.uncertain'));
     } finally {
       if (!controller.signal.aborted) {
@@ -154,14 +156,14 @@ export default function InvitationsScreen() {
         <BackButton
           onPress={() => {
             if (router.canGoBack()) router.back();
-            else router.replace('/home');
+            else openMainScreen();
           }}
           style={styles.back}
         />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.goHome')}
-          onPress={() => router.dismissTo('/home')}
+          onPress={() => openMainScreen()}
         >
           <Image
             source={require('@/assets/images/welcome/logo.png')}

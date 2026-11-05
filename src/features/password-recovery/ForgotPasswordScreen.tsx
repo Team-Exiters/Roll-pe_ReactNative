@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -10,11 +9,12 @@ import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { requestPasswordEmail } from '@/features/password-recovery/api';
 import { RecoveryScaffold, recoveryMessage } from '@/features/password-recovery/RecoveryScaffold';
 import { isRecoveryEmail } from '@/features/password-recovery/validation';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const router = useRouter();
+  const { openSignIn } = useAppNavigation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const pending = useRef(false);
@@ -33,7 +33,9 @@ export default function ForgotPasswordScreen() {
     try {
       const message = await requestPasswordEmail(email);
       if (active.current)
-        recoveryMessage(t('common.notice'), message, () => router.replace('/sign-in'));
+        recoveryMessage(t('common.notice'), message, () => {
+          if (active.current) openSignIn();
+        });
     } catch (error) {
       if (active.current)
         recoveryMessage(

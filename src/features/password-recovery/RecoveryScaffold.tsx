@@ -7,6 +7,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { useRollpeColors } from '@/constants/theme';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export function recoveryMessage(title: string, message: string, onConfirm?: () => void) {
   if (Platform.OS === 'web') {
@@ -30,6 +31,7 @@ export function RecoveryScaffold({
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openSignIn } = useAppNavigation();
   return (
     <View
       style={[
@@ -62,7 +64,7 @@ export function RecoveryScaffold({
       <BackButton
         disabled={loading}
         style={[styles.back, { top: safeArea('top', 20) }]}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/sign-in'))}
+        onPress={() => (router.canGoBack() ? router.back() : openSignIn())}
       />
       {loading && <LoadingView accessibilityLabel={t('common.processing')} />}
     </View>

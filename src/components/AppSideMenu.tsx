@@ -1,5 +1,4 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Animated,
@@ -19,6 +18,7 @@ import { OVERLAY_OPACITY, RollpeFonts, useRollpeColors } from '@/constants/theme
 import { WEB_MAX_WIDTH } from '@/components/WebViewport';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppDialog } from '@/components/ui/AppDialog';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export function AppSideMenu({
   current = 'home',
@@ -29,7 +29,7 @@ export function AppSideMenu({
 }) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const router = useRouter();
+  const { openMainScreen } = useAppNavigation();
   const [closing, setClosing] = useState(false);
   const [notice, setNotice] = useState(false);
   const { width } = useWindowDimensions();
@@ -38,7 +38,7 @@ export function AppSideMenu({
   const [offset] = useState(() => new Animated.Value(menuWidth));
   const [opacity] = useState(() => new Animated.Value(0));
   const driver = Platform.OS !== 'web';
-  function close(destination?: '/home' | '/search' | '/my-page') {
+  function close(destination?: 'home' | 'search' | 'my-page') {
     if (closing) return;
     setClosing(true);
     Animated.parallel([
@@ -52,7 +52,7 @@ export function AppSideMenu({
     ]).start(({ finished }) => {
       if (finished) {
         onClose();
-        if (destination) router.replace(destination);
+        if (destination) openMainScreen(destination);
       }
     });
   }
@@ -146,9 +146,8 @@ export function AppSideMenu({
               accessibilityState={{ selected: item === current }}
               onPress={() => {
                 if (item === current) close();
-                else if (item === 'home' || item === 'search')
-                  close(item === 'home' ? '/home' : '/search');
-                else if (item === 'myPage') close('/my-page');
+                else if (item === 'home' || item === 'search') close(item);
+                else if (item === 'myPage') close('my-page');
                 else if (item === 'contact')
                   void Linking.openURL('https://forms.gle/WGC7ibNBgTnomRgZ7').catch(() =>
                     setNotice(true),

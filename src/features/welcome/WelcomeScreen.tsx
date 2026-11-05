@@ -19,7 +19,7 @@ export default function WelcomeScreen() {
       showsVerticalScrollIndicator={false}
       bounces={false}
     >
-      <Welcome1stSection onStart={() => router.push('/sign-in')} />
+      <Welcome1stSection onStart={() => router.navigate('/sign-in')} />
       <Welcome2ndSection />
       <Welcome3rdSection />
       <AppFooter />

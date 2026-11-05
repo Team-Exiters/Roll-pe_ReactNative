@@ -1,4 +1,3 @@
-import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 
@@ -7,11 +6,12 @@ import { AppDialog } from '@/components/ui/AppDialog';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { completeWebBrowserSignIn } from '@/features/sign-in/browser-auth';
 import { resolveRollpeDestination } from '@/features/sign-in/pending-rollpe';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export default function BrowserCallback() {
   const { t } = useTranslation();
   const colors = useRollpeColors();
-  const router = useRouter();
+  const { openSignIn, finishSignIn } = useAppNavigation();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,21 +23,23 @@ export default function BrowserCallback() {
         .then(() => (active ? completeWebBrowserSignIn(controller.signal) : null))
         .then(async (result) => {
           if (!active) return;
-          const next = result ? await resolveRollpeDestination() : '/sign-in';
-          if (active) router.replace(next ?? '/home');
+          const next = result ? await resolveRollpeDestination() : null;
+          if (!active) return;
+          if (result) finishSignIn(next);
+          else openSignIn();
         })
         .catch((failure: unknown) => {
           if (active)
             setError(failure instanceof Error ? failure.message : t('auth.callbackFailed'));
         });
-    }
+    } else openSignIn();
     return () => {
       active = false;
       controller.abort();
     };
-  }, [router, t]);
+  }, [openSignIn, finishSignIn, t]);
 
-  if (Platform.OS !== 'web') return <Redirect href="/sign-in" />;
+  if (Platform.OS !== 'web') return null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.rollpe_primary }]}>
@@ -49,8 +51,8 @@ export default function BrowserCallback() {
         <AppDialog
           title={t('common.signIn')}
           message={error}
-          onConfirm={() => router.replace('/sign-in')}
-          onClose={() => router.replace('/sign-in')}
+          onConfirm={() => openSignIn()}
+          onClose={() => openSignIn()}
         />
       )}
     </View>

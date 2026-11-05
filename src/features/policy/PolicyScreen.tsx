@@ -14,6 +14,7 @@ import {
   type PolicyType,
 } from '@/features/policy/content';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 function PolicyContent({ type }: { type: PolicyType }) {
   const { t } = useTranslation();
@@ -83,6 +84,7 @@ export default function PolicyScreen() {
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openWelcome } = useAppNavigation();
   return (
     <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
       <ScrollView
@@ -116,7 +118,7 @@ export default function PolicyScreen() {
       </ScrollView>
       <BackButton
         style={[styles.back, { top: safeArea('top', 20) }]}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/sign-in'))}
+        onPress={() => (router.canGoBack() ? router.back() : openWelcome())}
       />
     </View>
   );

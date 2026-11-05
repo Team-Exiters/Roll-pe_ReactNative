@@ -38,7 +38,8 @@ function RollpeContent({ code }: { code: string }) {
   const [now, setNow] = useState(() => Date.now());
   const active = useRef(false);
   const authenticate = useCallback(() => {
-    router.replace({ pathname: '/sign-in', params: { returnTo: `/rollpe/${code}` } });
+    // Revalidate on the information screen, which offers login and preserves the invite.
+    router.dismissTo(`/rollpe/${code}`);
   }, [code, router]);
   useFocusEffect(
     useCallback(() => {
@@ -64,7 +65,8 @@ function RollpeContent({ code }: { code: string }) {
           setNotice(null);
           if (cause instanceof AuthenticationRequiredError) authenticate();
           else if (cause instanceof RollpeAccessError) {
-            router.replace(cause.reason === 'unavailable' ? '/rollpe-error' : `/rollpe/${code}`);
+            if (cause.reason === 'unavailable') router.replace('/rollpe-error');
+            else router.dismissTo(`/rollpe/${code}`);
           } else setError(cause instanceof Error ? cause.message : t('info.loadFailed'));
         } finally {
           if (!controller.signal.aborted) setLoading(false);
@@ -87,8 +89,7 @@ function RollpeContent({ code }: { code: string }) {
   );
 
   function close() {
-    if (router.canGoBack()) router.back();
-    else router.replace(`/rollpe/${code}`);
+    router.dismissTo(`/rollpe/${code}`);
   }
   function select(index: number) {
     if (!result || loading) return;
@@ -105,7 +106,12 @@ function RollpeContent({ code }: { code: string }) {
     setSelected(index);
   }
   const role = result ? rollpeRole(result.paper, result.user.id, now) : null;
-  if (role === 'receiver') return <Redirect href={`/rollpe/${code}`} />;
+  useFocusEffect(
+    useCallback(() => {
+      if (role === 'receiver') router.dismissTo(`/rollpe/${code}`);
+    }, [role, code, router]),
+  );
+  if (role === 'receiver') return null;
   if (role === 'unavailable') return <Redirect href="/rollpe-error" />;
   return (
     <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>

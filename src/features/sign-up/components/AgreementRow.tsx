@@ -41,7 +41,7 @@ export function AgreementRow({
           disabled={disabled}
           hitSlop={12}
           style={styles.link}
-          onPress={() => router.push({ pathname: '/policy', params: { type: policy } })}
+          onPress={() => router.navigate({ pathname: '/policy', params: { type: policy } })}
         >
           <Text style={[styles.text, { color: colors.rollpe_gray }]}>{t('common.view')}</Text>
         </Pressable>

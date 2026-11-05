@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { useTranslation } from '@/i18n';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { AppFooter } from '@/components/AppFooter';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openWelcome } = useAppNavigation();
   const [result, setResult] = useState<HomeResult | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -49,7 +51,7 @@ export default function HomeScreen() {
           const tokenState = await getTokenState();
           if (!active) return;
           if (!tokenState) {
-            router.replace('/sign-in');
+            openWelcome();
             return;
           }
           const [status, rollpes] = await Promise.allSettled([
@@ -63,7 +65,7 @@ export default function HomeScreen() {
                 value.status === 'rejected' && value.reason instanceof AuthenticationRequiredError,
             )
           ) {
-            router.replace('/sign-in');
+            openWelcome();
             return;
           }
           setResult({
@@ -81,7 +83,7 @@ export default function HomeScreen() {
         active = false;
         controller.abort();
       };
-    }, [attempt, router, t]),
+    }, [attempt, openWelcome, t]),
   );
 
   function retry() {
@@ -139,12 +141,12 @@ export default function HomeScreen() {
           {result.statusError ? failure(result.statusError) : null}
           <PrimaryButton
             title={t('home.invited')}
-            onPress={() => router.push('/invitations')}
+            onPress={() => router.navigate('/invitations')}
             style={styles.invited}
           />
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push('/create-rollpe')}
+            onPress={() => router.navigate('/create-rollpe')}
             style={[
               styles.create,
               { borderColor: colors.rollpe_main, backgroundColor: colors.rollpe_primary },
@@ -171,7 +173,7 @@ export default function HomeScreen() {
                   <RollpeCard
                     rollpe={rollpe}
                     onPress={() =>
-                      router.push({
+                      router.navigate({
                         pathname: '/rollpe/[code]',
                         params: {
                           code: rollpe.code,

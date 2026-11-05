@@ -23,6 +23,7 @@ import { changeAccount } from '@/features/my-page/account-api';
 import { isRecoveryPassword } from '@/features/password-recovery/validation';
 import { getTokenState } from '@/features/sign-in/token-state';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
@@ -31,6 +32,7 @@ export default function ChangePasswordScreen() {
     colors = useRollpeColors(),
     safeArea = useSafeAreaSpacing(),
     router = useRouter();
+  const { openWelcome, openSignIn, openMainScreen } = useAppNavigation();
   const [password, setPassword] = useState(''),
     [confirmation, setConfirmation] = useState('');
   const [ready, setReady] = useState(false),
@@ -43,13 +45,9 @@ export default function ChangePasswordScreen() {
     pending = useRef(false),
     request = useRef<AbortController | null>(null);
 
-  function signIn() {
-    if (router.canDismiss()) router.dismissAll();
-    router.replace('/sign-in');
-  }
   function back() {
     if (router.canGoBack()) router.back();
-    else router.replace('/my-page');
+    else openMainScreen('my-page');
   }
   useFocusEffect(
     useCallback(() => {
@@ -59,7 +57,7 @@ export default function ChangePasswordScreen() {
         .then((token) => {
           if (!active) return;
           if (!token) {
-            router.replace('/sign-in');
+            openWelcome();
             return;
           }
           if (token.user.provider) {
@@ -75,7 +73,7 @@ export default function ChangePasswordScreen() {
         request.current?.abort();
         pending.current = false;
       };
-    }, [router, t]),
+    }, [openWelcome, t]),
   );
 
   async function submit() {
@@ -98,7 +96,7 @@ export default function ChangePasswordScreen() {
       }
     } catch (cause) {
       if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) signIn();
+      if (cause instanceof AuthenticationRequiredError) openSignIn();
       else setNotice({ message: cause instanceof Error ? cause.message : t('account.uncertain') });
     } finally {
       if (!controller.signal.aborted) {
@@ -121,7 +119,7 @@ export default function ChangePasswordScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('common.goHome')}
           disabled={busy}
-          onPress={() => router.dismissTo('/home')}
+          onPress={() => openMainScreen()}
         >
           <Image
             source={require('@/assets/images/welcome/logo.png')}
@@ -216,7 +214,7 @@ export default function ChangePasswordScreen() {
           onConfirm={() => {
             const destination = notice.destination;
             setNotice(null);
-            if (destination === 'signIn') signIn();
+            if (destination === 'signIn') openSignIn();
             else if (destination === 'back') back();
           }}
         />
