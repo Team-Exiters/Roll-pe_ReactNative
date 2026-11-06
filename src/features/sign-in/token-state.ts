@@ -26,7 +26,8 @@ function persist(tokenState: TokenState | null, keepSignIn: boolean, revision: n
   const operation = storageQueue.then(async () => {
     if (revision !== tokenRevision) return;
     if (Platform.OS === 'web') {
-      if (tokenState && keepSignIn) window.sessionStorage.setItem(tokenStorageKey, JSON.stringify(tokenState));
+      if (tokenState && keepSignIn)
+        window.sessionStorage.setItem(tokenStorageKey, JSON.stringify(tokenState));
       else window.sessionStorage.removeItem(tokenStorageKey);
     } else if (tokenState && keepSignIn) {
       await SecureStore.setItemAsync(tokenStorageKey, JSON.stringify(tokenState), {
@@ -43,13 +44,18 @@ function persist(tokenState: TokenState | null, keepSignIn: boolean, revision: n
 export function isTokenState(value: unknown): value is TokenState {
   if (!value || typeof value !== 'object') return false;
   const data = value as Partial<TokenState>;
-  return typeof data.access === 'string' && data.access.length > 0
-    && typeof data.refresh === 'string' && data.refresh.length > 0
-    && typeof data.user?.id === 'number' && Number.isSafeInteger(data.user.id)
-    && typeof data.user.name === 'string'
-    && (typeof data.user.email === 'string' || data.user.email === null)
-    && (typeof data.user.identifyCode === 'string' || data.user.identifyCode === null)
-    && (data.user.provider === null || ['apple', 'google', 'kakao'].includes(data.user.provider));
+  return (
+    typeof data.access === 'string' &&
+    data.access.length > 0 &&
+    typeof data.refresh === 'string' &&
+    data.refresh.length > 0 &&
+    typeof data.user?.id === 'number' &&
+    Number.isSafeInteger(data.user.id) &&
+    typeof data.user.name === 'string' &&
+    (typeof data.user.email === 'string' || data.user.email === null) &&
+    (typeof data.user.identifyCode === 'string' || data.user.identifyCode === null) &&
+    (data.user.provider === null || ['apple', 'google', 'kakao'].includes(data.user.provider))
+  );
 }
 
 export async function saveTokenState(tokenState: TokenState, keepSignIn = true) {
@@ -71,9 +77,10 @@ export async function saveTokenState(tokenState: TokenState, keepSignIn = true) 
 
 export async function getTokenState(): Promise<TokenState | null> {
   if (currentTokenState !== undefined) return currentTokenState;
-  const value = Platform.OS === 'web'
-    ? window.sessionStorage.getItem(tokenStorageKey)
-    : await SecureStore.getItemAsync(tokenStorageKey);
+  const value =
+    Platform.OS === 'web'
+      ? window.sessionStorage.getItem(tokenStorageKey)
+      : await SecureStore.getItemAsync(tokenStorageKey);
   // A sign-in or clear may have completed while native storage was being read.
   if (currentTokenState !== undefined) return currentTokenState;
   try {
@@ -97,7 +104,9 @@ export type TokenSnapshot = { tokenState: TokenState; revision: number; generati
 
 export async function getTokenSnapshot(): Promise<TokenSnapshot | null> {
   await getTokenState();
-  return currentTokenState ? { tokenState: currentTokenState, revision: tokenRevision, generation: tokenGeneration } : null;
+  return currentTokenState
+    ? { tokenState: currentTokenState, revision: tokenRevision, generation: tokenGeneration }
+    : null;
 }
 
 export function isCurrentTokenState(snapshot: TokenSnapshot) {
@@ -117,5 +126,6 @@ export async function replaceTokens(snapshot: TokenSnapshot, access: string, ref
   const revision = ++tokenRevision;
   await persist(tokenState, retainTokenState, revision);
   return isCurrentTokenState({ tokenState, revision, generation: tokenGeneration })
-    ? { tokenState, revision, generation: tokenGeneration } : null;
+    ? { tokenState, revision, generation: tokenGeneration }
+    : null;
 }

@@ -9,8 +9,11 @@ export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: strin
   return (
     <View
       accessibilityRole="progressbar"
+      accessibilityViewIsModal
+      accessibilityLiveRegion="polite"
       accessibilityLabel={accessibilityLabel ?? t('auth.signingIn')}
-      style={[StyleSheet.absoluteFill, styles.overlay]}>
+      style={[StyleSheet.absoluteFill, styles.overlay]}
+    >
       <Image
         source={require('@/assets/images/loading.gif')}
         contentFit="contain"
@@ -23,6 +26,7 @@ export function LoadingView({ accessibilityLabel }: { accessibilityLabel?: strin
 
 const styles = StyleSheet.create({
   overlay: {
+    zIndex: 10,
     backgroundColor: OVERLAY_COLOR,
     alignItems: 'center',
     justifyContent: 'center',

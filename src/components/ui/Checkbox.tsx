@@ -16,7 +16,11 @@ export function Checkbox({ checked, onCheckedChange, style, ...props }: Checkbox
       {...props}
       accessibilityRole="checkbox"
       aria-checked={checked}
-      accessibilityState={{ ...props.accessibilityState, checked, disabled: Boolean(props.disabled) }}
+      accessibilityState={{
+        ...props.accessibilityState,
+        checked,
+        disabled: Boolean(props.disabled),
+      }}
       onPress={() => onCheckedChange(!checked)}
       onKeyDown={(event) => {
         props.onKeyDown?.(event);
@@ -32,7 +36,8 @@ export function Checkbox({ checked, onCheckedChange, style, ...props }: Checkbox
         styles.checkbox,
         { backgroundColor: colors.rollpe_primary, borderColor: colors.rollpe_gray },
         typeof style === 'function' ? style(state) : style,
-      ]}>
+      ]}
+    >
       {checked && <View style={[styles.checkmark, { backgroundColor: colors.rollpe_main }]} />}
     </Pressable>
   );

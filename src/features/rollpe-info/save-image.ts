@@ -3,7 +3,10 @@ import type { ComponentRef } from 'react';
 
 import { t } from '@/i18n';
 
-export async function saveRollpeImage(node: ComponentRef<typeof View> | null, fileName: string): Promise<void> {
+export async function saveRollpeImage(
+  node: ComponentRef<typeof View> | null,
+  fileName: string,
+): Promise<void> {
   if (!node || typeof document === 'undefined') throw new Error(t('info.saveFailed'));
   await document.fonts.ready;
   const { toPng } = await import('html-to-image');

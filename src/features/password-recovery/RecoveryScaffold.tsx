@@ -7,6 +7,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
 import { useRollpeColors } from '@/constants/theme';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
+import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export function recoveryMessage(title: string, message: string, onConfirm?: () => void) {
   if (Platform.OS === 'web') {
@@ -17,28 +18,54 @@ export function recoveryMessage(title: string, message: string, onConfirm?: () =
   }
 }
 
-export function RecoveryScaffold({ children, loading, reset = false }: {
-  children: ReactNode; loading: boolean; reset?: boolean;
+export function RecoveryScaffold({
+  children,
+  loading,
+  reset = false,
+}: {
+  children: ReactNode;
+  loading: boolean;
+  reset?: boolean;
 }) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const safeArea = useSafeAreaSpacing();
   const router = useRouter();
+  const { openSignIn } = useAppNavigation();
   return (
-    <View style={[styles.screen, { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') }]}>
-      <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
-          contentInsetAdjustmentBehavior="never" automaticallyAdjustContentInsets={false}
-          showsVerticalScrollIndicator={false} bounces={false}
-          contentContainerStyle={[styles.content, {
-            paddingTop: reset ? safeArea('top', 48, 76) : safeArea('top', 80),
-            paddingBottom: 40,
-          }]}>
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: colors.rollpe_primary, paddingBottom: safeArea('bottom') },
+      ]}
+    >
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: reset ? safeArea('top', 48, 76) : safeArea('top', 80),
+              paddingBottom: 40,
+            },
+          ]}
+        >
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
-      <BackButton disabled={loading} style={[styles.back, { top: safeArea('top', 20) }]}
-        onPress={() => router.canGoBack() ? router.back() : router.replace('/sign-in')} />
+      <BackButton
+        disabled={loading}
+        style={[styles.back, { top: safeArea('top', 20) }]}
+        onPress={() => (router.canGoBack() ? router.back() : openSignIn())}
+      />
       {loading && <LoadingView accessibilityLabel={t('common.processing')} />}
     </View>
   );

@@ -4,37 +4,63 @@ import { Platform } from 'react-native';
 import { t } from '@/i18n';
 import { apiUrl } from '@/lib/api';
 
-import { signInWithEmail, signInWithSocial, type EmailCredentials, type SocialProvider } from '@/features/sign-in/api';
-import { completeBrowserSignIn, prepareBrowserRequest, type BrowserRequest } from '@/features/sign-in/browser-auth';
+import {
+  signInWithEmail,
+  signInWithSocial,
+  type EmailCredentials,
+  type SocialProvider,
+} from '@/features/sign-in/api';
+import {
+  completeBrowserSignIn,
+  prepareBrowserRequest,
+  type BrowserRequest,
+} from '@/features/sign-in/browser-auth';
 import type { TokenState } from '@/features/sign-in/token-state';
 import { authorizeNative, availableNativeProviders } from '@/features/sign-in/social';
 
 export function useSignIn() {
   const [providers, setProviders] = useState<SocialProvider[]>([]);
-  const [browserRequests, setBrowserRequests] = useState<Partial<Record<SocialProvider, BrowserRequest | null>>>({});
+  const [browserRequests, setBrowserRequests] = useState<
+    Partial<Record<SocialProvider, BrowserRequest | null>>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const operation = useRef<AbortController | null>(null);
 
-  useFocusEffect(useCallback(() => () => {
-    operation.current?.abort();
-    operation.current = null;
-    setIsLoading(false);
-  }, []));
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        operation.current?.abort();
+        operation.current = null;
+        setIsLoading(false);
+      },
+      [],
+    ),
+  );
 
   useEffect(() => {
     let active = true;
     if (Platform.OS !== 'web') {
-      availableNativeProviders().then((value) => {
-        if (active) setProviders(value);
-      }).catch(() => { /* A development build with the native SDKs is required. */ });
+      availableNativeProviders()
+        .then((value) => {
+          if (active) setProviders(value);
+        })
+        .catch(() => {
+          /* A development build with the native SDKs is required. */
+        });
     }
     // Prepare an independent state and PKCE proof for each provider before sign-in.
     for (const provider of ['google', 'kakao', 'apple'] as const) {
-      prepareBrowserRequest(provider).then((value) => {
-        if (active) setBrowserRequests((current) => ({ ...current, [provider]: value }));
-      }).catch(() => { /* Leave the button unavailable when configuration is missing. */ });
+      prepareBrowserRequest(provider)
+        .then((value) => {
+          if (active) setBrowserRequests((current) => ({ ...current, [provider]: value }));
+        })
+        .catch(() => {
+          /* Leave the button unavailable when configuration is missing. */
+        });
     }
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function run(action: (signal: AbortSignal) => Promise<TokenState | null>) {
@@ -46,12 +72,15 @@ export function useSignIn() {
       const result = await action(controller.signal);
       return controller.signal.aborted ? null : result;
     } finally {
-      if (operation.current === controller) { operation.current = null; setIsLoading(false); }
+      if (operation.current === controller) {
+        operation.current = null;
+        setIsLoading(false);
+      }
     }
   }
 
   function socialSignIn(provider: SocialProvider) {
-    return run(async signal => {
+    return run(async (signal) => {
       const request = browserRequests[provider];
       if (request) {
         setBrowserRequests((current) => ({ ...current, [provider]: null }));
@@ -71,9 +100,10 @@ export function useSignIn() {
   return {
     isLoading,
     canSignIn: Boolean(apiUrl),
-    canUseProvider: (provider: SocialProvider) => Boolean(apiUrl)
-      && (providers.includes(provider) || Boolean(browserRequests[provider])),
-    emailSignIn: (credentials: EmailCredentials) => run(signal => signInWithEmail(credentials, signal)),
+    canUseProvider: (provider: SocialProvider) =>
+      Boolean(apiUrl) && (providers.includes(provider) || Boolean(browserRequests[provider])),
+    emailSignIn: (credentials: EmailCredentials) =>
+      run((signal) => signInWithEmail(credentials, signal)),
     socialSignIn,
   };
 }

@@ -16,7 +16,8 @@ export function BackButton({ style, ...props }: BackButtonProps) {
       accessibilityRole="button"
       hitSlop={16}
       {...props}
-      style={(state) => [styles.button, typeof style === 'function' ? style(state) : style]}>
+      style={(state) => [styles.button, typeof style === 'function' ? style(state) : style]}
+    >
       <Image
         source={require('@/assets/icons/icon_chevron_left.svg')}
         contentFit="contain"

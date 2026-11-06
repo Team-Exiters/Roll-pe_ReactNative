@@ -21,21 +21,27 @@ const pendingKey = 'rollpe.browser-auth';
 const requestLifetime = 10 * 60 * 1000;
 
 function browserEndpoints(provider: SocialProvider) {
-  const returnUrl = Platform.OS === 'web'
-    ? `${window.location.origin}/auth/${provider}`
-    : `rollpe://auth/${provider}`;
+  const returnUrl =
+    Platform.OS === 'web'
+      ? `${window.location.origin}/auth/${provider}`
+      : `rollpe://auth/${provider}`;
   const base = `${apiUrl}/api/user/social/login/${provider}`;
   return { returnUrl, exchangeUrl: `${base}/exchange`, startUrl: `${base}/start` };
 }
 
 function randomSecret() {
-  return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join('');
+  return Array.from(Crypto.getRandomBytes(32), (value) => value.toString(16).padStart(2, '0')).join(
+    '',
+  );
 }
 
-export async function prepareBrowserRequest(provider: SocialProvider): Promise<BrowserRequest | null> {
+export async function prepareBrowserRequest(
+  provider: SocialProvider,
+): Promise<BrowserRequest | null> {
   if (!apiUrl) return null;
   if (provider === 'apple') {
-    if (Platform.OS === 'ios' || process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED !== 'true') return null;
+    if (Platform.OS === 'ios' || process.env.EXPO_PUBLIC_APPLE_SIGN_IN_ENABLED !== 'true')
+      return null;
   } else if (Platform.OS !== 'web') {
     return null;
   }
@@ -51,21 +57,32 @@ export async function prepareBrowserRequest(provider: SocialProvider): Promise<B
   const { returnUrl, exchangeUrl, startUrl } = browserEndpoints(provider);
   const params = new URLSearchParams({ return_url: returnUrl, state, code_challenge: challenge });
   return {
-    provider, verifier, state, returnUrl,
+    provider,
+    verifier,
+    state,
+    returnUrl,
     authorizationUrl: `${startUrl}?${params.toString()}`,
     exchangeUrl,
   };
 }
 
-export async function completeBrowserSignIn(request: BrowserRequest, signal?: AbortSignal): Promise<TokenState | null> {
+export async function completeBrowserSignIn(
+  request: BrowserRequest,
+  signal?: AbortSignal,
+): Promise<TokenState | null> {
   if (signal?.aborted) return null;
   if (Platform.OS === 'web') {
     // Keep the proof in this tab across the redirect. No popup/opener connection is needed.
     try {
-      window.sessionStorage.setItem(pendingKey, JSON.stringify({
-        provider: request.provider, state: request.state, verifier: request.verifier,
-        expiresAt: Date.now() + requestLifetime,
-      }));
+      window.sessionStorage.setItem(
+        pendingKey,
+        JSON.stringify({
+          provider: request.provider,
+          state: request.state,
+          verifier: request.verifier,
+          expiresAt: Date.now() + requestLifetime,
+        }),
+      );
     } catch {
       throw new Error(t('auth.storageUnavailable'));
     }
@@ -88,7 +105,12 @@ export async function completeWebBrowserSignIn(signal?: AbortSignal): Promise<To
   // Remove the one-time code from the address bar/history before making a network request.
   window.history.replaceState(null, '', window.location.pathname);
   window.document.title = t('common.brand');
-  let pending: { provider?: unknown; state?: unknown; verifier?: unknown; expiresAt?: unknown } | null;
+  let pending: {
+    provider?: unknown;
+    state?: unknown;
+    verifier?: unknown;
+    expiresAt?: unknown;
+  } | null;
   try {
     const stored = window.sessionStorage.getItem(pendingKey);
     window.sessionStorage.removeItem(pendingKey);
@@ -97,31 +119,55 @@ export async function completeWebBrowserSignIn(signal?: AbortSignal): Promise<To
     throw new Error(t('auth.callbackFailed'));
   }
   const now = Date.now();
-  if (!apiUrl || !pending || !['apple', 'google', 'kakao'].includes(pending.provider as string)
-    || typeof pending.state !== 'string' || !/^[a-f0-9]{64}$/.test(pending.state)
-    || typeof pending.verifier !== 'string' || !/^[a-f0-9]{64}$/.test(pending.verifier)
-    || typeof pending.expiresAt !== 'number' || !Number.isFinite(pending.expiresAt)
-    || pending.expiresAt <= now || pending.expiresAt > now + requestLifetime) {
+  if (
+    !apiUrl ||
+    !pending ||
+    !['apple', 'google', 'kakao'].includes(pending.provider as string) ||
+    typeof pending.state !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(pending.state) ||
+    typeof pending.verifier !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(pending.verifier) ||
+    typeof pending.expiresAt !== 'number' ||
+    !Number.isFinite(pending.expiresAt) ||
+    pending.expiresAt <= now ||
+    pending.expiresAt > now + requestLifetime
+  ) {
     throw new Error(t('auth.callbackFailed'));
   }
   const provider = pending.provider as SocialProvider;
-  return exchangeBrowserReturn({
-    provider, state: pending.state, ...browserEndpoints(provider), verifier: pending.verifier,
-  }, callbackUrl, signal);
+  return exchangeBrowserReturn(
+    {
+      provider,
+      state: pending.state,
+      ...browserEndpoints(provider),
+      verifier: pending.verifier,
+    },
+    callbackUrl,
+    signal,
+  );
 }
 
 async function exchangeBrowserReturn(
   request: Pick<BrowserRequest, 'provider' | 'state' | 'verifier' | 'returnUrl' | 'exchangeUrl'>,
-  url: string, signal?: AbortSignal,
+  url: string,
+  signal?: AbortSignal,
 ): Promise<TokenState | null> {
   const returned = new URL(url);
   const destination = new URL(request.returnUrl);
   const params = returned.searchParams;
-  if (returned.protocol !== destination.protocol || returned.host !== destination.host
-    || returned.pathname !== destination.pathname || returned.hash || returned.username || returned.password
-    || params.getAll('state').length !== 1 || params.get('state') !== request.state
-    || params.getAll('error').length > 1 || params.getAll('code').length > 1
-    || (params.has('error') && params.has('code'))) {
+  if (
+    returned.protocol !== destination.protocol ||
+    returned.host !== destination.host ||
+    returned.pathname !== destination.pathname ||
+    returned.hash ||
+    returned.username ||
+    returned.password ||
+    params.getAll('state').length !== 1 ||
+    params.get('state') !== request.state ||
+    params.getAll('error').length > 1 ||
+    params.getAll('code').length > 1 ||
+    (params.has('error') && params.has('code'))
+  ) {
     throw new Error(t('auth.requestInvalid'));
   }
   if (params.has('error')) {
@@ -136,5 +182,11 @@ async function exchangeBrowserReturn(
   if (!code || !/^[A-Za-z0-9_-]{43}$/.test(code)) {
     throw new Error(t('auth.responseInvalid'));
   }
-  return requestSignIn(request.exchangeUrl, { code, code_verifier: request.verifier }, true, request.provider, signal);
+  return requestSignIn(
+    request.exchangeUrl,
+    { code, code_verifier: request.verifier },
+    true,
+    request.provider,
+    signal,
+  );
 }

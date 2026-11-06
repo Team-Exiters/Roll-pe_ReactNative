@@ -25,7 +25,8 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [keepSignIn, setKeepSignIn] = useState(true);
-  const canSubmit = email.trim().length > 0 && password.length > 0 && Boolean(onSubmit) && !disabled;
+  const canSubmit =
+    email.trim().length > 0 && password.length > 0 && Boolean(onSubmit) && !disabled;
 
   function submit() {
     if (canSubmit) {
@@ -72,7 +73,9 @@ export function SignInForm({ onSubmit, disabled = false }: SignInFormProps) {
           onCheckedChange={setKeepSignIn}
           disabled={disabled}
         />
-        <Text style={[styles.keepSignInText, { color: colors.rollpe_gray }]}>{t('auth.keepSignIn')}</Text>
+        <Text style={[styles.keepSignInText, { color: colors.rollpe_gray }]}>
+          {t('auth.keepSignIn')}
+        </Text>
       </View>
       <PrimaryButton
         title={t('common.signIn')}

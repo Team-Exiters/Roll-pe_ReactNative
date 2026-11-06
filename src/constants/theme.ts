@@ -1,27 +1,27 @@
-import { useColorScheme } from "react-native";
+import { useColorScheme } from 'react-native';
 
 export const OVERLAY_OPACITY = 0.7;
 export const OVERLAY_COLOR = `rgba(0,0,0,${OVERLAY_OPACITY})`;
 
 export function useRollpeColors() {
-  const isDark = useColorScheme() === "dark";
+  const isDark = useColorScheme() === 'dark';
 
   // The original iOS color names and values are identical in both modes.
   return {
-    rollpe_primary: isDark ? "#FFFFFF" : "#FFFFFF",
-    rollpe_secondary: isDark ? "#181818" : "#181818",
-    rollpe_main: isDark ? "#FF5656" : "#FF5656",
-    rollpe_gray: isDark ? "#AAAAAA" : "#AAAAAA",
-    rollpe_section_background: isDark ? "#F4F4F4" : "#F4F4F4",
-    team_exiters: isDark ? "#555555" : "#555555",
-    kakao: isDark ? "#FEE500" : "#FEE500",
-    real_black: isDark ? "#000000" : "#000000",
-    rollpe_white: isDark ? "#FFFFFF" : "#FFFFFF",
+    rollpe_primary: isDark ? '#FFFFFF' : '#FFFFFF',
+    rollpe_secondary: isDark ? '#181818' : '#181818',
+    rollpe_main: isDark ? '#FF5656' : '#FF5656',
+    rollpe_gray: isDark ? '#AAAAAA' : '#AAAAAA',
+    rollpe_section_background: isDark ? '#F4F4F4' : '#F4F4F4',
+    team_exiters: isDark ? '#555555' : '#555555',
+    kakao: isDark ? '#FEE500' : '#FEE500',
+    real_black: isDark ? '#000000' : '#000000',
+    rollpe_white: isDark ? '#FFFFFF' : '#FFFFFF',
   };
 }
 
 export const RollpeFonts = {
-  display: "HakgyoansimDunggeunmisoOTF-R",
-  regular: "Pretendard-Regular",
-  semibold: "Pretendard-SemiBold",
+  display: 'HakgyoansimDunggeunmisoOTF-R',
+  regular: 'Pretendard-Regular',
+  semibold: 'Pretendard-SemiBold',
 } as const;

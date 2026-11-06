@@ -10,7 +10,11 @@ type SocialSignInButtonProps = {
   disabled?: boolean;
 };
 
-export function SocialSignInButton({ provider, onPress, disabled = false }: SocialSignInButtonProps) {
+export function SocialSignInButton({
+  provider,
+  onPress,
+  disabled = false,
+}: SocialSignInButtonProps) {
   const { t } = useTranslation();
   const colors = useRollpeColors();
   const providers = {
@@ -47,7 +51,8 @@ export function SocialSignInButton({ provider, onPress, disabled = false }: Soci
         styles.button,
         { backgroundColor: config.backgroundColor },
         provider === 'google' && { borderWidth: 1, borderColor: colors.real_black },
-      ]}>
+      ]}
+    >
       <Image
         source={config.source}
         contentFit="contain"

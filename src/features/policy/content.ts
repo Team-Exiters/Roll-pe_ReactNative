@@ -12,7 +12,9 @@ export function policySpacing(blocks: PolicyBlock[], index: number) {
   const previous = blocks[index - 1];
   const sameList = current.kind === 'li' && previous?.kind === 'li';
   return {
-    marginTop: sameList ? 0 : Math.max(blockMargin[current.kind], previous ? blockMargin[previous.kind] : 0),
+    marginTop: sameList
+      ? 0
+      : Math.max(blockMargin[current.kind], previous ? blockMargin[previous.kind] : 0),
     marginBottom: index === blocks.length - 1 ? blockMargin[current.kind] : 0,
   };
 }
@@ -22,18 +24,31 @@ export function policyType(value: unknown): PolicyType | null {
 }
 
 function decodeEntities(text: string) {
-  const named: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' };
-  return text.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (original, entity: string) => {
-    if (!entity.startsWith('#')) return named[entity.toLowerCase()] ?? original;
-    const number = entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
-    return number > 0 && number <= 0x10ffff && !(number >= 0xd800 && number <= 0xdfff)
-      ? String.fromCodePoint(number) : '\ufffd';
-  });
+  const named: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: '\u00a0',
+  };
+  return text.replace(
+    /&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi,
+    (original, entity: string) => {
+      if (!entity.startsWith('#')) return named[entity.toLowerCase()] ?? original;
+      const number =
+        entity[1].toLowerCase() === 'x' ? parseInt(entity.slice(2), 16) : Number(entity.slice(1));
+      return number > 0 && number <= 0x10ffff && !(number >= 0xd800 && number <= 0xdfff)
+        ? String.fromCodePoint(number)
+        : '\ufffd';
+    },
+  );
 }
 
 // Only text is rendered. Remote markup is never passed to an HTML engine.
 export function policyBlocks(html: string): PolicyBlock[] {
-  const safe = html.replace(/<!--[^]*?(?:-->|$)/g, '')
+  const safe = html
+    .replace(/<!--[^]*?(?:-->|$)/g, '')
     .replace(/<(script|style|iframe|object|template|svg|math)\b[^>]*>[^]*?<\/\1\s*>/gi, '')
     .replace(/<(script|style|iframe|object|template|svg|math)\b[^>]*>[^]*$/gi, '');
   const blocks: PolicyBlock[] = [];
@@ -45,13 +60,16 @@ export function policyBlocks(html: string): PolicyBlock[] {
     text = '';
   };
   for (const token of safe.match(/<[^>]*>|[^<]+|</g) ?? []) {
-    if (!token.startsWith('<')) { text += token; continue; }
+    if (!token.startsWith('<')) {
+      text += token;
+      continue;
+    }
     const tag = /^<\s*(\/?)\s*([a-z0-9]+)/i.exec(token);
     if (!tag) continue;
     const name = tag[2].toLowerCase();
     if (['p', 'h2', 'h3', 'li'].includes(name)) {
       flush();
-      kind = tag[1] ? 'p' : name as PolicyBlock['kind'];
+      kind = tag[1] ? 'p' : (name as PolicyBlock['kind']);
     } else if (name === 'br') text += '\u0000';
     else if (['ul', 'ol', 'div'].includes(name)) flush();
   }
@@ -64,10 +82,19 @@ export function policyEndpoint(base: string | undefined, type: PolicyType): stri
   try {
     const url = new URL(base ?? '');
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-    if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && local))
-        || url.username || url.password || url.search || url.hash || !['', '/'].includes(url.pathname)) throw new Error();
+    if (
+      (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      !['', '/'].includes(url.pathname)
+    )
+      throw new Error();
     return `${url.origin}/api/user/docs?docs=${type}`;
-  } catch { throw new Error(t('common.serverInvalid')); }
+  } catch {
+    throw new Error(t('common.serverInvalid'));
+  }
 }
 
 export async function fetchPolicy(type: PolicyType, signal: AbortSignal): Promise<PolicyBlock[]> {

@@ -9,8 +9,19 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "dev.hugesilver.Roll-Pe",
-      "appleTeamId": "42NW282TDP"
+      "bundleIdentifier": "dev.hugesilver.RollPe",
+      "appleTeamId": "42NW282TDP",
+      "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:rollpe.mooo.com"
+      ],
+      "infoPlist": {
+        "ExpoLocalization_supportsRTL": false,
+        "CFBundleLocalizations": [
+          "ko"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5331a455-09d8-4d35-961e-119e86080810"
+      }
+    },
+    "owner": "hugesilver"
   }
 }
