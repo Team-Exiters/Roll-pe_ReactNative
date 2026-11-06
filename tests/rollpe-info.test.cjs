@@ -263,12 +263,7 @@ test('shared links prefer a deployed website, fall back to the API HTTPS page, t
   }
 });
 
-test('reporting encodes user-supplied identifiers', () => {
-  const { model } = setup();
-  const url = new URL(model.reportRollpeUrl(code, 'User&code=7'));
-  assert.equal(url.searchParams.get('entry.2107714088'), 'User&code=7');
-  assert.equal(url.searchParams.get('entry.1553361014'), code);
-});
+
 
 test('hidden hearts retain occupancy and discard any accidentally supplied content, author name and revisions', async () => {
   const data = paper();

@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ReportDialog } from '@/features/content-report/ReportDialog';
 import { RollpePaper } from '@/components/rollpe/RollpePaper';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
@@ -27,7 +28,6 @@ import {
   isRollpeDelivered,
   normalizeRollpeCode,
   remainingTime,
-  reportRollpeUrl,
   rollpeRole,
   type RollpeInfo,
 } from '@/features/rollpe-info/model';
@@ -44,7 +44,7 @@ import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 type DetailModal =
-  | { type: 'participants' | 'share' | 'management' | 'leave' }
+  | { type: 'participants' | 'share' | 'management' | 'leave' | 'report' }
   | { type: 'history'; heartCode: string };
 
 export default function RollpeInfoScreen() {
@@ -90,6 +90,8 @@ function RollpeInfoContent({ code }: { code: string }) {
       () => () => {
         // A focused refresh keeps the paper behind the loader; leaving it discards private content.
         setResult(null);
+        managing.current = false;
+        setModal(null);
       },
       [],
     ),
@@ -431,11 +433,8 @@ function RollpeInfoContent({ code }: { code: string }) {
                 onManage={() => openModal({ type: 'management' })}
                 onShare={() => openModal({ type: 'share' })}
                 onLeave={() => openModal({ type: 'leave' })}
-                onReport={() => {
-                  void runAction(() =>
-                    Linking.openURL(reportRollpeUrl(code, result?.user.identifyCode ?? '')),
-                  );
-                }}
+                canReport={result?.user.id !== rollpe.host.id}
+                onReport={() => openModal({ type: 'report' })}
               />
             </View>
             {role === 'receiver' && (
@@ -490,6 +489,13 @@ function RollpeInfoContent({ code }: { code: string }) {
             void join(password);
           }}
           onCancel={goBack}
+        />
+      )}
+      {modal?.type === 'report' && (
+        <ReportDialog
+          target={{ type: 'paper', code }}
+          onClose={() => closeModal()}
+          onAuthenticationRequired={authenticate}
         />
       )}
       {modal?.type === 'participants' && (

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReportDialog } from '@/features/content-report/ReportDialog';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { LoadingView } from '@/components/ui/LoadingView';
@@ -29,7 +29,6 @@ import {
   cleanHeartContent,
   heartDraftError,
   normalizeHeartColor,
-  reportHeartUrl,
   type HeartColor,
 } from '@/features/rollpe-content/model';
 import { HeartHistoryContent } from '@/features/rollpe-content/components/HeartHistoryModal';
@@ -49,7 +48,7 @@ export function HeartModal({
   onAuthenticationRequired,
 }: {
   paper: RollpeInfo;
-  user: { id: number; identifyCode: string | null };
+  user: { id: number };
   index: number;
   heart?: RollpeHeart;
   onClose: () => void;
@@ -67,6 +66,7 @@ export function HeartModal({
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [keyboardActive, setKeyboardActive] = useState(false);
   const [textHeight, setTextHeight] = useState(112);
@@ -207,6 +207,7 @@ export function HeartModal({
     <AppModal
       visible
       onClose={() => {
+        if (reporting) return;
         if (history) setHistory(false);
         else if (dialog) dialog.onCancel?.();
         else if (!pending.current) onClose();
@@ -239,8 +240,8 @@ export function HeartModal({
           }}
         >
           <View
-            aria-hidden={Boolean(dialog)}
-            importantForAccessibility={dialog ? 'no-hide-descendants' : 'auto'}
+            aria-hidden={Boolean(dialog) || reporting}
+            importantForAccessibility={dialog || reporting ? 'no-hide-descendants' : 'auto'}
             style={styles.body}
           >
             {loaded && width > 0 ? (
@@ -312,22 +313,7 @@ export function HeartModal({
                           <Pressable
                             accessibilityRole="button"
                             disabled={busy}
-                            onPress={() => {
-                              void (async () => {
-                                try {
-                                  if (heart)
-                                    await Linking.openURL(
-                                      reportHeartUrl(
-                                        paper.code,
-                                        heart.code,
-                                        user.identifyCode ?? '',
-                                      ),
-                                    );
-                                } catch {
-                                  notice(t('info.reportFailed'));
-                                }
-                              })();
-                            }}
+                            onPress={() => setReporting(true)}
                           >
                             <Text style={styles.actionText}>{t('heart.report')}</Text>
                           </Pressable>
@@ -432,9 +418,9 @@ export function HeartModal({
             )}
           </View>
           <View
-            pointerEvents={dialog ? 'none' : 'box-none'}
-            aria-hidden={Boolean(dialog)}
-            importantForAccessibility={dialog ? 'no-hide-descendants' : 'auto'}
+            pointerEvents={dialog || reporting ? 'none' : 'box-none'}
+            aria-hidden={Boolean(dialog) || reporting}
+            importantForAccessibility={dialog || reporting ? 'no-hide-descendants' : 'auto'}
             style={[styles.navigation, { top: safeArea('top', 20) }]}
           >
             <Pressable
@@ -463,6 +449,14 @@ export function HeartModal({
               </Pressable>
             )}
           </View>
+          {reporting && heart && (
+            <ReportDialog
+              target={{ type: 'heart', code: heart.code }}
+              inline={Platform.OS === 'ios'}
+              onClose={() => setReporting(false)}
+              onAuthenticationRequired={onAuthenticationRequired}
+            />
+          )}
           {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
           {dialog && <AppDialog {...dialog} inline={Platform.OS === 'ios'} />}
         </View>
