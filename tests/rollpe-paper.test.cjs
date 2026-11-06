@@ -40,3 +40,9 @@ test('creation samples remain available across all six original layouts', () => 
     assert.match(html, /축하해요/);
   }
 });
+
+test('blocked memo bodies and authors never appear in paper previews or exported paper markup', () => {
+  const html = render({ messages: [{ index: 2, content: '숨겨야 하는 내용', author: { name: '차단 대상 이름' }, color: '#EEEEEE', hidden: true }] });
+  assert.doesNotMatch(html, /숨겨야 하는 내용|차단 대상 이름/);
+  assert.match(html, /차단한 사용자의 마음/);
+});

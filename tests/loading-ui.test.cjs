@@ -80,6 +80,7 @@ function setup({ platform = 'web', overrides = {} } = {}) {
     '@/hooks/useAppNavigation': {
       useAppNavigation: () => ({ openWelcome() {}, openSignIn() {}, finishSignIn() {} }),
     },
+    '@/features/content-report/ReportDialog': { ReportDialog: 'ReportDialog' },
     '@/features/welcome/WelcomeScreen': { __esModule: true, default: 'WelcomeScreen' },
     '@/features/home/components/RollpeCard': { RollpeCard: 'RollpeCard' },
     '@/features/home/api': {
@@ -343,4 +344,104 @@ test('paper refresh preserves its background but clears private content on acces
   clearOnBlur();
   cancel();
   assert.equal(ofType(ui.render(Screen, props), 'RollpePaper').length, 0);
+});
+
+test('heart editor keeps memo and palette geometry fixed while the keyboard resizes its modal window', () => {
+  for (const platform of ['android', 'ios']) {
+    let keyboardHide;
+    const ui = setup({ platform, overrides: {
+      'react-native': {
+        Platform: { OS: platform }, StyleSheet: { create: value => value },
+        Keyboard: { dismiss() {}, addListener(event, callback) { keyboardHide = callback; return { remove() {} }; } },
+        View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator',
+      },
+      'expo-font': { useFonts: () => [true, null] },
+      'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
+      '@/features/rollpe-content/api': { fetchHeartColors: async () => [], HeartMutationError: class extends Error {} },
+      '@/features/rollpe-content/model': { normalizeHeartColor: () => '', cleanHeartContent: value => value },
+      '@/features/user-blocking/api': { changeUserBlock: async () => {} },
+    } });
+    const { HeartModal } = ui.load('features/rollpe-content/components/HeartModal.tsx');
+    const props = { paper: { theme: '화이트', host: { id: 1 } }, user: { id: 1 }, index: 0 };
+    let tree = ui.render(HeartModal, props);
+    assert.equal(tree.props.avoidKeyboard, undefined);
+    ui.effects.forEach(effect => effect());
+    const layout = (width, height) => ({ nativeEvent: { layout: { width, height } } });
+    const measuringView = tree => nodes(tree, node => node.props?.onLayout)[0];
+    measuringView(tree).props.onLayout(layout(400, 800));
+    tree = ui.render(HeartModal, props);
+    const before = ofType(tree, 'TextInput')[0].props.style;
+    ofType(tree, 'TextInput')[0].props.onFocus();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 480));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+    assert.equal(nodes(tree, node => Array.isArray(node.props?.style) && node.props.style.some(style => style?.height === 800)).length, 1);
+    keyboardHide();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 800));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+    // Android can reopen the keyboard without firing another focus event.
+    ofType(tree, 'TextInput')[0].props.onPressIn();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 480));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+  }
+});
+
+test('report dialog validates selection, replaces its card with shared loading, and submits only once', async () => {
+  const reply = deferred();
+  const calls = [];
+  const ui = setup({ overrides: {
+    '@/features/content-report/api': { reportReasons: ['spam', 'abuse', 'inappropriate', 'other'],
+      submitContentReport: (...args) => { calls.push(args); return reply.promise; } },
+  } });
+  const { ReportDialog } = ui.load('features/content-report/ReportDialog.tsx');
+  let closed = 0;
+  const props = { target: { type: 'heart', code: 'target-code' }, onClose: () => closed++, onAuthenticationRequired() {} };
+  let tree = ui.render(ReportDialog, props);
+  tree.props.onConfirm();
+  tree = ui.render(ReportDialog, props);
+  assert.equal(calls.length, 0);
+  assert.equal(nodes(tree, node => node.props?.accessibilityRole === 'alert').length, 1);
+  nodes(tree, node => node.props?.accessibilityRole === 'radio')[1].props.onPress();
+  tree = ui.render(ReportDialog, props);
+  const selectedReason = nodes(tree, node => node.props?.accessibilityRole === 'radio')[1];
+  assert.equal(selectedReason.props['aria-checked'], true);
+  assert.equal(selectedReason.props.accessibilityState.checked, true);
+  tree.props.onConfirm();
+  tree.props.onConfirm();
+  tree = ui.render(ReportDialog, props);
+  assert.equal(tree.type, 'AppDialog');
+  assert.equal(tree.props.busy, true, 'the existing dialog shows the shared LoadingView instead of its form');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], 'abuse');
+  reply.resolve('접수 완료'); await settle();
+  tree = ui.render(ReportDialog, props);
+  assert.equal(tree.props.busy, false);
+  assert.equal(tree.props.message, '접수 완료');
+  assert.equal(tree.props.children, false);
+  tree.props.onConfirm();
+  assert.equal(closed, 1);
+});
+
+test('closing a report aborts its pending request and a late receipt cannot update the closed dialog', async () => {
+  const reply = deferred(); let signal;
+  const ui = setup({ overrides: {
+    '@/features/content-report/api': { reportReasons: ['spam'], submitContentReport: (...args) => { signal = args[3]; return reply.promise; } },
+  } });
+  const { ReportDialog } = ui.load('features/content-report/ReportDialog.tsx');
+  const props = { target: { type: 'paper', code: 'target' }, onClose() {}, onAuthenticationRequired() {} };
+  let tree = ui.render(ReportDialog, props);
+  const cleanup = ui.effects[0]();
+  nodes(tree, node => node.props?.accessibilityRole === 'radio')[0].props.onPress();
+  tree = ui.render(ReportDialog, props);
+  tree.props.onConfirm();
+  cleanup();
+  assert.equal(signal.aborted, true);
+  reply.resolve('late receipt'); await settle();
+  tree = ui.render(ReportDialog, props);
+  assert.notEqual(tree.props.message, 'late receipt');
 });

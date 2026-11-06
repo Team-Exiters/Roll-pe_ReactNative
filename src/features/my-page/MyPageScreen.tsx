@@ -170,6 +170,16 @@ export default function MyPageScreen() {
               {t('myPage.invitations')}
             </Text>
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.navigate('/blocked-users')}
+            style={({ pressed }) => pressed && styles.pressed}
+            hitSlop={8}
+          >
+            <Text style={[styles.menuLabel, { color: colors.rollpe_secondary }]}>
+              {t('blocking.title')}
+            </Text>
+          </Pressable>
           {(['created', 'participating', 'received'] as MyRollpeKind[]).map((kind) => (
             <Pressable
               key={kind}

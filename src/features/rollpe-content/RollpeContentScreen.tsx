@@ -94,6 +94,7 @@ function RollpeContent({ code }: { code: string }) {
   function select(index: number) {
     if (!result || loading) return;
     const paper = result.paper;
+    if (paper.hearts.data.some((heart) => heart.index === index && heart.hidden)) return;
     if (
       !paper.hearts.data.some((heart) => heart.index === index) &&
       paper.hearts.data.some((heart) => heart.author.id === result.user.id)

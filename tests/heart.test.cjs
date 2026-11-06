@@ -114,12 +114,3 @@ test('uncertain mutation results are never retried and malformed success never c
   const cause = new Error('cancelled');
   await assert.rejects(setup(() => { throw cause; }).api.saveHeart(3, 2, draft, undefined, controller.signal), error => error === cause);
 });
-
-test('heart report URLs preserve encoded identifiers and reject untrusted codes', () => {
-  const { model } = setup();
-  const url = new URL(model.reportHeartUrl(code, code, 'User&next=bad'));
-  assert.equal(url.searchParams.get('entry.44205633'), '부적절한 마음');
-  assert.equal(url.searchParams.get('entry.1614951501'), code);
-  assert.equal(url.searchParams.get('entry.2107714088'), 'User&next=bad');
-  assert.throws(() => model.reportHeartUrl('bad', code, 'User01'));
-});

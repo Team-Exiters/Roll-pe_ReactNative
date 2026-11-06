@@ -11,6 +11,7 @@ type RollpeInfoActionsProps = {
   role: ReturnType<typeof rollpeRole> | null;
   disabled: boolean;
   canSaveImage: boolean;
+  canReport?: boolean;
   onSaveImage: () => void;
   onManage: () => void;
   onShare: () => void;
@@ -22,6 +23,7 @@ export function RollpeInfoActions({
   role,
   disabled,
   canSaveImage,
+  canReport = true,
   onSaveImage,
   onManage,
   onShare,
@@ -31,9 +33,37 @@ export function RollpeInfoActions({
   const { t } = useTranslation();
   const colors = useRollpeColors();
 
+  const reportButton = canReport ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('info.report')}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
+      onPress={onReport}
+      style={({ pressed }) => [
+        styles.report,
+        { borderColor: colors.rollpe_main, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 },
+      ]}
+    >
+      <Image
+        source={require('@/assets/icons/icon_siren.svg')}
+        accessible={false}
+        contentFit="contain"
+        style={styles.reportIcon}
+      />
+    </Pressable>
+  ) : null;
   if (role === 'receiver') {
     return (
-      <PrimaryButton title={t('info.saveImage')} disabled={!canSaveImage} onPress={onSaveImage} />
+      <View style={styles.row}>
+        <PrimaryButton
+          title={t('info.saveImage')}
+          style={styles.button}
+          disabled={!canSaveImage}
+          onPress={onSaveImage}
+        />
+        {reportButton}
+      </View>
     );
   }
   if (role === 'host') {
@@ -63,24 +93,7 @@ export function RollpeInfoActions({
           style={styles.button}
           onPress={onLeave}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('info.report')}
-          disabled={disabled}
-          accessibilityState={{ disabled }}
-          onPress={onReport}
-          style={({ pressed }) => [
-            styles.report,
-            { borderColor: colors.rollpe_main, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Image
-            source={require('@/assets/icons/icon_siren.svg')}
-            accessible={false}
-            contentFit="contain"
-            style={styles.reportIcon}
-          />
-        </Pressable>
+        {reportButton}
       </View>
     );
   }

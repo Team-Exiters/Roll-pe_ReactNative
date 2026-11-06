@@ -42,10 +42,11 @@ function renderActions(props) {
 
 test('detail actions preserve host, participant and recipient permissions', () => {
   const callbacks = Object.fromEntries(['Manage', 'Share', 'Leave', 'Report', 'SaveImage'].map(action => [`on${action}`, () => {}]));
-  for (const [role, actions] of [['host', ['Manage', 'Share']], ['participant', ['Leave', 'Report']], ['receiver', ['SaveImage']]]) {
+  for (const [role, actions] of [['host', ['Manage', 'Share']], ['participant', ['Leave', 'Report']], ['receiver', ['SaveImage', 'Report']]]) {
     const buttons = renderActions({ role, ...callbacks });
     assert.deepEqual(buttons.map(button => button.onPress), actions.map(action => callbacks[`on${action}`]));
   }
+  assert.deepEqual(renderActions({ role: 'receiver', canReport: false, ...callbacks }).map(button => button.onPress), [callbacks.onSaveImage]);
   for (const role of [null, 'unavailable']) assert.equal(renderActions({ role, ...callbacks }).length, 0);
 });
 

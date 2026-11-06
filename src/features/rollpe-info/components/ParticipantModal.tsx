@@ -182,20 +182,22 @@ export function ParticipantModal({
                       {t(user.isHost ? 'participants.host' : 'participants.receiver')}
                     </Text>
                   )}
-                  <Text style={[styles.description, { color: colors.rollpe_secondary }]}>
-                    {t(user.hasWritten ? 'participants.written' : 'participants.unwritten')}
-                  </Text>
-                  {user.revisionCount > 0 && user.heartCode && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={t('history.forUser', { name: user.name })}
-                      onPress={() => setHistory(user.heartCode)}
-                    >
-                      <Text style={[styles.edited, { color: colors.rollpe_main }]}>
-                        {t('history.edited')}
-                      </Text>
-                    </Pressable>
-                  )}
+                  <View style={styles.writingStatus}>
+                    <Text style={[styles.description, { color: colors.rollpe_secondary }]}>
+                      {t(user.hasWritten ? 'participants.written' : 'participants.unwritten')}
+                    </Text>
+                    {user.revisionCount > 0 && user.heartCode && (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t('history.forUser', { name: user.name })}
+                        onPress={() => setHistory(user.heartCode)}
+                      >
+                        <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
+                          {t('history.edited')}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               )}
               renderAction={(user) =>
@@ -252,6 +254,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   description: { fontFamily: RollpeFonts.display, fontSize: 13 },
+  writingStatus: { flexDirection: 'row', alignItems: 'center' },
   edited: { fontFamily: RollpeFonts.display, fontSize: 13, textDecorationLine: 'underline' },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   failure: { flex: 1, justifyContent: 'center', gap: 20 },

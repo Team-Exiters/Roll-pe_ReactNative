@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ReportDialog } from '@/features/content-report/ReportDialog';
 import { RollpePaper } from '@/components/rollpe/RollpePaper';
 import { BackButton } from '@/components/ui/BackButton';
 import { LoadingView } from '@/components/ui/LoadingView';
@@ -27,7 +28,6 @@ import {
   isRollpeDelivered,
   normalizeRollpeCode,
   remainingTime,
-  reportRollpeUrl,
   rollpeRole,
   type RollpeInfo,
 } from '@/features/rollpe-info/model';
@@ -44,7 +44,7 @@ import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 type DetailModal =
-  | { type: 'participants' | 'share' | 'management' | 'leave' }
+  | { type: 'participants' | 'share' | 'management' | 'leave' | 'report' }
   | { type: 'history'; heartCode: string };
 
 export default function RollpeInfoScreen() {
@@ -90,6 +90,8 @@ function RollpeInfoContent({ code }: { code: string }) {
       () => () => {
         // A focused refresh keeps the paper behind the loader; leaving it discards private content.
         setResult(null);
+        managing.current = false;
+        setModal(null);
       },
       [],
     ),
@@ -365,34 +367,36 @@ function RollpeInfoContent({ code }: { code: string }) {
                 {t('info.writers', { count: rollpe.hearts.count, max: rollpe.maxHeartLength })}
               </Text>
               <View style={styles.writerList}>
-                {rollpe.hearts.data.map((heart) => (
-                  <View key={heart.id} style={styles.writerRow}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.writer, { color: colors.rollpe_secondary }]}
-                    >
-                      {heart.author.name}({heart.author.identifyCode})
-                    </Text>
-                    {(heart.revisionCount ?? 0) > 0 &&
-                      (result && [rollpe.host.id, heart.author.id].includes(result.user.id) ? (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t('history.forUser', { name: heart.author.name })}
-                          onPress={() => {
-                            openModal({ type: 'history', heartCode: heart.code });
-                          }}
-                        >
-                          <Text style={[styles.edited, { color: colors.rollpe_main }]}>
+                {rollpe.hearts.data
+                  .filter((heart) => !heart.hidden)
+                  .map((heart) => (
+                    <View key={heart.id} style={styles.writerRow}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.writer, { color: colors.rollpe_secondary }]}
+                      >
+                        {heart.author.name}({heart.author.identifyCode})
+                      </Text>
+                      {(heart.revisionCount ?? 0) > 0 &&
+                        (result && [rollpe.host.id, heart.author.id].includes(result.user.id) ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('history.forUser', { name: heart.author.name })}
+                            onPress={() => {
+                              openModal({ type: 'history', heartCode: heart.code });
+                            }}
+                          >
+                            <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
+                              {t('history.edited')}
+                            </Text>
+                          </Pressable>
+                        ) : (
+                          <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
                             {t('history.edited')}
                           </Text>
-                        </Pressable>
-                      ) : (
-                        <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
-                          {t('history.edited')}
-                        </Text>
-                      ))}
-                  </View>
-                ))}
+                        ))}
+                    </View>
+                  ))}
               </View>
               {role === 'host' && (
                 <Pressable
@@ -429,11 +433,8 @@ function RollpeInfoContent({ code }: { code: string }) {
                 onManage={() => openModal({ type: 'management' })}
                 onShare={() => openModal({ type: 'share' })}
                 onLeave={() => openModal({ type: 'leave' })}
-                onReport={() => {
-                  void runAction(() =>
-                    Linking.openURL(reportRollpeUrl(code, result?.user.identifyCode ?? '')),
-                  );
-                }}
+                canReport={result?.user.id !== rollpe.host.id}
+                onReport={() => openModal({ type: 'report' })}
               />
             </View>
             {role === 'receiver' && (
@@ -488,6 +489,13 @@ function RollpeInfoContent({ code }: { code: string }) {
             void join(password);
           }}
           onCancel={goBack}
+        />
+      )}
+      {modal?.type === 'report' && (
+        <ReportDialog
+          target={{ type: 'paper', code }}
+          onClose={() => closeModal()}
+          onAuthenticationRequired={authenticate}
         />
       )}
       {modal?.type === 'participants' && (
@@ -567,7 +575,7 @@ const styles = StyleSheet.create({
   writerList: { marginTop: 20, gap: 8 },
   writer: { fontFamily: RollpeFonts.display, fontSize: 20 },
   buttons: { marginHorizontal: 20, gap: 8 },
-  writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8 },
+  writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   edited: { fontFamily: RollpeFonts.display, fontSize: 16 },
   participants: { marginTop: 40, flexDirection: 'row', alignItems: 'center', gap: 4 },
   chevron: { width: 20, height: 20 },
