@@ -47,6 +47,8 @@ example
 /ios
 /android
 
+AGENTS.md
+
 # Include required local fonts in uploads from EAS CLI.
 !assets/fonts/Hakgyoansim-Dunggeunmiso-R.otf
 !assets/fonts/Pretendard-Regular.otf

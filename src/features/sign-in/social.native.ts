@@ -46,7 +46,7 @@ export async function authorizeNative(provider: SocialProvider): Promise<SocialC
           GoogleSignin.configure({ webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID });
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         } else {
-          // Preserve the original iOS audience expected by existing server clients.
+          // Use the iOS client registered for this bundle; the server must accept its audience.
           GoogleSignin.configure({ iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID });
         }
         const result = await GoogleSignin.signIn();

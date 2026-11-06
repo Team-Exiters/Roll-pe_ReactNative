@@ -38,12 +38,15 @@ test('native association covers invitations on API and web domains and preserves
 
 test('a shared API and web domain is deduplicated without replacing existing native settings', () => {
   const existing = { action: 'VIEW', data: [{ scheme: 'another' }] };
+  const native = require('../app.json').expo;
   const value = config('https://api.example/', 'https://api.example', {
-    scheme: 'rollpe', ios: { bundleIdentifier: 'dev.hugesilver.Roll-Pe', associatedDomains: ['applinks:api.example'] },
-    android: { package: 'dev.hugesilver.RollPe', intentFilters: [existing] },
+    ...native,
+    ios: { ...native.ios, associatedDomains: ['applinks:api.example'] },
+    android: { ...native.android, intentFilters: [existing] },
   });
   assert.equal(value.scheme, 'rollpe');
-  assert.equal(value.ios.bundleIdentifier, 'dev.hugesilver.Roll-Pe');
+  assert.equal(value.ios.bundleIdentifier, 'dev.hugesilver.RollPe');
+  assert.equal(value.ios.bundleIdentifier, value.android.package);
   assert.equal(value.android.package, 'dev.hugesilver.RollPe');
   assert.deepEqual(value.ios.associatedDomains, ['applinks:api.example']);
   assert.equal(value.android.intentFilters.length, 2);
