@@ -1,13 +1,14 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { useSafeAreaSpacing } from '@/hooks/useSafeAreaSpacing';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { AppFooter } from '@/components/AppFooter';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { LoadingView } from '@/components/ui/LoadingView';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import {
   fetchHomeStatus,
@@ -21,6 +22,7 @@ import { getTokenState } from '@/features/sign-in/token-state';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
 type HomeResult = {
+  userId: number;
   userName: string;
   status?: HomeStatus;
   rollpes?: HotRollpe[];
@@ -38,12 +40,11 @@ export default function HomeScreen() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   useFocusEffect(
     useCallback(() => {
-      if (attempt > 0) {
-        setError(false);
-        setResult(null);
-      }
+      if (attempt > 0) setError(false);
+      setLoading(true);
       const controller = new AbortController();
       let active = true;
       void (async () => {
@@ -51,9 +52,15 @@ export default function HomeScreen() {
           const tokenState = await getTokenState();
           if (!active) return;
           if (!tokenState) {
+            setResult(null);
             openWelcome();
             return;
           }
+          setResult((current) =>
+            current?.userId === tokenState.user.id
+              ? current
+              : { userId: tokenState.user.id, userName: tokenState.user.name },
+          );
           const [status, rollpes] = await Promise.allSettled([
             fetchHomeStatus(controller.signal),
             fetchHotRollpes(controller.signal),
@@ -65,10 +72,12 @@ export default function HomeScreen() {
                 value.status === 'rejected' && value.reason instanceof AuthenticationRequiredError,
             )
           ) {
+            setResult(null);
             openWelcome();
             return;
           }
           setResult({
+            userId: tokenState.user.id,
             userName: tokenState.user.name,
             status: status.status === 'fulfilled' ? status.value : undefined,
             statusError: status.status === 'rejected' ? t('home.statusFailed') : undefined,
@@ -77,6 +86,8 @@ export default function HomeScreen() {
           });
         } catch {
           if (active) setError(true);
+        } finally {
+          if (active) setLoading(false);
         }
       })();
       return () => {
@@ -88,7 +99,6 @@ export default function HomeScreen() {
 
   function retry() {
     setError(false);
-    setResult(null);
     setAttempt((value) => value + 1);
   }
   function failure(message: string) {
@@ -103,17 +113,6 @@ export default function HomeScreen() {
       </View>
     );
   }
-  if (!result)
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.rollpe_primary }]}>
-        {error ? (
-          failure(t('home.failed'))
-        ) : (
-          <ActivityIndicator accessibilityLabel={t('home.loading')} color={colors.rollpe_main} />
-        )}
-      </View>
-    );
-
   return (
     <View
       style={[
@@ -122,6 +121,10 @@ export default function HomeScreen() {
       ]}
     >
       <ScrollView
+        pointerEvents={loading ? 'none' : 'auto'}
+        aria-hidden={loading}
+        accessibilityElementsHidden={loading}
+        importantForAccessibility={loading ? 'no-hide-descendants' : 'auto'}
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
@@ -130,22 +133,28 @@ export default function HomeScreen() {
       >
         <View style={[styles.top, { backgroundColor: colors.rollpe_primary }]}>
           <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>
-            {t('home.greeting', { name: result.userName })}
+            {result ? t('home.greeting', { name: result.userName }) : '\u00a0'}
           </Text>
           <Text style={[styles.count, styles.rollpeCount, { color: colors.rollpe_secondary }]}>
-            {t('home.hostCount', { count: result.status?.host ?? '—' })}
+            {t('home.hostCount', { count: result?.status?.host ?? '—' })}
           </Text>
           <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>
-            {t('home.heartCount', { count: result.status?.heart ?? '—' })}
+            {t('home.heartCount', { count: result?.status?.heart ?? '—' })}
           </Text>
-          {result.statusError ? failure(result.statusError) : null}
+          {error
+            ? failure(t('home.failed'))
+            : result?.statusError
+              ? failure(result.statusError)
+              : null}
           <PrimaryButton
             title={t('home.invited')}
+            disabled={loading || !result}
             onPress={() => router.navigate('/invitations')}
             style={styles.invited}
           />
           <Pressable
             accessibilityRole="button"
+            disabled={loading || !result}
             onPress={() => router.navigate('/create-rollpe')}
             style={[
               styles.create,
@@ -164,11 +173,11 @@ export default function HomeScreen() {
           >
             {t('home.hot')}
           </Text>
-          {result.rollpesError ? (
+          {result?.rollpesError ? (
             failure(result.rollpesError)
           ) : (
             <View style={styles.grid}>
-              {result.rollpes?.map((rollpe) => (
+              {result?.rollpes?.map((rollpe) => (
                 <View key={rollpe.id} style={styles.gridItem}>
                   <RollpeCard
                     rollpe={rollpe}
@@ -192,6 +201,7 @@ export default function HomeScreen() {
         accessibilityRole="button"
         accessibilityLabel={t('home.menuOpen')}
         accessibilityState={{ expanded: menuOpen }}
+        disabled={loading || !result}
         hitSlop={8}
         onPress={() => setMenuOpen(true)}
         style={[
@@ -207,13 +217,13 @@ export default function HomeScreen() {
         />
       </Pressable>
       {menuOpen && <AppSideMenu onClose={() => setMenuOpen(false)} />}
+      {loading && <LoadingView accessibilityLabel={t('home.loading')} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   contents: { flexGrow: 1, backgroundColor: '#F4F4F4' },
   top: { paddingTop: 40, paddingHorizontal: 20, paddingBottom: 36 },
   nickname: { fontFamily: RollpeFonts.display, fontSize: 24 },

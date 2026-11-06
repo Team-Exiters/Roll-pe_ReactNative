@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { AppDialog } from '@/components/ui/AppDialog';
-import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { LoadingView } from '@/components/ui/LoadingView';
+import { useRollpeColors } from '@/constants/theme';
+import WelcomeScreen from '@/features/welcome/WelcomeScreen';
 import { completeWebBrowserSignIn } from '@/features/sign-in/browser-auth';
 import { resolveRollpeDestination } from '@/features/sign-in/pending-rollpe';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -43,10 +45,16 @@ export default function BrowserCallback() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.rollpe_primary }]}>
-      {!error && <ActivityIndicator color={colors.rollpe_main} />}
-      <Text style={[styles.message, { color: colors.rollpe_secondary }]}>
-        {error ? t('auth.callbackFailed') : t('auth.callbackChecking')}
-      </Text>
+      <View
+        style={styles.container}
+        pointerEvents="none"
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <WelcomeScreen />
+      </View>
+      {!error && <LoadingView accessibilityLabel={t('auth.callbackChecking')} />}
       {error && (
         <AppDialog
           title={t('common.signIn')}
@@ -60,6 +68,5 @@ export default function BrowserCallback() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 20 },
-  message: { fontFamily: RollpeFonts.regular, fontSize: 16, textAlign: 'center' },
+  container: { flex: 1 },
 });

@@ -1,11 +1,11 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { LoadingView } from '@/components/ui/LoadingView';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { RollpeFonts, useRollpeColors } from '@/constants/theme';
+import { AppDialog } from '@/components/ui/AppDialog';
+import { useRollpeColors } from '@/constants/theme';
 import WelcomeScreen from '@/features/welcome/WelcomeScreen';
 import { restoreTokenState } from '@/lib/authenticated-api';
 import {
@@ -53,34 +53,32 @@ export default function StartupGate() {
     }, [attempt, router, finishSignIn, welcome]),
   );
 
-  if (status === 'welcome') return <WelcomeScreen />;
   return (
     <View style={[styles.screen, { backgroundColor: colors.rollpe_primary }]}>
-      {status === 'checking' ? (
-        <LoadingView accessibilityLabel={t('auth.checking')} />
-      ) : (
-        <View style={styles.error}>
-          <Text
-            accessibilityRole="alert"
-            style={[styles.message, { color: colors.rollpe_secondary }]}
-          >
-            {t('auth.startupFailed')}
-          </Text>
-          <PrimaryButton
-            title={t('common.retry')}
-            onPress={() => {
-              setStatus('checking');
-              setAttempt((value) => value + 1);
-            }}
-          />
-        </View>
+      <View
+        style={styles.screen}
+        pointerEvents={status === 'welcome' ? 'auto' : 'none'}
+        aria-hidden={status !== 'welcome'}
+        accessibilityElementsHidden={status !== 'welcome'}
+        importantForAccessibility={status === 'welcome' ? 'auto' : 'no-hide-descendants'}
+      >
+        <WelcomeScreen />
+      </View>
+      {status === 'checking' && <LoadingView accessibilityLabel={t('auth.checking')} />}
+      {status === 'error' && (
+        <AppDialog
+          message={t('auth.startupFailed')}
+          confirmLabel={t('common.retry')}
+          onConfirm={() => {
+            setStatus('checking');
+            setAttempt((value) => value + 1);
+          }}
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, justifyContent: 'center' },
-  error: { padding: 24, gap: 24 },
-  message: { fontFamily: RollpeFonts.regular, fontSize: 16, textAlign: 'center' },
+  screen: { flex: 1 },
 });

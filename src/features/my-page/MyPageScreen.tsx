@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppFooter } from '@/components/AppFooter';
 import { AppSideMenu } from '@/components/AppSideMenu';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { LoadingView } from '@/components/ui/LoadingView';
 import { AppDialog } from '@/components/ui/AppDialog';
 import { RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { fetchHomeStatus, type HomeStatus } from '@/features/home/api';
@@ -46,7 +47,10 @@ export default function MyPageScreen() {
           const token = await getTokenState();
           if (!token) throw new AuthenticationRequiredError();
           if (controller.signal.aborted) return;
-          setResult({ user: token.user });
+          setResult((current) => ({
+            user: token.user,
+            status: current?.user.id === token.user.id ? current.status : undefined,
+          }));
           setError('');
           const status = await fetchHomeStatus(controller.signal);
           if (!controller.signal.aborted) setResult({ user: token.user, status });
@@ -89,6 +93,7 @@ export default function MyPageScreen() {
     }
   }
 
+  const loading = !result && !error;
   const failure = (
     <View style={styles.failure}>
       <Text accessibilityRole="alert" style={[styles.message, { color: colors.rollpe_main }]}>
@@ -97,16 +102,6 @@ export default function MyPageScreen() {
       <PrimaryButton title={t('common.retry')} onPress={() => setAttempt((value) => value + 1)} />
     </View>
   );
-  if (!result)
-    return (
-      <View style={[styles.loading, { backgroundColor: colors.rollpe_primary }]}>
-        {error ? (
-          failure
-        ) : (
-          <ActivityIndicator accessibilityLabel={t('myPage.loading')} color={colors.rollpe_main} />
-        )}
-      </View>
-    );
   return (
     <View
       style={[
@@ -115,6 +110,10 @@ export default function MyPageScreen() {
       ]}
     >
       <ScrollView
+        pointerEvents={loading || busy ? 'none' : 'auto'}
+        aria-hidden={loading || busy}
+        accessibilityElementsHidden={loading || busy}
+        importantForAccessibility={loading || busy ? 'no-hide-descendants' : 'auto'}
         bounces={false}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
@@ -127,23 +126,29 @@ export default function MyPageScreen() {
         <View style={styles.profile}>
           <View style={styles.nicknameRow}>
             <Text style={[styles.nickname, { color: colors.rollpe_secondary }]}>
-              {t('myPage.nickname', { name: result.user.name })}
+              {result ? t('myPage.nickname', { name: result.user.name }) : '\u00a0'}
             </Text>
-            {result.user.provider && <SocialBadge provider={result.user.provider} />}
+            {result?.user.provider && <SocialBadge provider={result.user.provider} />}
           </View>
           <Text style={[styles.identify, { color: colors.rollpe_secondary }]}>
-            {result.user.identifyCode ?? ''}
+            {result?.user.identifyCode ?? ''}
           </Text>
           <Text style={[styles.count, { color: colors.rollpe_secondary }]}>
-            {t('home.hostCount', { count: result.status?.host ?? '—' })}
+            {t('home.hostCount', { count: result?.status?.host ?? '—' })}
           </Text>
           <Text style={[styles.count, styles.heartCount, { color: colors.rollpe_secondary }]}>
-            {t('home.heartCount', { count: result.status?.heart ?? '—' })}
+            {t('home.heartCount', { count: result?.status?.heart ?? '—' })}
           </Text>
           {error ? failure : null}
         </View>
-        <View style={styles.menus}>
-          {!result.user.provider && (
+        <View
+          style={styles.menus}
+          pointerEvents={result ? 'auto' : 'none'}
+          aria-hidden={!result}
+          accessibilityElementsHidden={!result}
+          importantForAccessibility={result ? 'auto' : 'no-hide-descendants'}
+        >
+          {result && !result.user.provider && (
             <Pressable
               accessibilityRole="button"
               onPress={() => router.navigate('/change-password')}
@@ -208,6 +213,7 @@ export default function MyPageScreen() {
         accessibilityRole="button"
         accessibilityLabel={t('home.menuOpen')}
         accessibilityState={{ expanded: menu }}
+        disabled={!result || busy}
         hitSlop={8}
         onPress={() => setMenu(true)}
         style={[
@@ -222,6 +228,7 @@ export default function MyPageScreen() {
           style={styles.menuIcon}
         />
       </Pressable>
+      {loading && <LoadingView accessibilityLabel={t('myPage.loading')} />}
       {menu && <AppSideMenu current="myPage" onClose={() => setMenu(false)} />}
       {action && (
         <AppDialog
@@ -312,7 +319,6 @@ const styles = StyleSheet.create({
   menuLabel: { fontFamily: RollpeFonts.display, fontSize: 20 },
   pressed: { opacity: 0.7 },
   spacer: { flexGrow: 1, minHeight: 40 },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   failure: { gap: 16, marginTop: 20 },
   message: { fontFamily: RollpeFonts.display, fontSize: 16, textAlign: 'center' },
   menuButton: {

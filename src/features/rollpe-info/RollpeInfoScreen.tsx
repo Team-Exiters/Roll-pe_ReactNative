@@ -85,6 +85,16 @@ function RollpeInfoContent({ code }: { code: string }) {
   const focused = useRef(false);
   const exportPaper = useRef<ComponentRef<typeof View>>(null);
 
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        // A focused refresh keeps the paper behind the loader; leaving it discards private content.
+        setResult(null);
+      },
+      [],
+    ),
+  );
+
   const handleFailure = useCallback(
     (cause: unknown) => {
       setResult(null);
@@ -122,7 +132,6 @@ function RollpeInfoContent({ code }: { code: string }) {
     useCallback(() => {
       focused.current = true;
       if (attempt > 0) setEntryError(undefined);
-      setResult(null);
       setBusy(false);
       setNotice(null);
       setJoining(false);
@@ -139,6 +148,7 @@ function RollpeInfoContent({ code }: { code: string }) {
           const tokenState = await getTokenState();
           if (!tokenState) throw new AuthenticationRequiredError();
           if (controller.signal.aborted) return;
+          setResult((current) => (current?.user.id === tokenState.user.id ? current : null));
           const rollpe = await fetchRollpeInfo(code, controller.signal);
           if (!controller.signal.aborted) {
             setResult({ rollpe, user: tokenState.user });

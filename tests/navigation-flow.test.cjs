@@ -158,6 +158,7 @@ function startup({ welcome, token = null, pending = null } = {}) {
     '@/constants/theme': { RollpeFonts: {}, useRollpeColors: () => ({}) },
     '@/components/ui/LoadingView': { LoadingView: 'loading' },
     '@/components/ui/PrimaryButton': { PrimaryButton: 'button' },
+    '@/components/ui/AppDialog': { AppDialog: 'dialog' },
     '@/features/welcome/WelcomeScreen': { default: 'welcome' },
     '@/hooks/useAppNavigation': { useAppNavigation: () => ({ finishSignIn: route => transitions.push(['login', route]) }) },
     '@/lib/authenticated-api': { restoreTokenState: async () => token },
@@ -231,6 +232,7 @@ function screenMocks(app, { token = null, params = {} } = {}) {
       rememberRollpeDestination: async () => {}, clearPendingRollpeDestination: async () => {} },
     '@/assets/images/welcome/background.jpg': 'background',
     '@/assets/images/welcome/logo.png': 'logo',
+    '@/assets/images/home/menu.svg': 'menu',
   } };
 }
 
