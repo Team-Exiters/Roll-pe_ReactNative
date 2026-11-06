@@ -365,34 +365,36 @@ function RollpeInfoContent({ code }: { code: string }) {
                 {t('info.writers', { count: rollpe.hearts.count, max: rollpe.maxHeartLength })}
               </Text>
               <View style={styles.writerList}>
-                {rollpe.hearts.data.map((heart) => (
-                  <View key={heart.id} style={styles.writerRow}>
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.writer, { color: colors.rollpe_secondary }]}
-                    >
-                      {heart.author.name}({heart.author.identifyCode})
-                    </Text>
-                    {(heart.revisionCount ?? 0) > 0 &&
-                      (result && [rollpe.host.id, heart.author.id].includes(result.user.id) ? (
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={t('history.forUser', { name: heart.author.name })}
-                          onPress={() => {
-                            openModal({ type: 'history', heartCode: heart.code });
-                          }}
-                        >
-                          <Text style={[styles.edited, { color: colors.rollpe_main }]}>
+                {rollpe.hearts.data
+                  .filter((heart) => !heart.hidden)
+                  .map((heart) => (
+                    <View key={heart.id} style={styles.writerRow}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.writer, { color: colors.rollpe_secondary }]}
+                      >
+                        {heart.author.name}({heart.author.identifyCode})
+                      </Text>
+                      {(heart.revisionCount ?? 0) > 0 &&
+                        (result && [rollpe.host.id, heart.author.id].includes(result.user.id) ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={t('history.forUser', { name: heart.author.name })}
+                            onPress={() => {
+                              openModal({ type: 'history', heartCode: heart.code });
+                            }}
+                          >
+                            <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
+                              {t('history.edited')}
+                            </Text>
+                          </Pressable>
+                        ) : (
+                          <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
                             {t('history.edited')}
                           </Text>
-                        </Pressable>
-                      ) : (
-                        <Text style={[styles.edited, { color: colors.rollpe_secondary }]}>
-                          {t('history.edited')}
-                        </Text>
-                      ))}
-                  </View>
-                ))}
+                        ))}
+                    </View>
+                  ))}
               </View>
               {role === 'host' && (
                 <Pressable
@@ -567,7 +569,7 @@ const styles = StyleSheet.create({
   writerList: { marginTop: 20, gap: 8 },
   writer: { fontFamily: RollpeFonts.display, fontSize: 20 },
   buttons: { marginHorizontal: 20, gap: 8 },
-  writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8 },
+  writerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   edited: { fontFamily: RollpeFonts.display, fontSize: 16 },
   participants: { marginTop: 40, flexDirection: 'row', alignItems: 'center', gap: 4 },
   chevron: { width: 20, height: 20 },

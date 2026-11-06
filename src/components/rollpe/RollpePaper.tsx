@@ -69,7 +69,13 @@ const fonts = {
   previewMemo: require('@/assets/fonts/NanumPen.otf'),
 };
 
-type PaperMessage = { index: number; content: string; author: { name: string }; color: string };
+type PaperMessage = {
+  index: number;
+  content: string;
+  author: { name: string };
+  color: string;
+  hidden?: boolean;
+};
 type RollpePaperProps = {
   title: string;
   ratio: string;
@@ -193,16 +199,25 @@ export function RollpePaper({
                   <Memo
                     key={index}
                     accessible={Boolean(onMemoPress)}
+                    {...(onMemoPress ? { disabled: Boolean(message?.hidden) } : {})}
+                    accessibilityState={{ disabled: Boolean(message?.hidden) }}
                     accessibilityRole={onMemoPress ? 'button' : undefined}
                     accessibilityLabel={
                       onMemoPress
-                        ? t(message ? 'heart.writtenSlot' : 'heart.emptySlot', {
-                            index: index + 1,
-                            name: message?.author.name ?? '',
-                          })
+                        ? t(
+                            message?.hidden
+                              ? 'blocking.hiddenSlot'
+                              : message
+                                ? 'heart.writtenSlot'
+                                : 'heart.emptySlot',
+                            {
+                              index: index + 1,
+                              name: message?.author.name ?? '',
+                            },
+                          )
                         : undefined
                     }
-                    onPress={onMemoPress ? () => onMemoPress(index) : undefined}
+                    onPress={onMemoPress && !message?.hidden ? () => onMemoPress(index) : undefined}
                     style={{
                       position: 'absolute',
                       left: (x + (rotatedWidth - 140) / 2) * scale,
@@ -234,9 +249,11 @@ export function RollpePaper({
                     >
                       {sample
                         ? t('create.previewSample', { count: index + 1 })
-                        : message
-                          ? `${message.content}\n- ${message.author.name}`
-                          : ''}
+                        : message?.hidden
+                          ? t('blocking.hiddenHeart')
+                          : message
+                            ? `${message.content}\n- ${message.author.name}`
+                            : ''}
                     </Text>
                   </Memo>
                 );

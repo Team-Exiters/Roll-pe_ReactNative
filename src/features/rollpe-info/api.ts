@@ -55,6 +55,7 @@ function heart(value: unknown): value is RollpeHeart {
     (value.index as number) < 12 &&
     user(value.author) &&
     typeof value.content === 'string' &&
+    (value.hidden === undefined || typeof value.hidden === 'boolean') &&
     typeof value.color === 'string' &&
     /^#?[0-9a-f]{6}$/i.test(value.color) &&
     (value.revisionCount === undefined ||
@@ -147,6 +148,13 @@ export async function fetchRollpeInfo(code: string, signal?: AbortSignal): Promi
       count: hearts.length,
       data: hearts.map((value) => ({
         ...value,
+        ...(value.hidden
+          ? {
+              content: '',
+              author: { ...value.author, name: '', identifyCode: '' },
+              revisionCount: 0,
+            }
+          : {}),
         color: `#${value.color.replace(/^#/, '')}`,
       })),
     },

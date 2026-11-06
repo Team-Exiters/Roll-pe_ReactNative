@@ -344,3 +344,48 @@ test('paper refresh preserves its background but clears private content on acces
   cancel();
   assert.equal(ofType(ui.render(Screen, props), 'RollpePaper').length, 0);
 });
+
+test('heart editor keeps memo and palette geometry fixed while the keyboard resizes its modal window', () => {
+  for (const platform of ['android', 'ios']) {
+    let keyboardHide;
+    const ui = setup({ platform, overrides: {
+      'react-native': {
+        Platform: { OS: platform }, StyleSheet: { create: value => value },
+        Keyboard: { dismiss() {}, addListener(event, callback) { keyboardHide = callback; return { remove() {} }; } },
+        View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable', ScrollView: 'ScrollView', ActivityIndicator: 'ActivityIndicator',
+      },
+      'expo-font': { useFonts: () => [true, null] },
+      'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
+      '@/features/rollpe-content/api': { fetchHeartColors: async () => [], HeartMutationError: class extends Error {} },
+      '@/features/rollpe-content/model': { normalizeHeartColor: () => '', cleanHeartContent: value => value },
+      '@/features/user-blocking/api': { changeUserBlock: async () => {} },
+    } });
+    const { HeartModal } = ui.load('features/rollpe-content/components/HeartModal.tsx');
+    const props = { paper: { theme: '화이트', host: { id: 1 } }, user: { id: 1 }, index: 0 };
+    let tree = ui.render(HeartModal, props);
+    assert.equal(tree.props.avoidKeyboard, undefined);
+    ui.effects.forEach(effect => effect());
+    const layout = (width, height) => ({ nativeEvent: { layout: { width, height } } });
+    const measuringView = tree => nodes(tree, node => node.props?.onLayout)[0];
+    measuringView(tree).props.onLayout(layout(400, 800));
+    tree = ui.render(HeartModal, props);
+    const before = ofType(tree, 'TextInput')[0].props.style;
+    ofType(tree, 'TextInput')[0].props.onFocus();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 480));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+    assert.equal(nodes(tree, node => Array.isArray(node.props?.style) && node.props.style.some(style => style?.height === 800)).length, 1);
+    keyboardHide();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 800));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+    // Android can reopen the keyboard without firing another focus event.
+    ofType(tree, 'TextInput')[0].props.onPressIn();
+    tree = ui.render(HeartModal, props);
+    measuringView(tree).props.onLayout(layout(400, 480));
+    tree = ui.render(HeartModal, props);
+    assert.deepEqual(ofType(tree, 'TextInput')[0].props.style, before);
+  }
+});

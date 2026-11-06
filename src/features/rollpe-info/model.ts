@@ -11,6 +11,7 @@ export type RollpeHeart = {
   content: string;
   color: string;
   revisionCount?: number;
+  hidden?: boolean;
 };
 export type RollpeInfo = {
   id: number;

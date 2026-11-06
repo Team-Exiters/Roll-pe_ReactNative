@@ -376,5 +376,18 @@
   "settings.closed": "전달이 완료된 롤페는 수정할 수 없습니다.",
   "settings.unchanged": "변경할 설정이 없습니다.",
   "settings.invalid": "공개 설정, 비밀번호와 전달일을 확인해주세요.",
-  "settings.uncertain": "변경 결과를 확인하지 못했습니다. 롤페를 다시 불러와 확인해주세요."
+  "settings.uncertain": "변경 결과를 확인하지 못했습니다. 롤페를 다시 불러와 확인해주세요.",
+  "blocking.title": "차단한 사용자",
+  "blocking.description": "차단한 사용자의 롤페와 마음이 표시되지 않으며, 서로 초대할 수 없습니다.",
+  "blocking.block": "차단",
+  "blocking.unblock": "해제",
+  "blocking.confirmBlock": "{{name}}님을 차단하시겠습니까?\n이 사용자의 롤페와 마음이 숨겨지고 서로 초대할 수 없습니다. 마이페이지에서 차단을 해제할 수 있습니다.",
+  "blocking.confirmUnblock": "{{name}}님의 차단을 해제하시겠습니까? 이전에 거절된 초대는 복구되지 않습니다.",
+  "blocking.completed": "사용자를 차단했습니다.",
+  "blocking.failed": "차단 설정을 확인할 수 없습니다. 목록을 새로 확인한 뒤 다시 시도해주세요.",
+  "blocking.loadFailed": "차단한 사용자 목록을 불러오지 못했습니다.",
+  "blocking.empty": "차단한 사용자가 없습니다.",
+  "blocking.hiddenHeart": "차단한 사용자의 마음",
+  "blocking.hiddenSlot": "{{index}}번 메모, 차단한 사용자의 마음",
+  "blocking.unblockLabel": "{{name}}님 차단 해제"
 }
