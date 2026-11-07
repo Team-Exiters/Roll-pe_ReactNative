@@ -45,6 +45,7 @@ function setup(reply) {
   }
   return {
     api: load('features/support/api.ts'),
+    html: load('features/support/html-document.ts'),
     calls,
     AuthenticationRequiredError,
   };
@@ -87,4 +88,48 @@ test('inquiries never silently retry an uncertain submission and preserve authen
     auth.api.sendInquiry(draft, id),
     (error) => error instanceof auth.AuthenticationRequiredError,
   );
+});
+
+test('notice pagination uses local paths and rejects malformed or mismatched details', async () => {
+  const item = { id: 3, title: '공지사항', publishedAt: '2026-11-07T00:00:00Z' };
+  const env = setup(() => ({
+    response: { ok: true },
+    payload: {
+      data: {
+        count: 2,
+        results: [item],
+        next: 'https://untrusted.invalid/page',
+      },
+    },
+  }));
+  assert.equal((await env.api.fetchNotices()).nextPage, 2);
+  await env.api.fetchNotices(2);
+  assert.equal(env.calls[1].url, '/api/engine/notices?page=2');
+  const detail = setup(() => ({
+    response: { ok: true },
+    payload: { data: { ...item, body: '<p>안내</p>' } },
+  }));
+  assert.equal((await detail.api.fetchNotice(3)).body, '<p>안내</p>');
+  await assert.rejects(detail.api.fetchNotice(4));
+  for (const value of [0, -1, NaN, 1.5]) await assert.rejects(detail.api.fetchNotice(value));
+});
+
+test('notice documents disable active content and links accept only HTTPS and email destinations', () => {
+  const { html } = setup();
+  const document = html.noticeDocument('<p>안내</p>');
+  assert.match(document, /Content-Security-Policy/);
+  assert.match(document, /default-src 'none'/);
+  assert.match(document, /font-family: -apple-system/);
+  assert.doesNotMatch(document, /@font-face|data:font|font-src/);
+  for (const url of [
+    'javascript:alert(1)',
+    'file:///etc/passwd',
+    'rollpe://auth/apple',
+    'https://user:password@example.com',
+    '/relative',
+  ]) {
+    assert.equal(html.noticeLink(url), null);
+  }
+  assert.equal(html.noticeLink('https://example.com/help'), 'https://example.com/help');
+  assert.equal(html.noticeLink('mailto:help@example.com'), 'mailto:help@example.com');
 });

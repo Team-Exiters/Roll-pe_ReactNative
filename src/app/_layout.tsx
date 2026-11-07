@@ -53,6 +53,14 @@ export default function RootLayout() {
         />
         <Stack.Screen name="home" options={{ title: t('common.home'), gestureEnabled: false }} />
         <Stack.Screen name="search" options={{ title: t('home.search'), gestureEnabled: false }} />
+        <Stack.Screen
+          name="notices/index"
+          options={{ title: t('home.notices'), gestureEnabled: true }}
+        />
+        <Stack.Screen
+          name="notices/[id]"
+          options={{ title: t('home.notices'), gestureEnabled: true }}
+        />
         <Stack.Screen name="contact" options={{ title: t('home.contact'), gestureEnabled: true }} />
         <Stack.Screen
           name="blocked-users"

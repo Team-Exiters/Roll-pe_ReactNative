@@ -35,7 +35,7 @@ export function AppSideMenu({
   const [offset] = useState(() => new Animated.Value(menuWidth));
   const [opacity] = useState(() => new Animated.Value(0));
   const driver = Platform.OS !== 'web';
-  function close(destination?: 'home' | 'search' | 'my-page' | 'contact') {
+  function close(destination?: 'home' | 'search' | 'my-page' | 'notices/index' | 'contact') {
     if (closing) return;
     setClosing(true);
     Animated.parallel([
@@ -137,7 +137,7 @@ export function AppSideMenu({
           contentContainerStyle={styles.items}
           showsVerticalScrollIndicator={false}
         >
-          {(['home', 'search', 'contact', 'myPage'] as const).map((item) => (
+          {(['home', 'search', 'notices', 'contact', 'myPage'] as const).map((item) => (
             <Pressable
               key={item}
               accessibilityRole="button"
@@ -146,7 +146,7 @@ export function AppSideMenu({
                 if (item === current) close();
                 else if (item === 'home' || item === 'search') close(item);
                 else if (item === 'myPage') close('my-page');
-                else close('contact');
+                else close(item === 'notices' ? 'notices/index' : 'contact');
               }}
             >
               <Text

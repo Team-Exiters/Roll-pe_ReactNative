@@ -1,5 +1,6 @@
 {
   "common.brand": "롤페",
+  "home.notices": "공지사항",
   "support.description": "롤페 서비스에 대한 문의를 남겨주세요.",
   "support.category": "문의유형",
   "support.category.bug": "버그 제보",
@@ -16,6 +17,11 @@
   "support.invalid": "문의유형과 내용을 확인해주세요.",
   "support.uncertain": "접수 결과를 확인하지 못했습니다. 다시 시도해도 동일한 문의는 중복 접수되지 않습니다.",
   "support.tooMany": "문의 요청이 많습니다. 잠시 후 다시 시도해주세요.",
+  "notices.loading": "공지사항을 불러오는 중",
+  "notices.empty": "등록된 공지사항이 없습니다.",
+  "notices.failed": "공지사항을 불러오지 못했습니다. 다시 시도해주세요.",
+  "notices.unavailable": "존재하지 않거나 게시가 종료된 공지사항입니다.",
+  "notices.body": "공지사항 본문",
   "common.signIn": "로그인",
   "common.home": "홈",
   "common.createRollpe": "롤페 만들기",
