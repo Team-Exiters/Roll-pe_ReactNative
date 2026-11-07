@@ -56,7 +56,15 @@ test('blocked-user pages validate identities, deduplicate and never follow a sup
   assert.equal(page.nextPage, 2);
   await api.fetchBlockedUsers(page.nextPage);
   assert.equal(calls[1].url, '/api/user/blocks?page=2');
-  for (const results of [[item, item], [{ ...item, id: '3' }], [{ ...item, identifyCode: null }]]) {
+  for (const results of [[item, item], [{ ...item, id: '3' }], [{ ...item, identifyCode: 7 }]]) {
     await assert.rejects(setup(() => response(results)).api.fetchBlockedUsers());
   }
+  const legacy = setup(({ method }) => method === 'GET'
+    ? response([{ ...item, identifyCode: null }])
+    : { response: { status: 204 } });
+  const legacyPage = await legacy.api.fetchBlockedUsers();
+  assert.equal(legacyPage.items[0].identifyCode, '');
+  await legacy.api.changeUserBlock(legacyPage.items[0].id, false);
+  assert.equal(legacy.calls[1].method, 'DELETE');
+  assert.equal(legacy.calls[1].body.userId, item.id);
 });

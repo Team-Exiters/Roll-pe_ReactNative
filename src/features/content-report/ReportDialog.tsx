@@ -32,24 +32,22 @@ export function ReportDialog({
   onClose: () => void;
   onAuthenticationRequired: () => void;
 }) {
-  const { t } = useTranslation(),
-    colors = useRollpeColors();
+  const { t } = useTranslation();
+  const colors = useRollpeColors();
   const [reason, setReason] = useState<ReportReason | null>(null);
-  const [description, setDescription] = useState(''),
-    [error, setError] = useState('');
-  const [busy, setBusy] = useState(false),
-    [receipt, setReceipt] = useState('');
-  const operation = useRef<AbortController | null>(null),
-    pending = useRef(false);
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [receipt, setReceipt] = useState('');
+  const operation = useRef<AbortController | null>(null);
   useEffect(() => () => operation.current?.abort(), []);
 
   async function submit() {
-    if (pending.current) return;
+    if (operation.current) return;
     if (!reason) {
       setError(t('report.selectReason'));
       return;
     }
-    pending.current = true;
     Keyboard.dismiss();
     setBusy(true);
     setError('');
@@ -64,7 +62,7 @@ export function ReportDialog({
       else setError(cause instanceof Error ? cause.message : t('report.uncertain'));
     } finally {
       if (!controller.signal.aborted) {
-        pending.current = false;
+        operation.current = null;
         setBusy(false);
       }
     }

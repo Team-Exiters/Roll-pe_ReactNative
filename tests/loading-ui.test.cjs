@@ -61,6 +61,7 @@ function setup({ platform = 'web', overrides = {} } = {}) {
       View: 'View',
       Text: 'Text',
       ScrollView: 'ScrollView',
+      FlatList: 'FlatList',
       Pressable: 'Pressable',
       ActivityIndicator: 'ActivityIndicator',
     },
@@ -444,4 +445,112 @@ test('closing a report aborts its pending request and a late receipt cannot upda
   reply.resolve('late receipt'); await settle();
   tree = ui.render(ReportDialog, props);
   assert.notEqual(tree.props.message, 'late receipt');
+});
+
+test('blocked-user pagination preserves loaded users after an error and ignores duplicate load requests', async () => {
+  const first = { id: 1, name: 'first', identifyCode: 'FIRST1' };
+  const second = { id: 2, name: 'second', identifyCode: 'SECOND' };
+  const calls = [];
+  let next = deferred();
+  const ui = setup({ overrides: {
+    '@/features/user-blocking/api': {
+      fetchBlockedUsers: (page) => {
+        calls.push(page);
+        return page === 1 ? Promise.resolve({ items: [first], count: 2, nextPage: 2 }) : next.promise;
+      },
+    },
+  } });
+  const Screen = ui.load('features/user-blocking/BlockedUsersScreen.tsx').default;
+  const list = tree => ofType(tree, 'FlatList')[0].props;
+  assert.equal(ofType(ui.render(Screen), 'LoadingView').length, 1);
+  ui.focus[0]();
+  await settle();
+  let tree = ui.render(Screen);
+  list(tree).ListFooterComponent.props.onPress();
+  list(tree).ListFooterComponent.props.onPress();
+  next.reject(new Error('offline'));
+  await settle();
+  tree = ui.render(Screen);
+  ofType(tree, 'AppDialog')[0].props.onConfirm();
+  tree = ui.render(Screen);
+  assert.equal(list(tree).data[0], first);
+  assert.deepEqual(calls, [1, 2]);
+  next = deferred();
+  list(tree).ListFooterComponent.props.onPress();
+  next.resolve({ items: [first, second], count: 2, nextPage: null });
+  await settle();
+  tree = ui.render(Screen);
+  assert.deepEqual(Array.from(list(tree).data, item => item.id), [1, 2]);
+  assert.equal(list(tree).ListFooterComponent, undefined);
+});
+
+test('blocked-user requests are cancelled on blur and late results cannot overwrite a new load', async () => {
+  const requests = [];
+  const ui = setup({ overrides: {
+    '@/features/user-blocking/api': {
+      fetchBlockedUsers: (page, signal) => {
+        const request = { signal, ...deferred() };
+        requests.push(request);
+        return request.promise;
+      },
+    },
+  } });
+  const Screen = ui.load('features/user-blocking/BlockedUsersScreen.tsx').default;
+  ui.render(Screen);
+  const blur = ui.focus[0]();
+  blur();
+  assert.equal(requests[0].signal.aborted, true);
+  ui.render(Screen);
+  ui.focus[0]();
+  requests[0].resolve({ items: [{ id: 1 }], count: 1, nextPage: null });
+  await settle();
+  assert.equal(ofType(ui.render(Screen), 'LoadingView').length, 1);
+  requests[1].resolve({ items: [{ id: 2 }], count: 1, nextPage: null });
+  await settle();
+  const tree = ui.render(Screen);
+  assert.equal(ofType(tree, 'LoadingView').length, 0);
+  assert.equal(ofType(tree, 'FlatList')[0].props.data[0].id, 2);
+});
+
+test('unblocking closes confirmation before loading and refreshes the paginated list from its first page', async () => {
+  const removal = deferred();
+  const user = { id: 3, name: 'blocked', identifyCode: '' };
+  const calls = [];
+  let removed = false;
+  const ui = setup({ overrides: {
+    '@/features/user-blocking/api': {
+      fetchBlockedUsers: async (page) => {
+        calls.push(['load', page]);
+        return { items: removed ? [] : [user], count: removed ? 0 : 1, nextPage: null };
+      },
+      changeUserBlock: (id, blocking) => {
+        calls.push(['block', id, blocking]);
+        return removal.promise;
+      },
+    },
+  } });
+  const Screen = ui.load('features/user-blocking/BlockedUsersScreen.tsx').default;
+  ui.render(Screen);
+  const cleanup = ui.focus[0]();
+  await settle();
+  let tree = ui.render(Screen);
+  const row = ofType(tree, 'FlatList')[0].props.renderItem({ item: user });
+  ofType(row, 'OutlineButton')[0].props.onPress();
+  tree = ui.render(Screen);
+  ofType(tree, 'AppDialog')[0].props.onConfirm();
+  ofType(tree, 'AppDialog')[0].props.onConfirm();
+  tree = ui.render(Screen);
+  assert.equal(ofType(tree, 'AppDialog').length, 0);
+  assert.equal(ofType(tree, 'LoadingView').length, 1);
+  removed = true;
+  removal.resolve();
+  await settle();
+  cleanup();
+  ui.render(Screen);
+  ui.focus[0]();
+  await settle();
+  tree = ui.render(Screen);
+  assert.equal(ofType(tree, 'FlatList')[0].props.data.length, 0);
+  assert.equal(ofType(tree, 'LoadingView').length, 0);
+  assert.deepEqual(calls, [['load', 1], ['block', 3, false], ['load', 1]]);
 });

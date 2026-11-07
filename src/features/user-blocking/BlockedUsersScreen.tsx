@@ -20,62 +20,72 @@ import { useTranslation } from '@/i18n';
 import { AuthenticationRequiredError } from '@/lib/authenticated-api';
 
 export default function BlockedUsersScreen() {
-  const { t } = useTranslation(),
-    colors = useRollpeColors(),
-    safeArea = useSafeAreaSpacing();
-  const router = useRouter(),
-    { openWelcome, openMainScreen } = useAppNavigation();
+  const { t } = useTranslation();
+  const colors = useRollpeColors();
+  const safeArea = useSafeAreaSpacing();
+  const router = useRouter();
+  const { openWelcome, openMainScreen } = useAppNavigation();
   const [result, setResult] = useState<BlockedUserPage | null>(null);
-  const [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [selected, setSelected] = useState<BlockedUser | null>(null);
-  const [attempt, setAttempt] = useState(0),
-    [busy, setBusy] = useState(false);
-  const operation = useRef<AbortController | null>(null),
-    pending = useRef(false);
+  const [attempt, setAttempt] = useState(0);
+  const [busy, setBusy] = useState(true);
+  const operation = useRef<AbortController | null>(null);
+
+  const runRequest = useCallback(
+    async <T,>(
+      request: (signal: AbortSignal) => Promise<T>,
+      onSuccess: (value: T) => void,
+      onError: () => void,
+    ) => {
+      if (operation.current) return;
+      const controller = new AbortController();
+      operation.current = controller;
+      setBusy(true);
+      try {
+        const value = await request(controller.signal);
+        if (!controller.signal.aborted) onSuccess(value);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        if (cause instanceof AuthenticationRequiredError) openWelcome();
+        else onError();
+      } finally {
+        if (operation.current === controller) {
+          operation.current = null;
+          setBusy(false);
+        }
+      }
+    },
+    [openWelcome],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      const controller = new AbortController();
-      operation.current = controller;
-      pending.current = true;
-      setBusy(true);
       if (attempt > 0) setNotice('');
       setSelected(null);
-      setResult(null);
       setError('');
-      void fetchBlockedUsers(1, controller.signal)
-        .then((page) => {
-          if (!controller.signal.aborted) setResult(page);
-        })
-        .catch((cause) => {
-          if (controller.signal.aborted) return;
-          if (cause instanceof AuthenticationRequiredError) openWelcome();
-          else setError(t('blocking.loadFailed'));
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) {
-            pending.current = false;
-            setBusy(false);
-          }
-        });
+      void runRequest(
+        (signal) => fetchBlockedUsers(1, signal),
+        setResult,
+        () => {
+          setResult(null);
+          setError(t('blocking.loadFailed'));
+        },
+      );
       return () => {
-        controller.abort();
         operation.current?.abort();
-        pending.current = false;
+        operation.current = null;
       };
-    }, [attempt, openWelcome, t]),
+    }, [attempt, runRequest, t]),
   );
 
-  async function more() {
-    if (pending.current || !result?.nextPage) return;
-    pending.current = true;
-    setBusy(true);
-    const controller = new AbortController();
-    operation.current = controller;
-    try {
-      const page = await fetchBlockedUsers(result.nextPage, controller.signal);
-      if (!controller.signal.aborted)
+  function more() {
+    const nextPage = result?.nextPage;
+    if (!nextPage) return;
+    void runRequest(
+      (signal) => fetchBlockedUsers(nextPage, signal),
+      (page) =>
         setResult((current) => {
           if (!current) return current;
           const ids = new Set(current.items.map((item) => item.id));
@@ -83,39 +93,19 @@ export default function BlockedUsersScreen() {
             ...page,
             items: [...current.items, ...page.items.filter((item) => !ids.has(item.id))],
           };
-        });
-    } catch (cause) {
-      if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) openWelcome();
-      else setNotice(t('blocking.loadFailed'));
-    } finally {
-      if (!controller.signal.aborted) {
-        pending.current = false;
-        setBusy(false);
-      }
-    }
+        }),
+      () => setNotice(t('blocking.loadFailed')),
+    );
   }
-  async function unblock() {
-    if (!selected || pending.current) return;
+  function unblock() {
+    if (!selected || operation.current) return;
     const user = selected;
     setSelected(null);
-    pending.current = true;
-    setBusy(true);
-    const controller = new AbortController();
-    operation.current = controller;
-    try {
-      await changeUserBlock(user.id, false, controller.signal);
-      if (!controller.signal.aborted) setAttempt((value) => value + 1);
-    } catch (cause) {
-      if (controller.signal.aborted) return;
-      if (cause instanceof AuthenticationRequiredError) openWelcome();
-      else setNotice(t('blocking.failed'));
-    } finally {
-      if (!controller.signal.aborted) {
-        pending.current = false;
-        setBusy(false);
-      }
-    }
+    void runRequest(
+      (signal) => changeUserBlock(user.id, false, signal),
+      () => setAttempt((value) => value + 1),
+      () => setNotice(t('blocking.failed')),
+    );
   }
 
   return (
@@ -185,9 +175,7 @@ export default function BlockedUsersScreen() {
             <PrimaryButton
               title={t('search.more')}
               disabled={busy}
-              onPress={() => {
-                void more();
-              }}
+              onPress={more}
             />
           ) : undefined
         }
@@ -197,19 +185,11 @@ export default function BlockedUsersScreen() {
           message={t('blocking.confirmUnblock', { name: selected.name })}
           confirmLabel={t('blocking.unblock')}
           onCancel={() => setSelected(null)}
-          onConfirm={() => {
-            void unblock();
-          }}
+          onConfirm={unblock}
         />
       )}
       {Boolean(notice) && (
-        <AppDialog
-          message={notice}
-          onConfirm={() => {
-            setNotice('');
-            setAttempt((value) => value + 1);
-          }}
-        />
+        <AppDialog message={notice} onConfirm={() => setNotice('')} />
       )}
       {busy && <LoadingView accessibilityLabel={t('common.processing')} />}
     </View>
