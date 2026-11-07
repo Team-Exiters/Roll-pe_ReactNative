@@ -554,3 +554,139 @@ test('unblocking closes confirmation before loading and refreshes the paginated 
   assert.equal(ofType(tree, 'LoadingView').length, 0);
   assert.deepEqual(calls, [['load', 1], ['block', 3, false], ['load', 1]]);
 });
+
+test('closing an inquiry receipt returns to the previous screen, while closing a failure preserves its draft', async () => {
+  for (const outcome of ['success', 'failure']) {
+    for (const close of ['onConfirm', 'onClose']) {
+      let back = 0;
+      const ui = setup({ overrides: {
+        'expo-crypto': { randomUUID: () => '12345678-1234-4234-8234-123456789abc' },
+        '@/features/support/api': {
+          inquiryCategories: ['bug'], inquiryError: () => null,
+          sendInquiry: async () => { if (outcome === 'failure') throw new Error('offline'); },
+        },
+      } });
+      ui.mocks['expo-router'].useRouter = () => ({ canGoBack: () => true, back: () => back++ });
+      ui.mocks['react-native'].TextInput = 'TextInput';
+      const Screen = ui.load('features/support/InquiryScreen.tsx').default;
+      ui.render(Screen);
+      ui.focus[0]();
+      await settle();
+      let tree = ui.render(Screen);
+      ofType(tree, 'TextInput')[0].props.onChangeText('문의 초안');
+      tree = ui.render(Screen);
+      ofType(tree, 'PrimaryButton')[0].props.onPress();
+      await settle();
+      tree = ui.render(Screen);
+      const dialog = ofType(tree, 'AppDialog')[0];
+      assert.equal(dialog.props.message, outcome === 'success' ? 'support.completed' : 'support.uncertain');
+      dialog.props[close]();
+      tree = ui.render(Screen);
+      assert.equal(back, outcome === 'success' ? 1 : 0);
+      assert.equal(ofType(tree, 'AppDialog').length, 0);
+      assert.equal(ofType(tree, 'TextInput')[0].props.value, '문의 초안');
+    }
+  }
+});
+
+test('notices retry the failed page, suppress duplicate loads and refresh from page one on return', async () => {
+  const calls = [];
+  const replies = [];
+  const ui = setup({ overrides: {
+    '@/features/support/api': {
+      fetchNotices: (page, signal) => {
+        calls.push({ page, signal });
+        const reply = deferred();
+        replies.push(reply);
+        return reply.promise;
+      },
+    },
+  } });
+  const Screen = ui.load('features/support/NoticesScreen.tsx').default;
+  const page = (ids, nextPage = null) => ({ count: 4, items: ids.map(id => ({ id })), nextPage });
+  ui.render(Screen);
+  const cleanup = ui.focus[0]();
+  replies[0].resolve(page([4, 3], 2));
+  await settle();
+  let tree = ui.render(Screen);
+  const more = ofType(tree, 'FlatList')[0].props.ListFooterComponent;
+  ofType(more, 'PrimaryButton')[0].props.onPress();
+  ofType(more, 'PrimaryButton')[0].props.onPress();
+  assert.deepEqual(calls.map(call => call.page), [1, 2]);
+  replies[1].reject(new Error('offline'));
+  await settle();
+  tree = ui.render(Screen);
+  let list = ofType(tree, 'FlatList')[0];
+  assert.deepEqual(Array.from(list.props.data, item => item.id), [4, 3]);
+  ofType(list.props.ListFooterComponent, 'PrimaryButton')[0].props.onPress();
+  replies[2].resolve(page([3, 2]));
+  await settle();
+  tree = ui.render(Screen);
+  list = ofType(tree, 'FlatList')[0];
+  assert.deepEqual(Array.from(list.props.data, item => item.id), [4, 3, 2]);
+
+  cleanup();
+  ui.focus[0]();
+  assert.deepEqual(calls.map(call => call.page), [1, 2, 2, 1]);
+  replies[3].resolve(page([5, 4], 2));
+  await settle();
+  tree = ui.render(Screen);
+  assert.deepEqual(Array.from(ofType(tree, 'FlatList')[0].props.data, item => item.id), [5, 4]);
+});
+
+test('notice responses arriving after leaving cannot replace a refreshed list', async () => {
+  const replies = [];
+  const ui = setup({ overrides: {
+    '@/features/support/api': { fetchNotices: () => {
+      const reply = deferred();
+      replies.push(reply);
+      return reply.promise;
+    } },
+  } });
+  const Screen = ui.load('features/support/NoticesScreen.tsx').default;
+  ui.render(Screen);
+  ui.focus[0]()();
+  ui.focus[0]();
+  replies[1].resolve({ count: 1, items: [{ id: 2 }], nextPage: null });
+  await settle();
+  replies[0].resolve({ count: 1, items: [{ id: 1 }], nextPage: null });
+  await settle();
+  const tree = ui.render(Screen);
+  assert.deepEqual(Array.from(ofType(tree, 'FlatList')[0].props.data, item => item.id), [2]);
+  assert.equal(ofType(tree, 'LoadingView').length, 0);
+});
+
+test('notice detail refresh failures remove the previous body and can be retried', async () => {
+  const replies = [];
+  const ui = setup({ overrides: {
+    '@/features/support/api': { fetchNotice: () => {
+      const reply = deferred();
+      replies.push(reply);
+      return reply.promise;
+    } },
+  } });
+  ui.mocks['expo-router'].useLocalSearchParams = () => ({ id: '1' });
+  const Screen = ui.load('features/support/NoticeScreen.tsx').default;
+  const content = ui.render(Screen);
+  const render = () => ui.render(content.type, content.props);
+  render();
+  const cleanup = ui.focus[0]();
+  replies[0].resolve({ id: 1, title: '공지', body: '<p>안내</p>', publishedAt: '2026-11-07' });
+  await settle();
+  assert.equal(ofType(render(), 'HtmlBody').length, 1);
+  cleanup();
+  ui.focus[0]();
+  replies[1].reject(new Error('unpublished'));
+  await settle();
+  let tree = render();
+  assert.equal(ofType(tree, 'HtmlBody').length, 0);
+  const retry = ofType(tree, 'PrimaryButton')[0];
+  retry.props.onPress();
+  retry.props.onPress();
+  assert.equal(replies.length, 3);
+  replies[2].resolve({ id: 1, title: '공지', body: '<p>수정된 안내</p>', publishedAt: '2026-11-07' });
+  await settle();
+  tree = render();
+  assert.equal(ofType(tree, 'HtmlBody')[0].props.html, '<p>수정된 안내</p>');
+  assert.equal(ofType(tree, 'LoadingView').length, 0);
+});
