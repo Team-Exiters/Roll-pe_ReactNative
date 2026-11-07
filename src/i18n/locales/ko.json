@@ -7,7 +7,7 @@
   "support.category.suggestion": "건의사항",
   "support.category.other": "기타 문의사항",
   "support.selectCategory": "문의유형을 선택해주세요.",
-  "support.content": "작성란",
+  "support.content": "내용",
   "support.placeholder": "문의 내용을 입력해주세요.",
   "support.enterContent": "문의 내용을 2,000자 이내로 입력해주세요.",
   "support.count": "{{count}}/2000",
