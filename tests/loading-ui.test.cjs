@@ -554,3 +554,37 @@ test('unblocking closes confirmation before loading and refreshes the paginated 
   assert.equal(ofType(tree, 'LoadingView').length, 0);
   assert.deepEqual(calls, [['load', 1], ['block', 3, false], ['load', 1]]);
 });
+
+test('closing an inquiry receipt returns to the previous screen, while closing a failure preserves its draft', async () => {
+  for (const outcome of ['success', 'failure']) {
+    for (const close of ['onConfirm', 'onClose']) {
+      let back = 0;
+      const ui = setup({ overrides: {
+        'expo-crypto': { randomUUID: () => '12345678-1234-4234-8234-123456789abc' },
+        '@/features/support/api': {
+          inquiryCategories: ['bug'], inquiryError: () => null,
+          sendInquiry: async () => { if (outcome === 'failure') throw new Error('offline'); },
+        },
+      } });
+      ui.mocks['expo-router'].useRouter = () => ({ canGoBack: () => true, back: () => back++ });
+      ui.mocks['react-native'].TextInput = 'TextInput';
+      const Screen = ui.load('features/support/InquiryScreen.tsx').default;
+      ui.render(Screen);
+      ui.focus[0]();
+      await settle();
+      let tree = ui.render(Screen);
+      ofType(tree, 'TextInput')[0].props.onChangeText('문의 초안');
+      tree = ui.render(Screen);
+      ofType(tree, 'PrimaryButton')[0].props.onPress();
+      await settle();
+      tree = ui.render(Screen);
+      const dialog = ofType(tree, 'AppDialog')[0];
+      assert.equal(dialog.props.message, outcome === 'success' ? 'support.completed' : 'support.uncertain');
+      dialog.props[close]();
+      tree = ui.render(Screen);
+      assert.equal(back, outcome === 'success' ? 1 : 0);
+      assert.equal(ofType(tree, 'AppDialog').length, 0);
+      assert.equal(ofType(tree, 'TextInput')[0].props.value, '문의 초안');
+    }
+  }
+});

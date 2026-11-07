@@ -3,21 +3,19 @@ import { useEffect, useState } from 'react';
 import {
   Animated,
   Easing,
-  Linking,
   PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
-  View,
 } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { OVERLAY_OPACITY, RollpeFonts, useRollpeColors } from '@/constants/theme';
 import { WEB_MAX_WIDTH } from '@/components/WebViewport';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppDialog } from '@/components/ui/AppDialog';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 
 export function AppSideMenu({
@@ -31,14 +29,13 @@ export function AppSideMenu({
   const colors = useRollpeColors();
   const { openMainScreen } = useAppNavigation();
   const [closing, setClosing] = useState(false);
-  const [notice, setNotice] = useState(false);
   const { width } = useWindowDimensions();
   const contentWidth = Platform.OS === 'web' ? Math.min(width, WEB_MAX_WIDTH) : width;
   const menuWidth = contentWidth * 0.8;
   const [offset] = useState(() => new Animated.Value(menuWidth));
   const [opacity] = useState(() => new Animated.Value(0));
   const driver = Platform.OS !== 'web';
-  function close(destination?: 'home' | 'search' | 'my-page') {
+  function close(destination?: 'home' | 'search' | 'my-page' | 'contact') {
     if (closing) return;
     setClosing(true);
     Animated.parallel([
@@ -94,10 +91,7 @@ export function AppSideMenu({
     <AppModal
       visible
       animationType="none"
-      onClose={() => {
-        if (notice) setNotice(false);
-        else close();
-      }}
+      onClose={() => close()}
       contentStyle={styles.modalContent}
       backdrop={
         <>
@@ -138,7 +132,11 @@ export function AppSideMenu({
             style={styles.closeIcon}
           />
         </Pressable>
-        <View style={styles.contents}>
+        <ScrollView
+          style={styles.contents}
+          contentContainerStyle={styles.items}
+          showsVerticalScrollIndicator={false}
+        >
           {(['home', 'search', 'contact', 'myPage'] as const).map((item) => (
             <Pressable
               key={item}
@@ -148,10 +146,7 @@ export function AppSideMenu({
                 if (item === current) close();
                 else if (item === 'home' || item === 'search') close(item);
                 else if (item === 'myPage') close('my-page');
-                else if (item === 'contact')
-                  void Linking.openURL('https://forms.gle/WGC7ibNBgTnomRgZ7').catch(() =>
-                    setNotice(true),
-                  );
+                else close('contact');
               }}
             >
               <Text
@@ -164,11 +159,8 @@ export function AppSideMenu({
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       </Animated.View>
-      {notice && (
-        <AppDialog message={t('common.openLinkFailed')} onConfirm={() => setNotice(false)} />
-      )}
     </AppModal>
   );
 }
@@ -185,6 +177,7 @@ const styles = StyleSheet.create({
   },
   close: { position: 'absolute', top: 80, right: 28 },
   closeIcon: { width: 12, height: 12 },
-  contents: { marginTop: 120, marginHorizontal: 40, gap: 40 },
+  contents: { flex: 1, marginTop: 120, marginHorizontal: 40 },
+  items: { gap: 40, paddingBottom: 40 },
   label: { fontFamily: RollpeFonts.display, fontSize: 40 },
 });

@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { rollpeDestination } from '@/utils/rollpe-link';
 
 type Route = { name: string; key?: string; params?: object };
-type MainScreen = 'home' | 'search' | 'my-page';
+type MainScreen = 'home' | 'search' | 'my-page' | 'contact';
 
 export function useAppNavigation() {
   const navigation = useNavigation('/');
