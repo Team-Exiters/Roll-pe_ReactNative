@@ -101,10 +101,16 @@ export function HeartHistoryContent({ code, onClose, onAuthenticationRequired }:
           style={[styles.list, { borderColor: colors.rollpe_secondary }]}
           contentContainerStyle={styles.rows}
         >
-          {revisions.map((revision) => (
+          {revisions.map((revision, index) => (
             <View
               key={revision.number}
-              style={[styles.revision, { borderColor: colors.rollpe_gray }]}
+              style={[
+                styles.revision,
+                index < revisions.length - 1 && {
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.rollpe_gray,
+                },
+              ]}
             >
               <View style={styles.heading}>
                 <View style={[styles.swatch, { backgroundColor: revision.color }]} />
@@ -140,7 +146,7 @@ const styles = StyleSheet.create({
   failure: { flex: 1, justifyContent: 'center', gap: 20 },
   list: { marginTop: 28, borderWidth: 2, borderRadius: 16 },
   rows: { paddingHorizontal: 16, paddingVertical: 4 },
-  revision: { paddingVertical: 16, borderBottomWidth: 1 },
+  revision: { paddingVertical: 16 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   swatch: {
     width: 20,

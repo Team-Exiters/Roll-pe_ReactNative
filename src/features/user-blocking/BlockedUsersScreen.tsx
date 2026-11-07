@@ -138,7 +138,7 @@ export default function BlockedUsersScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={[styles.row, { borderBottomColor: colors.rollpe_gray }]}>
+          <View style={styles.row}>
             <View style={styles.identity}>
               <Text style={[styles.name, { color: colors.rollpe_secondary }]}>{item.name}</Text>
               <Text style={[styles.code, { color: colors.rollpe_secondary }]}>
@@ -153,6 +153,9 @@ export default function BlockedUsersScreen() {
               onPress={() => setSelected(item)}
             />
           </View>
+        )}
+        ItemSeparatorComponent={() => (
+          <View style={[styles.separator, { backgroundColor: colors.rollpe_gray }]} />
         )}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -212,8 +215,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     paddingVertical: 20,
-    borderBottomWidth: 1,
   },
+  separator: { height: 1 },
   identity: { flex: 1, gap: 4 },
   name: { fontFamily: RollpeFonts.display, fontSize: 20 },
   code: { fontFamily: RollpeFonts.display, fontSize: 14 },
