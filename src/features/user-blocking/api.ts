@@ -17,10 +17,10 @@ export async function fetchBlockedUsers(page = 1, signal?: AbortSignal): Promise
         !isRecord(value) ||
         !isPositiveInteger(value.id) ||
         typeof value.name !== 'string' ||
-        typeof value.identifyCode !== 'string'
+        !(value.identifyCode === null || typeof value.identifyCode === 'string')
       )
         throw new Error(t('blocking.loadFailed'));
-      return { id: value.id, name: value.name, identifyCode: value.identifyCode };
+      return { id: value.id, name: value.name, identifyCode: value.identifyCode ?? '' };
     },
     [(value) => value.id],
     t('blocking.loadFailed'),
